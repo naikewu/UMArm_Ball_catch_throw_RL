@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Putting a Proportional Board on a Synchronised CAN Bus</title>
+<style>
+  @page { size: letter; margin: 0.62in; }
+  :root {
+    --ink: #1a1f2b; --muted: #5b6472; --rule: #c9cfd9; --accent: #2563a8;
+    --warm: #b4531f; --good: #2f7d55; --plum: #6b3fa0; --tint: #f4f6fa;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: #f0f1f4; color: var(--ink);
+    font: 8.7pt/1.32 "Source Serif 4", Georgia, "Times New Roman", serif;
+  }
+  .sheet {
+    max-width: 7.26in; margin: 0.4in auto; padding: 0.4in 0.45in 0.35in;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.14);
+  }
+  h1 { font-size: 15pt; line-height: 1.2; margin: 0 0 .14em; letter-spacing: -.01em; }
+  .sub { font-size: 9.8pt; color: var(--muted); margin: 0 0 .45em; font-style: italic; }
+  .meta { font-size: 7.9pt; color: var(--muted); border-bottom: 1.5px solid var(--ink);
+          padding-bottom: .45em; margin-bottom: .85em; }
+  /* Two columns for running text, with every figure and table spanning both.
+     A figure that is 6.9 in wide says far more than one squeezed into 3.3 in,
+     and the prose between them is what has to give way. */
+  .body { column-count: 2; column-gap: 0.26in; }
+  .body > figure, .body > table, .body > .wide { column-span: all; }
+  h2 { font-size: 9.8pt; margin: .62em 0 .22em; letter-spacing: .01em;
+       font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+       break-after: avoid; }
+  h2 .n { color: var(--accent); margin-right: .45em; }
+  p { margin: 0 0 .42em; text-align: justify; hyphens: auto; }
+  .abstract { background: var(--tint); border-left: 2.5px solid var(--accent);
+              padding: .5em .7em; margin: 0 0 .75em; font-size: 8.7pt; }
+  .abstract p { margin: 0; }
+  figure { margin: .45em 0 .5em; page-break-inside: avoid; }
+  figure img { width: 100%; display: block; border: 1px solid var(--rule); border-radius: 3px;
+               background: #fff; }
+  figcaption { font-size: 7.6pt; color: var(--muted); margin-top: .32em; text-align: left;
+               line-height: 1.38; }
+  figcaption b { color: var(--ink); }
+  table { border-collapse: collapse; width: 100%; font-size: 7.9pt; margin: .3em 0 .42em;
+          font-family: "Inter", "Segoe UI", system-ui, sans-serif; }
+  th, td { text-align: left; padding: .2em .4em; border-bottom: 1px solid var(--rule); }
+  thead th { border-bottom: 1.4px solid var(--ink); font-size: 8pt; text-transform: uppercase;
+             letter-spacing: .04em; color: var(--muted); }
+  td.num { font-variant-numeric: tabular-nums; font-family: ui-monospace, Consolas, monospace; }
+  td.good { color: var(--good); font-weight: 600; }
+  code, kbd { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 8pt; }
+  ul { margin: .12em 0 .4em; padding-left: .95em; }
+  li { margin-bottom: .12em; }
+  .caution { border-left: 2.5px solid var(--warm); background: #fdf6f0;
+             padding: .4em .6em; font-size: 8.4pt; margin: .38em 0; }
+  .caution b { color: var(--warm); }
+  .note { border-left: 2.5px solid var(--plum); background: #f7f4fb;
+          padding: .45em .65em; font-size: 8.5pt; margin: .45em 0; }
+  .note b { color: var(--plum); }
+  .term { border-bottom: 1px dotted var(--accent); color: var(--accent); cursor: help;
+          position: relative; outline: none; }
+  .term .tip {
+    visibility: hidden; opacity: 0; position: absolute; left: 50%; bottom: 1.5em;
+    transform: translateX(-50%) translateY(4px); width: 250px; z-index: 20;
+    background: var(--ink); color: #f4f6fa; font-size: 8.3pt; line-height: 1.42;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif; text-align: left;
+    padding: .5em .6em; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.28);
+    transition: opacity .12s ease, transform .12s ease; font-style: normal;
+  }
+  .term .tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px;
+                      border: 5px solid transparent; border-top-color: var(--ink); }
+  .term:hover .tip, .term:focus .tip, .term:focus-within .tip {
+    visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+  @media print {
+    body { background: #fff; }
+    .sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+    .term { color: var(--ink); border-bottom: none; }
+    .term .tip { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<h1>Putting a Proportional Board on a Synchronised CAN Bus</h1>
+<p class="sub">Firmware architecture, protocol and control law for the TLE board in a mixed
+24-actuator system</p>
+<div class="meta">
+  ESP32-S3 &middot; <span class="term" tabindex="0">MCP25625<span class="tip">Microchip's CAN
+  controller and transceiver in one package: an MCP2515 protocol engine plus a line driver.
+  Classic CAN 2.0B only. Two receive buffers, three transmit buffers.</span></span> &middot;
+  <span class="term" tabindex="0">TLE92464ED<span class="tip">Infineon four-channel constant-current
+  solenoid driver. Each channel is commanded as a 7-bit current code over SPI; the part regulates
+  the coil current itself.</span></span> &middot; 2 &times; Clippard DVP proportional valves
+  &middot; <span class="term" tabindex="0">LTC1864<span class="tip">16-bit successive-approximation
+  ADC, read over SPI. Sampled here at 3&nbsp;kHz and filtered down to the 750&nbsp;Hz control
+  rate.</span></span> &middot; firmware 1.46 + CAN layer
+  <br>Every number below is measured on the bench hardware, not estimated.
+</div>
+
+<div class="abstract">
+<p><b>Summary.</b> A robot arm runs 24 pneumatic actuators from one CAN bus at 150&nbsp;Hz. Its
+top eight actuators are being replaced with a proportional-valve manifold on a new board, while
+the lower sixteen keep their original on/off boards. The two must share a wire, a host and a
+synchronisation edge. The work reported here adds an old-protocol-compatible layer to the new
+board's firmware, alongside the richer command set the proportional controller needs, and a
+broadcast firmware-update path that flashes every board on the bus from one stream. Measured on
+hardware: 3000 of 3000 sync edges answered over 20&nbsp;s, reply latency 1.07&nbsp;ms median and
+1.91&nbsp;ms worst, host cycle jitter 0.001&nbsp;ms at the 95th percentile, and a 324&nbsp;kB
+image broadcast in 21.9&nbsp;s with no retransmission. Three defects were found and fixed on the
+way, all of them already present in the firmware and latent because no path had exercised it on a
+live bus.</p>
+</div>
+
+<div class="body">
+
+<h2><span class="n">1</span>The problem</h2>
+<p>The existing system is a solved one: sixteen boards driving 7&nbsp;mm on/off valves, eight
+driving larger DT valves, all answering a PC backend that owns a 150&nbsp;Hz cycle. Replacing the
+top eight with proportional control does not get to renegotiate any of it. So the protocol is not
+a design choice here; it is a constraint, reproduced byte for byte.</p>
+<p>What <em>is</em> a choice is where to put everything a proportional board has to say that will
+not fit in a two-byte frame. It goes to an identifier of its own,
+<code>base&nbsp;+&nbsp;0x400</code>, which no old board listens to and no part of the old protocol
+uses.</p>
+
+<figure>
+  <img src="figures/bus.svg" alt="The shared CAN bus with eight TLE boards and sixteen legacy boards">
+  <figcaption><b>Figure 1. The bus.</b> One wire, 1&nbsp;Mbit/s, 11-bit identifiers, 120&nbsp;R at both ends. The host is the only clock. Each cycle it packs 24 targets
+  into 8 frames, then sends a zero-length frame on 0x090 &mdash; the sync edge. Every addressed
+  board promotes its staged target and latches the pressure it will report in the same handler, so
+  one row of host data is one instant across the whole arm, even though the replies arrive spread
+  over the following millisecond and a half.</figcaption>
+</figure>
+
+<h2><span class="n">2</span>What runs where</h2>
+<p>Everything hangs off one 6&nbsp;kHz timer. The sampler, the control law and the valve update
+must hold a fixed phase relationship, and three free-running timers would drift apart; dividing one
+tick makes that impossible by construction, and the divisors are checked at compile time.</p>
+<p>The cores split along the two SPI buses, which on this board are physically separate. That is
+what makes the split worth having: a burst of CAN frames cannot delay a valve update, and a slow
+ADC transaction cannot delay the sync edge.</p>
+
+<figure>
+  <img src="figures/cores.svg" alt="ESP32-S3 task and core map">
+  <figcaption><b>Figure 2. Tasks, cores and rates.</b> A late control step costs one 1.3&nbsp;ms
+  period of regulation; a late sync edge costs the whole arm its notion of <em>now</em>. Hence the
+  priority order. The two lowest tasks exist to be starved &mdash; a multi-second ADC dump must
+  never delay anything above it.</figcaption>
+</figure>
+
+<h2><span class="n">3</span>The cycle</h2>
+<p>A board does nothing with a target when it arrives. Commands are staged; the sync edge promotes
+them, and in the same handler the board latches its filtered pressure. That latched value is what
+the reply carries, deliberately decoupled from when the reply is transmitted, so replies arriving
+at different times still describe one instant.</p>
+<p>Nothing staggers the replies. Every addressed board answers at once and CAN arbitration sorts
+them out, ordering them by identifier: on the reference 24-board system that spread ran from
+2.04&nbsp;ms at 0x101 to 3.49&nbsp;ms at 0x118, about 65&nbsp;&micro;s per identifier step. The
+one-board figure below should be added to that spread, not compared with it.</p>
+
+<figure>
+  <img src="figures/cycle.svg" alt="One 150 Hz cycle drawn to scale">
+  <figcaption><b>Figure 3. One cycle, to scale.</b> Measured over 1500 consecutive cycles. The host
+  receive window closes at 82&nbsp;% of the period &mdash; the value the original 24-board backend
+  uses &mdash; leaving 1.2&nbsp;ms of margin to keep the next transmit on schedule.</figcaption>
+</figure>
+
+<div class="caution">
+<b>This latency is easy to measure wrongly.</b> The first host reader used a blocking serial read
+with a 5&nbsp;ms timeout. Such a read waits out its whole timeout whenever fewer bytes are
+available than were asked for, so arrivals were batched onto a 5&nbsp;ms beat and stamped at the
+end of it. That beat is uncorrelated with the 6.67&nbsp;ms cycle, so latency smeared uniformly
+across the period and 41&nbsp;% of replies looked like they had missed their window. Nothing was
+being lost &mdash; all 1200 arrived. Polling <code>in_waiting</code> instead moved the median from
+3.31&nbsp;ms to 1.07&nbsp;ms.
+</div>
+
+<h2><span class="n">4</span>Protocol and bus load</h2>
+<p>Pressure on the wire is a 12-bit field, which is what the original 12-bit ADC boards report
+directly. This board's sensor path is 16-bit, so the compact value is the raw reading shifted right
+by four: one count is 0.0165&nbsp;psi, finer than the old boards' resolution and about a third of
+this controller's default deadband. Absolute pressure still comes from the host's per-actuator
+calibration, as it does for the old boards &mdash; a replacement actuator needs recalibrating
+anyway, since sensor and plumbing both change.</p>
+
+<figure>
+  <img src="figures/protocol.svg" alt="CAN identifier map and frame layouts">
+  <figcaption><b>Figure 4. Identifiers and frames.</b> Everything except the last row is the
+  original protocol, unchanged. <code>base&nbsp;+&nbsp;0x400</code> is new. Over USB, where nothing
+  is shared, the new command set keeps its original identifier so every existing bench tool still
+  works.</figcaption>
+</figure>
+
+<p>Bitrate is a property of the wire, not a per-board choice, and the sixteen existing boards are
+built for 1&nbsp;Mbit/s. The load calculation agrees on the merits: at 500&nbsp;kbit/s the worst
+case leaves no room for retransmission, diagnostics or an update running alongside.</p>
+
+<table class="wide">
+<thead><tr><th>Bus load per 150 Hz cycle</th><th>1&nbsp;Mbit/s</th><th>500&nbsp;kbit/s</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>24 boards (8 table frames + 1 sync + 24 replies)</td><td class="num">37&ndash;44&nbsp;%</td><td class="num">73&ndash;89&nbsp;%</td><td class="good">1&nbsp;Mbit/s required</td></tr>
+<tr><td>8 TLE boards alone</td><td class="num">13&ndash;16&nbsp;%</td><td class="num">27&ndash;32&nbsp;%</td><td>either works</td></tr>
+</tbody>
+</table>
+
+<h2><span class="n">5</span>The control law</h2>
+<p>The proportional loop runs at 750&nbsp;Hz in fixed point, from a trimmed window of the four
+3&nbsp;kHz samples taken since the last step. Every stage exists because of a measured behaviour of this plant: the gain
+schedule divides by measured pressure because loop gain rises with it; the soft zone fades P and I
+in near the target so a high proportional gain can hold the valve open through a slew without
+turning the hold into a limit cycle; the derivative damps the approach and fades inside the capture
+band so sensor noise does not become valve motion; the feed-forward seed exists because this
+bladder leaks 2&ndash;3&nbsp;psi/s and the integral would otherwise rediscover that on every
+step.</p>
+
+<figure>
+  <img src="figures/controller.svg" alt="Signal path of the proportional pressure controller">
+  <figcaption><b>Figure 5. The loop.</b> The output stage is asymmetric because the valves are: the
+  inlet cracks at 80&nbsp;mA, the outlet has no real authority until 87&nbsp;mA, so each gets its
+  own open and maximum code. The firmware caps every host-supplied code at 116 (182.7&nbsp;mA): the coil budget is 120
+  (189&nbsp;mA) and four codes are held back for the hardware-dither overlay that rides on top of
+  the DC setpoint. Hardware dither
+  defaults to zero amplitude: in a closed loop it put a 150&nbsp;Hz line 27&times; the noise floor
+  into the feedback for no measurable stiction benefit.</figcaption>
+</figure>
+
+<h2><span class="n">6</span>Firmware update</h2>
+<p>The image is broadcast once and every selected board writes it; only start, progress poll and
+finish are addressed individually. Boards stay silent through the stream &mdash; eight of them
+acknowledging every frame would put eight frames on the bus for each one the host sends. Progress
+is read back at each 896-byte block boundary, and a board that fell behind is topped up over its
+own unicast identifier before the next block starts.</p>
+
+<div class="caution">
+<b>Two guards matter more than the throughput.</b> An update is irreversible once a board writes
+it, so the host refuses to broadcast unless the image's own project descriptor names the board
+type every selected board reported. An ID-range check is not enough: the sixteen 7 mm boards
+accept a TLE image just as readily, and all sixteen would leave the bus until each was
+reflashed by hand. Separately, a USB flash rewrites otadata with the application, because the
+application offset is the factory partition while an update writes a spare slot &mdash; without
+that, flashing a board that has ever been updated over CAN leaves it running the old image.
+</div>
+
+<figure>
+  <img src="figures/ota.svg" alt="Broadcast OTA sequence">
+  <figcaption><b>Figure 6. Broadcast update.</b> A board's identifier lives in the NVS partition,
+  which sits below the application in the flash layout; neither an update nor a USB flash writes
+  anywhere near it, so neither can rename a board.</figcaption>
+</figure>
+
+<div class="caution">
+<b>Do not batch frames into one write.</b> The obvious optimisation &mdash; several frames per USB
+transaction &mdash; breaks the transfer completely. Frames written together reach the wire back to
+back, and broadcast image data all arrives on one identifier, which a board filters into a single
+receive buffer; it then has one frame time to read each out over SPI. Measured on one 896-byte
+block: batches of 8 delivered 1 frame, batches of 4 delivered 2, batches of 2 delivered 3, and one
+frame per write delivered all 128 &mdash; at a 300&nbsp;&micro;s offered gap, faster than any
+batched case. The gap has to be between frames, so the pacing has to be per frame.
+</div>
+
+<h2><span class="n">7</span>What was measured</h2>
+<table class="wide">
+<thead><tr><th>Quantity</th><th>Result</th><th>Conditions</th></tr></thead>
+<tbody>
+<tr><td>Sync edges answered</td><td class="num good">3000 / 3000</td><td>20&nbsp;s at 150&nbsp;Hz, one board</td></tr>
+<tr><td>Reply latency, median / p95 / max</td><td class="num">1.07 / 1.30 / 1.91&nbsp;ms</td><td>1500 cycles</td></tr>
+<tr><td>Host cycle jitter, p95 / max</td><td class="num">0.001 / 0.016&nbsp;ms</td><td>headless; 0.009 / 5.0&nbsp;ms with the GUI plotting</td></tr>
+<tr><td>Broadcast update</td><td class="num good">324&nbsp;kB in 21.9&nbsp;s</td><td>14.5&nbsp;kB/s, 363 blocks, 0 repairs</td></tr>
+<tr><td>Receive-buffer overflows / transmit failures</td><td class="num good">0 / 0</td><td>board's own counters, whole session</td></tr>
+<tr><td>Identifier across USB flash and update</td><td class="num good">unchanged</td><td>verified after both</td></tr>
+<tr><td>Bench checks passing</td><td class="num good">28 / 28</td><td><code>tools/tle_bench.py all</code></td></tr>
+</tbody>
+</table>
+
+<h2><span class="n">8</span>Three defects found on the way</h2>
+<table class="wide">
+<thead><tr><th>Defect</th><th>Why it mattered</th><th>Fix</th></tr></thead>
+<tbody>
+<tr>
+  <td>MCP2515 <code>RXnOVR</code> never cleared</td>
+  <td>The flags latch. An overrun buffer keeps rejecting frames until software clears it, silently
+  &mdash; the controller goes on acknowledging those frames in hardware, so the transmitter sees
+  success while the board hears nothing.</td>
+  <td>Cleared on an unconditional 100&nbsp;ms sweep. Recovery must never be gated on a condition
+  the fault itself removes.</td>
+</tr>
+<tr>
+  <td>One-shot transmission enabled</td>
+  <td>Added as a defence against a bus-less bench. On a populated bus every board answers the sync
+  edge at the same instant, so losing arbitration is routine, and a one-shot transmitter drops the
+  frame rather than retrying. Only the lowest-identifier board would have reported reliably.</td>
+  <td>Off. The bus-less case is left to the link breaker, which was written around retry-forever
+  semantics anyway.</td>
+</tr>
+<tr>
+  <td>Acknowledgement lost to a reboot</td>
+  <td>Replies are queued and drained at the end of the CAN task's pass, but a reboot runs inside
+  the receive handler, so the task never reaches its transmit slot. An update that completed
+  correctly on the board reported failure to the host.</td>
+  <td>Both reboot paths &mdash; finishing an update, setting an identifier &mdash; flush the queue
+  before restarting.</td>
+</tr>
+</tbody>
+</table>
+
+<h2><span class="n">9</span>One deliberate difference</h2>
+<p>The original firmware has no link-loss timeout: a board that stops hearing the host holds its
+last commanded pressure indefinitely. The new boards drop their outputs after 500&nbsp;ms without a
+sync edge &mdash; 75 missed cycles, which no healthy host produces. Expect the eight new boards to
+release and the sixteen old ones to hold.</p>
+
+<h2><span class="n">10</span>Reproducing this</h2>
+<p>Firmware is the repository root project, host code is under <code>TLE_PCB/</code>, and every
+figure comes from <code>docs/make_figures.py</code>.</p>
+<ul>
+<li><code>idf.py build</code>, then <code>idf.py -p COM8 flash</code></li>
+<li><code>tools/tle_bench.py all --image &hellip;</code> &mdash; the 28 checks above</li>
+<li><code>VEMA_TLE_flash.py</code>, <code>VEMA_TLE_controller.py</code></li>
+</ul>
+
+</div>
+
+</div>
+</body>
+</html>

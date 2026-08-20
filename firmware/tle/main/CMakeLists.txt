@@ -1,0 +1,21 @@
+idf_component_register(
+    SRCS
+        "pressure_controller.c"
+        "max22200.c"
+        "tle92464.c"
+        "solenoid.c"
+        "tle_verify.c"
+        "ltc1864.c"
+        "mcp2515_min.c"
+        "shared_spi_bus.c"
+        "can_ota.c"
+        "tle_can_legacy.c"
+        "usb_link.c"
+    PRIV_REQUIRES
+        driver
+        esp_adc
+        esp_timer
+        app_update
+        nvs_flash
+    INCLUDE_DIRS "."
+)

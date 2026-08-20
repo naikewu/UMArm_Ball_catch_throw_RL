@@ -1,0 +1,11 @@
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+# CONFIG_PARTITION_TABLE_SINGLE_APP is not set
+CONFIG_PARTITION_TABLE_TWO_OTA=y
+CONFIG_PARTITION_TABLE_FILENAME="partitions_two_ota.csv"
+# 1 ms FreeRTOS tick: the CAN fallback wait and valve service period are 1 ms
+CONFIG_FREERTOS_HZ=1000
+# USB-Serial/JTAG is the primary console: logs and USB control-link frames
+# share one FILE-locked stdout writer (line-atomic, bounded TX). UART0 unused.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
