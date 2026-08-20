@@ -36,7 +36,9 @@ from __future__ import annotations
 
 import queue
 import sys
+import time
 import tkinter as tk
+from collections import deque
 from pathlib import Path
 from tkinter import ttk
 
@@ -59,7 +61,10 @@ REFRESH_MS = 100
 # looks and how often a sync edge goes out late. A late edge stretches one
 # cycle; it does not desynchronise the boards, since they all latch on whatever
 # edge arrives -- but it is still worth not doing four times a second.
-PLOT_MS = 250
+PLOT_MS = 500   # was 250; at 24 boards even the set_data redraw costs the
+                # 150 Hz cycle ~10 Hz at 4 Hz refresh (measured 2026-08-20,
+                # hw_tests/report_integrated §11) — 2 Hz halves that for a
+                # monitoring plot nobody reads faster
 PLOT_WINDOW_S = 30.0
 BITRATES = {"1 Mbit/s": 1_000_000, "500 kbit/s": 500_000}
 TARGET_MAX_PSI = 40.0
@@ -235,6 +240,13 @@ class ControllerApp:
         # and its trace in the plot are the same colour whatever else is
         # selected or has history.
         self.node_colour: dict[int, str] = {}
+        # (monotonic time, cycles) samples, one per refresh, so the status line
+        # can report the rate the cycle is ACHIEVING rather than the rate it was
+        # asked for. Two seconds of them at REFRESH_MS: long enough that the
+        # quotient is not dominated by which side of a 6.7 ms period each sample
+        # landed on, short enough to follow a real change.
+        self._rate_marks: deque[tuple[float, int]] = deque(
+            maxlen=max(2, int(2000 / REFRESH_MS)))
 
         self._build()
         self.refresh_ports()
@@ -340,6 +352,12 @@ class ControllerApp:
         self.axes.set_ylabel("psi")
         self.axes.grid(alpha=0.3)
         self.figure.tight_layout()
+        # Persistent Line2D pairs per board, updated with set_data. Measured on
+        # the real 24-board bus (2026-08-20, hw_tests/report_integrated): a
+        # clear()-and-replot cycle at 4 Hz cost the 150 Hz sync master 13.5 Hz;
+        # reusing the artists is where that goes.
+        self._plot_lines: dict[int, tuple] = {}
+        self._plot_axes_ready = False
         self.canvas = FigureCanvasTkAgg(self.figure, master=frame)
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
         self.series: dict[int, tuple] = {}
@@ -614,11 +632,18 @@ class ControllerApp:
 
             stats = self.backend.stats
             if self.backend.running:
-                rate = P.CYCLE_HZ
+                # MEASURED, not P.CYCLE_HZ. Printing the constant put "150 Hz"
+                # on screen while the cycle thread was being held off the CPU by
+                # this window's own redraw and the bus was actually being driven
+                # at 132 Hz -- the one number on the line that was not a
+                # measurement was the one an operator would trust first.
+                self._rate_marks.append((time.monotonic(), stats.cycles))
+                rate = self._measured_hz()
                 total = stats.replies + stats.misses
                 good = stats.replies / total * 100 if total else 0.0
                 self.status_var.set(
-                    f"{rate:.0f} Hz   cycles {stats.cycles}   "
+                    (f"{rate:.1f} Hz" if rate is not None else "-- Hz")
+                    + f" (asked {P.CYCLE_HZ:.0f})   cycles {stats.cycles}   "
                     f"jitter p95 {stats.jitter_ms_p95:.3f} ms / max {stats.jitter_ms_max:.3f} ms   "
                     f"late {stats.late_cycles}   replies {good:.2f} %   "
                     f"bus load ~{P.bus_load(len(self.backend.selected), 0) * 100:.1f} %")
@@ -627,8 +652,21 @@ class ControllerApp:
                     self.status_var.set(self.status_var.get() +
                                         "   SILENT: " + ", ".join(f"0x{b:03X}" for b in missing))
             else:
+                self._rate_marks.clear()
                 self.status_var.set("connected, cycle stopped")
         self.root.after(REFRESH_MS, self._refresh)
+
+    def _measured_hz(self) -> float | None:
+        """Cycles per second across the samples held, or None until there are two.
+
+        The difference across the window rather than ``cycles / uptime``: the
+        cumulative figure would keep reporting a healthy rate for a minute after
+        the cycle started missing its period.
+        """
+        if len(self._rate_marks) < 2:
+            return None
+        (t0, c0), (t1, c1) = self._rate_marks[0], self._rate_marks[-1]
+        return (c1 - c0) / (t1 - t0) if t1 > t0 else None
 
     def _replot(self) -> None:
         if self.backend is not None and self.node_widgets:
@@ -637,32 +675,55 @@ class ControllerApp:
             for base, var in self.selected.items():
                 if not var.get():
                     continue
-                history = self.backend.history(base)
+                # Decimated at the source, under the backend's lock: one point
+                # per pixel column is all the plot can show anyway, and copying
+                # 9000 samples per board out of the lock cost the cycle thread
+                # a measured 2.8 Hz on the 24-board bus.
+                history = self.backend.history(base, max_points=900)
                 if history:
                     histories[base] = history
                     newest = max(newest, history[-1][0])
 
-            self.axes.clear()
-            self.axes.set_xlabel("seconds before now")
-            self.axes.set_ylabel("psi")
-            self.axes.grid(alpha=0.3)
-            for base, history in histories.items():
-                colour = self.node_colour.get(base, SERIES_COLOURS[0])
-                # 150 Hz over 30 s is 4500 points per board, redrawn several
-                # times a second, on the thread that also has to keep the
-                # cycle's scheduling honest. One point per pixel column is all
-                # the plot can show anyway.
-                step = max(1, len(history) // 900)
-                sample = history[::step]
-                times = [h[0] - newest for h in sample]   # 0 is now, so the axis reads -30..0
-                self.axes.plot(times, [h[1] for h in sample], color=colour, lw=1.2,
-                               label=f"0x{base:03X}")
-                self.axes.plot(times, [h[2] for h in sample], color=colour, lw=0.8,
-                               ls="--", alpha=0.6)
-            if histories:
+            if not self._plot_axes_ready:
+                self.axes.set_xlabel("seconds before now")
+                self.axes.set_ylabel("psi")
                 self.axes.set_xlim(-PLOT_WINDOW_S, 0.0)
-                self.axes.legend(loc="upper left", fontsize=8, ncol=4)
-            self.figure.tight_layout()
+                self.figure.tight_layout()
+                self._plot_axes_ready = True
+
+            legend_dirty = False
+            for base in [b for b in self._plot_lines if b not in histories]:
+                solid, dashed = self._plot_lines.pop(base)
+                solid.remove()
+                dashed.remove()
+                legend_dirty = True
+            for base, history in histories.items():
+                times = [h[0] - newest for h in history]   # 0 is now: axis reads -30..0
+                measured = [h[1] for h in history]
+                target = [h[2] for h in history]
+                lines = self._plot_lines.get(base)
+                if lines is None:
+                    colour = self.node_colour.get(base, SERIES_COLOURS[0])
+                    solid, = self.axes.plot(times, measured, color=colour, lw=1.2,
+                                            label=f"0x{base:03X}")
+                    dashed, = self.axes.plot(times, target, color=colour, lw=0.8,
+                                             ls="--", alpha=0.6)
+                    self._plot_lines[base] = (solid, dashed)
+                    legend_dirty = True
+                else:
+                    solid, dashed = lines
+                    solid.set_data(times, measured)
+                    dashed.set_data(times, target)
+            if legend_dirty:
+                legend = self.axes.get_legend()
+                if legend is not None:
+                    legend.remove()
+                if histories:
+                    self.axes.legend(loc="upper left", fontsize=8, ncol=4)
+            if histories:
+                # set_data does not autoscale; recompute y only, x is pinned.
+                self.axes.relim(visible_only=True)
+                self.axes.autoscale_view(scalex=False)
             self.canvas.draw_idle()
         self.root.after(PLOT_MS, self._replot)
 

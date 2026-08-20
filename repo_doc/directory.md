@@ -5,15 +5,17 @@ One line per place. Check here first; fix here in the same change that makes it 
 The robot: a ceiling-hung 24-actuator pneumatic UMArm on a 1 Mbit/s CAN bus reached
 through a CANable 2.0 slcan dongle (VID:PID 16D0:117E, currently COM58). Top 8
 actuators = TLE92464/DVP boards at `0x101–0x108`; lower 16 = legacy 7 mm boards at
-`0x109–0x118`. Mocap rigid bodies 2000–2005; RS485 sister arm and Kinova Gen3
-(body 1008) share the Motive volume at 192.168.1.100.
+`0x109–0x118`. Mocap rigid bodies **briefed as** 2000–2005 — still UNVERIFIED:
+the 2026-08-20 live census saw no NatNet stream at all (Motive host up, its
+streaming engine not serving), so the 500 / 1000 / 2000 id dispute is open. RS485
+sister arm and Kinova Gen3 (body 1008) share the Motive volume at 192.168.1.100.
 
 ## Root
 
 | file | what it does |
 |---|---|
 | `bench_env.py` | the single source of ports/IPs/interpreters: CAN dongle resolved by USB identity, mocap/Kinova IPs, IDF env incantation |
-| `canarm_control_gui.py` | **the operator GUI**: TLE controller (all 24 boards) + mocap status strip + spawned MuJoCo room viewer. `--self-test` opens no port |
+| `canarm_control_gui.py` | **the operator GUI**: TLE controller (all 24 boards) + mocap status strip + spawned MuJoCo room viewer. `--self-test` opens no port. KNOWN COST: its 24-board pressure plot holds the cycle to 130–135 Hz instead of 150 (measured 2026-08-20; the boards still answer every edge) |
 | `requirements.txt` | workspace deps; base Python 3.13 already has all but `python-can` |
 | `.venv/` | workspace venv (3.13 + system site-packages + python-can). `.venv_kinova/` is the protobuf-3.5.1 quarantine — rebuild via `UMArm_KINOVA/setup_env.py` |
 
@@ -52,6 +54,13 @@ actuators = TLE92464/DVP boards at `0x101–0x108`; lower 16 = legacy 7 mm board
 | path | what is there |
 |---|---|
 | `hw_tests/` | hardware-in-the-loop test scripts and dated result reports (CAN bring-up, OTA, mocap, Kinova) |
+| `hw_tests/can_bringup.py` | **CAN acceptance, read-only**: discovery + variant check, CAN diagnostics before/after, a 60 s 150 Hz soak with every enable bit clear, port-release check. Emits no OTA/set-ID/enable frame under any argument and asserts the enable bits are clear in the table before starting. 15/15 on 2026-08-20 |
+| `hw_tests/integrated_gui_test.py` | **operator-GUI acceptance, read-only**: drives the real `canarm_control_gui.py` window against the live arm — connect/scan/cycle, mocap strip sim+live, spawned viewer for 60 s, target staged with the enable bit clear, port release. `--phase profile` gates the window's two periodic jobs on and off to attribute the cycle-rate loss. 28/29 on 2026-08-20; the one failure is the plot's cost, not the bus |
+| `hw_tests/media/` | screenshots from the GUI tests (window, viewer, staged target) |
+| `hw_tests/results/` | dated machine-readable records from the above (`can_bringup_2026-08-20.json` + per-board `.md` table; `_drained_rx` is the 30 s host-RX-queue control run; `integrated_gui_2026-08-20.json` + `_profile_`) |
+| `hw_tests/mocap_census.py` | **run this first** — wide-open NatNet receiver, enumerates every rigid-body id with per-id rates; settles which block belongs to which arm |
+| `hw_tests/canarm_mocap_live.py` | CAN-arm q health + per-body dropouts + the five plate-gap chain measurement + room roster; `--sim` rehearses it without cameras |
+| `hw_tests/mocap_wire_probe.py`, `mocap_sniff.py`, `mocap_discover.py` | below-the-SDK diagnostics for "run() returned true but no frames": raw multicast/unicast sockets, NAT_PING, all-interface port sweep |
 
 ## Source repos (read-only references)
 

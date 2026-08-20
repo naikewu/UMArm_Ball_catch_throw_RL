@@ -1,10 +1,42 @@
 """Receivers bound to the CAN UMArm's block of Motive rigid bodies.
 
 The CAN UMArm streams **six** rigid bodies, ids **2000 to 2005**, base to tip,
-per the 2026-08-20 brief.  That number is **TO BE VERIFIED LIVE AGAINST MOTIVE**
-and nothing in this workspace has yet seen a frame from those cameras.  It is
-written here as a named constant rather than spread through the receiver so
-that settling it later is one edit in one file.
+per the 2026-08-20 brief.  That number is **STILL TO BE VERIFIED LIVE AGAINST
+MOTIVE**: a verification session was attempted on 2026-08-20 and could not
+settle it, because no NatNet stream reached this PC at all.  The id is written
+here as a named constant rather than spread through the receiver so that
+settling it later is one edit in one file.
+
+LIVE ATTEMPT, 2026-08-20 17:35-17:50, RESULT: **NO STREAM, ROSTER EMPTY.**
+``hw_tests/mocap_census.py`` opened a wide-open receiver -- one that routes no
+ids and drops nothing -- against ``server 192.168.1.100 / client 192.168.1.120 /
+multicast 239.255.42.99:1511`` and recorded **zero frames** over 10, 12 and 30 s
+windows.  The failure is below this package rather than inside it, and was
+localised in four passes, each of which rules out one explanation:
+
+* ``NatNetClient.run()`` returned true and sent NAT_CONNECT, so the client
+  bound its sockets and joined the group; the SDK is not the obstacle.
+* A raw multicast socket on 239.255.42.99:1511, and a unicast bind on the same
+  port, both saw **0 datagrams** -- so nothing was received and mis-parsed.
+* A **NAT_PING to 192.168.1.100:1510 drew no reply** across 30 s of repeats,
+  while ICMP to that host succeeds and its ARP entry is Reachable.  A NatNet
+  server answers a ping with a server-info packet whatever its streaming
+  settings, so the host is up and Motive's streaming engine is not serving.
+* The group was re-joined on **every** local IPv4 interface at once (the camera
+  NIC, the Wi-Fi, loopback) across data ports 1511-1513: still 0.  A join that
+  attached to the wrong interface is therefore excluded, and so is a moved data
+  port.  ``Get-NetNeighbor`` shows only ``192.168.1.100`` and the Kinova's
+  ``192.168.1.10`` on that subnet, so there is no second Motive host to have
+  found instead.
+
+Consequently the three-way id dispute below **remains open**, no CAN-arm ``q``
+has been observed, no plate-gap chain has been measured, and
+``UMArm_KINEMATICS.canarm_params.MEASURED`` is still ``False`` and must stay so.
+Re-run ``hw_tests/mocap_census.py`` first once Motive's Data Streaming pane is
+broadcasting again; ``hw_tests/canarm_mocap_live.py`` then does the rest.
+
+WHY THE BASE ID IS IN DOUBT.  Three sources disagree, and only Motive can
+arbitrate:
 
 WHY THE BASE ID IS IN DOUBT.  Three sources disagree, and only Motive can
 arbitrate:
@@ -20,7 +52,8 @@ arbitrate:
 
 Either the Motive project was renumbered since the 2026-08-11 recalibration and
 the RS485 repo is stale, or the brief's 1000-1005 is approximate.  The live
-check settles it.  Only the Kinova's **1008** is consistent across all three,
+check settles it, and the 2026-08-20 attempt above did not get to make it.
+Only the Kinova's **1008** is consistent across all three,
 and it keeps its own routing in :class:`~UMArm_MOCAP.mocap_rx.MocapRx`
 regardless of which arm a receiver is bound to.
 

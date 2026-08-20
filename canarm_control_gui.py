@@ -100,6 +100,7 @@ class CanArmControllerApp(VTC.ControllerApp):
         self._include_kinova = bool(include_kinova)
         super().__init__(root)
         root.title("CAN UMArm - controller and room view")
+        fit_to_work_area(root)
         # ONE after() pump per periodic job.  The base class owns two of them
         # (nodes and plot); this is the third and it is the only one this class
         # adds, rather than piggy-backing on _refresh, because the mocap strip
@@ -111,9 +112,30 @@ class CanArmControllerApp(VTC.ControllerApp):
         super()._build()
         self._build_room(self.root)
 
+    def _render_nodes(self, nodes) -> None:
+        """Re-fit after a scan, which is when the window's height is decided.
+
+        Twenty-four board rows are roughly 250 px more than the eight the base
+        window was laid out against, so the size that has to fit the desktop is
+        not known until the bus has been enumerated.
+        """
+        super()._render_nodes(nodes)
+        self.root.after_idle(lambda: fit_to_work_area(self.root))
+
     def _build_room(self, parent) -> None:
         frame = ttk.LabelFrame(parent, text="Room view (display only)", padding=6)
-        frame.pack(side="bottom", fill="x", padx=8, pady=(0, 8))
+        # BEFORE the inherited body, not after it.  ``pack`` hands out parcels
+        # in the order the widgets were packed, so when the window is shorter
+        # than the sum of its parts the last one packed is the one that gets
+        # nothing.  The inherited body is the expandable half and this strip is
+        # a fixed 48 px, so packing the strip first costs the body 48 px it can
+        # spare and guarantees the three fields that say whether mocap is live
+        # are on screen rather than under the taskbar.
+        slaves = parent.pack_slaves()
+        placing = {"side": "bottom", "fill": "x", "padx": 8, "pady": (0, 8)}
+        if slaves:
+            placing["before"] = slaves[0]
+        frame.pack(**placing)
 
         row = ttk.Frame(frame)
         row.pack(fill="x")
@@ -184,11 +206,35 @@ class CanArmControllerApp(VTC.ControllerApp):
 
     def _refresh_mocap(self) -> None:
         """Repaint the strip.  Reads snapshots only; never blocks."""
+        self._reap_viewer()
         try:
             self.mocap_status.set(_mocap_line(self._mocap, self._viewer_proc))
         except tk.TclError:                                  # pragma: no cover
             return
         self.root.after(MOCAP_MS, self._refresh_mocap)
+
+    def _reap_viewer(self) -> None:
+        """Notice a viewer the operator closed at its own window.
+
+        Closing the room window is the ordinary way to dismiss it, and nothing
+        told this process about it: the handle stayed non-None and the button
+        went on reading "Close viewer", so the next press spawned a *second*
+        viewer instead of closing the one that was already gone.  Joining the
+        dead child here also reaps it, rather than leaving the handle until
+        someone happens to press the button.
+        """
+        proc = self._viewer_proc
+        if proc is None or proc.is_alive():
+            return
+        proc.join(timeout=0.1)
+        self._viewer_proc = None
+        self._viewer_stop = None
+        try:
+            self.viewer_button.configure(text="Viewer")
+        except tk.TclError:                                  # pragma: no cover
+            pass
+        self.log(f"viewer closed at its own window (exit {proc.exitcode}); "
+                 f"the bus is untouched")
 
     # ---- viewer --------------------------------------------------------
     def toggle_viewer(self) -> None:
@@ -268,6 +314,65 @@ class CanArmControllerApp(VTC.ControllerApp):
 # Optional dependencies, each behind its own guard
 # ---------------------------------------------------------------------------
 
+def work_area() -> tuple[int, int, int, int] | None:
+    """The desktop rectangle a window may occupy, or None if it is unknown.
+
+    Tk clamps a window against ``winfo_screenheight``, i.e. the whole screen,
+    and has no notion of a taskbar.  On this bench that difference is 48 px on
+    a 1080 px display, and 48 px is exactly the height of the mocap strip -- so
+    the one widget that reports whether the room view is being fed live data
+    was the one sitting underneath the taskbar.  Windows-only and best-effort:
+    anywhere the call is unavailable this returns None and the caller leaves
+    the geometry alone.
+    """
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        rect = wintypes.RECT()
+        # SPI_GETWORKAREA = 0x0030
+        if not ctypes.WinDLL("user32").SystemParametersInfoW(
+                0x0030, 0, ctypes.byref(rect), 0):
+            return None
+        if rect.right <= rect.left or rect.bottom <= rect.top:
+            return None
+        return (rect.left, rect.top, rect.right, rect.bottom)
+    except Exception:
+        return None
+
+
+def fit_to_work_area(root) -> None:
+    """Shrink and nudge *root* so the whole window is on the visible desktop.
+
+    Only ever makes the window smaller than it asked to be, and only moves it
+    when its far edge would fall outside the work area, so an operator who has
+    placed the window somewhere keeps it there.  A display large enough for the
+    natural size is left completely untouched.
+    """
+    area = work_area()
+    if area is None:
+        return
+    left, top, right, bottom = area
+    try:
+        root.update_idletasks()
+        # ``wm geometry`` sizes the CLIENT area while the work area bounds the
+        # whole decorated window, and the title bar between them is 31 px here.
+        # Ignoring it puts the bottom 31 px back under the taskbar, which is
+        # the strip again.  The offset reads as zero until the window is
+        # mapped, which is why this is called again after the scan.
+        pad_y = max(0, root.winfo_rooty() - root.winfo_y())
+        pad_x = max(0, root.winfo_rootx() - root.winfo_x())
+        width = min(root.winfo_reqwidth(), right - left - 2 * pad_x)
+        height = min(root.winfo_reqheight(), bottom - top - pad_y)
+        x = min(max(root.winfo_x(), left), max(left, right - width - 2 * pad_x))
+        y = min(max(root.winfo_y(), top), max(top, bottom - height - pad_y))
+        # minsize otherwise vetoes the shrink on a small desktop.
+        root.minsize(min(root.minsize()[0], width), min(root.minsize()[1], height))
+        root.geometry(f"{width}x{height}+{x}+{y}")
+    except tk.TclError:                                      # pragma: no cover
+        pass
+
+
 def _build_mocap(kind: str):
     """A started receiver of the requested kind.
 
@@ -276,14 +381,27 @@ def _build_mocap(kind: str):
     routing, the quaternion conversion, ``mocap_to_q``, the publish-under-lock
     and the ring buffer are all the shipped code.  ``live`` opens a NatNet
     socket and is the only path here that touches the network.
+
+    BOTH BRANCHES RETURN THE RECEIVER, never whatever ``start()`` handed back.
+    The two ``start()`` methods disagree about that: ``CanArmSimStream.start``
+    returns ``self``, while ``MocapRx.start`` returns the ``NatNetClient`` it
+    just built.  Returning the client cost this window both of the things it
+    does with a receiver — ``get_state`` for the strip, which turned into
+    "mocap unreadable: AttributeError", and ``stop`` for the shutdown, which
+    turned into a warning and left the SDK's non-daemon threads running for the
+    rest of the session with no way to reach them.  Measured on the bench,
+    2026-08-20.
     """
     if kind == "sim":
         from UMArm_MOCAP.sim_stream import CanArmSimStream
-        return CanArmSimStream().start()
-    if kind == "live":
+        rx = CanArmSimStream()
+    elif kind == "live":
         from UMArm_MOCAP.canarm_mocap import CanArmMocap
-        return CanArmMocap().start()
-    raise ValueError(f"unknown mocap source {kind!r}")
+        rx = CanArmMocap()
+    else:
+        raise ValueError(f"unknown mocap source {kind!r}")
+    rx.start()
+    return rx
 
 
 def _mocap_line(rx, viewer_proc) -> str:
@@ -303,6 +421,16 @@ def _mocap_line(rx, viewer_proc) -> str:
                 # A row Motive has never filled is the identity the array was
                 # initialised with, and an unsolvable body streams as all zeros.
                 # Neither is a body that is visible.
+                #
+                # KNOWN UNDERCOUNT, and it is the sim's rather than this test's:
+                # ``sim_stream.plate_poses_from_q`` puts the base plate at the
+                # origin with an identity orientation by default, so its row is
+                # bit-identical to the never-filled sentinel and the strip reads
+                # "bodies 5" on a six-body synthetic stream.  A live base plate
+                # has a real pose and is counted.  Distinguishing the two for
+                # certain needs a per-body "seen this frame" counter on
+                # ``MocapRx``, which is what ``hw_tests/canarm_mocap_live.py``
+                # computes for itself; the strip settles for the heuristic.
                 if np.isfinite(t).all() and not np.allclose(t, np.eye(4)) \
                         and not np.allclose(t[0:3, 3], 0.0):
                     visible += 1

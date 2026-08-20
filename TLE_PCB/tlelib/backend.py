@@ -22,6 +22,7 @@ integral term without any of that traffic touching the real-time path.
 """
 from __future__ import annotations
 
+import itertools
 import threading
 import time
 from collections import deque
@@ -413,9 +414,22 @@ class Backend:
         with self._lock:
             return {base: copy.deepcopy(node) for base, node in sorted(self.nodes.items())}
 
-    def history(self, base: int) -> list[tuple[float, float, float]]:
+    def history(self, base: int,
+                max_points: int | None = None) -> list[tuple[float, float, float]]:
+        """Copy of a board's (t, measured_psi, target_psi) history.
+
+        ``max_points`` decimates *under the lock*: the full 60 s deque is 9000
+        samples per board, and copying all of them while holding the lock the
+        cycle thread needs to publish cost a measured 2.8 Hz on the 24-board
+        bus (hw_tests/report_integrated_2026-08-20.md §3). A display can only
+        show about one point per pixel column, so it should ask for ~900.
+        """
         with self._lock:
-            return list(self._history.get(base, ()))
+            hist = self._history.get(base, ())
+            if max_points is None or len(hist) <= max_points:
+                return list(hist)
+            step = max(1, len(hist) // max_points)
+            return list(itertools.islice(hist, 0, None, step))
 
     def missing_nodes(self) -> list[int]:
         now = time.perf_counter()
