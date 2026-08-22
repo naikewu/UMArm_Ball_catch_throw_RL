@@ -51,8 +51,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import mocap_constants as mc
-from .marker_frame import (FAMILY_PHI_RAD, PlateLock, compute_plate_lock,
-                           infer_all, q_from_frames)
+from .marker_frame import (FAMILY_PHI_RAD, PROXIMAL_ORDERS, PlateLock,
+                           compute_plate_lock, infer_all, q_from_frames)
 from .mocap_rx import MocapRx
 
 #: The plates ``q_from_frames`` needs.  Plate 6 (the end effector) is absent
@@ -124,8 +124,25 @@ class MarkerMocap(MocapRx):
     """
 
     def __init__(self, locks: dict, *, fallback_to_streamed: bool = False,
-                 **kwargs) -> None:
+                 phis=None, order: str = "xy", **kwargs) -> None:
         super().__init__(**kwargs)
+        #: Proximal-pair composition order handed to ``q_from_frames``.  Must
+        #: match whatever forward model consumes this ``q``; see
+        #: ``UMArm_KINEMATICS.fkine`` for why the CAN arm needs ``"yx"``.
+        self.order = str(order)
+        #: Per-plate bracket azimuths handed to
+        #: :func:`~UMArm_MOCAP.marker_frame.q_from_frames`; ``None`` means the
+        #: ``FAMILY_PHI_RAD`` defaults, which is the RS485 arm's answer.  The
+        #: CAN arm's brackets are 45 deg round from those (its marker arms lie
+        #: *along* the revolute axes, measured 2026-08-21), and a wrong azimuth
+        #: here does not fail — it yields a smooth, repeatable, wrong ``q`` —
+        #: so the parameter exists to make the choice explicit at the call site
+        #: rather than implicit in a module default.
+        self.phis = None if phis is None else np.asarray(phis, dtype=float)
+        if self.phis is not None and self.phis.shape != (len(REQUIRED_PLATES),):
+            raise ValueError(
+                f"phis must have shape ({len(REQUIRED_PLATES)},); "
+                f"got {self.phis.shape}")
         self.locks = {int(p): lk for p, lk in locks.items()}
         missing = [p for p in REQUIRED_PLATES if p not in self.locks]
         if missing:
@@ -154,7 +171,7 @@ class MarkerMocap(MocapRx):
         poses, valid, quality = infer_all(markers, flags, self.locks)
         q = None
         if all(bool(valid[p]) for p in REQUIRED_PLATES):
-            q = q_from_frames(poses)
+            q = q_from_frames(poses, self.phis, self.order)
 
         with self._solve_lock:
             st = self.stats

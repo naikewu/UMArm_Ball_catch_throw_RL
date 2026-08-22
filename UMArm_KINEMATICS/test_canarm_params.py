@@ -7,11 +7,12 @@ Two kinds of claim, and they are deliberately different in character:
    centre), read-only, and accepted by every ``fkine`` entry point without an
    edit to any of them.  That last point is the port's whole premise: nothing
    in ``fkine`` hard-codes a length.
-2. **Provenance**, which is the honest half — the lengths are placeholders and
-   the module says so loudly enough that a caller needing real numbers gets a
-   refusal rather than a plausible float.  When a live session finally measures
-   this arm, ``test_measured_flag_still_says_placeholder`` is the test that
-   fails and asks to be updated, which is the point of writing it.
+2. **Provenance**, which since 2026-08-21 is a measurement rather than a
+   placeholder.  The tests below pin what was measured and what was not: the
+   five u-joint centre distances came off the arm, the ``UC``/``AA``/``JA``/
+   ``AO`` columns are CAD numbers a mocap campaign cannot see, and the table
+   must reproduce ``CANARM_PLATE_CHAIN_M`` exactly — a table and a chain tuple
+   that disagree would be two answers to one question.
 """
 
 from __future__ import annotations
@@ -59,28 +60,40 @@ class TestStructure:
 
 
 class TestProvenance:
-    def test_measured_flag_still_says_placeholder(self):
-        """Fails the day someone measures the arm, which is when this file
-        needs its lengths and its citation updated together."""
-        assert cp.MEASURED is False
+    def test_the_lengths_are_measured_and_cited(self):
+        """``MEASURED`` and its citation move together or not at all."""
+        assert cp.MEASURED is True
+        assert "drive_2026-08-21" in cp.MEASURED_SOURCE
+        assert cp.require_measured() is cp.CANARM_PARAMS
 
-    def test_require_measured_refuses_and_names_the_work(self):
-        with pytest.raises(RuntimeError) as exc:
-            cp.require_measured()
-        assert "PLACEHOLDER" in str(exc.value)
-        assert "MEASURED" in str(exc.value)
+    def test_the_table_reproduces_the_measured_chain_exactly(self):
+        """The table and the chain tuple are two spellings of one measurement.
+        ``LL`` is derived as ``span - (AA1 + AA2)``, so the round trip has to
+        land on the same doubles; a mismatch means someone edited one of them."""
+        chain = rp.plate_chain_m(cp.CANARM_PARAMS)
+        assert np.allclose(chain, cp.CANARM_PLATE_CHAIN_M, atol=5e-7)
 
-    def test_the_lengths_are_the_rs485_table_scaled(self):
-        """Stated as a test so the placeholder cannot drift into looking like
-        an independent measurement."""
-        expected = np.array(rp.DEFAULT_PARAMS, dtype=float)
-        for col in cp.LENGTH_COLUMNS:
-            expected[:, col] *= cp.PLACEHOLDER_SCALE
-        assert np.array_equal(cp.CANARM_PARAMS, expected)
+    def test_it_is_not_the_rs485_table_in_disguise(self):
+        """The placeholder this file used to carry was exactly that, and it put
+        the last u-joint centre 182 mm from where the cameras see it."""
+        assert not np.allclose(cp.CANARM_PARAMS[:, rp.COL_LL],
+                               rp.DEFAULT_PARAMS[:, rp.COL_LL], atol=1e-3)
+        legacy_chain = rp.plate_chain_m(rp.DEFAULT_PARAMS)
+        assert abs(sum(cp.CANARM_PLATE_CHAIN_M) - sum(legacy_chain)) > 0.15
 
-    def test_the_non_length_columns_ride_along_untouched(self):
-        """``JA*``/``AO*`` are consumed by neither ``fkine`` nor a scale
-        factor; they exist so a row can go to the legacy oracle intact."""
-        for col in (rp.COL_JA1, rp.COL_JA2, rp.COL_AO1, rp.COL_AO2):
+    def test_it_agrees_with_the_research_tree_to_two_millimetres(self):
+        """The substantive finding: the legacy CAN table was right.  Stated as
+        a bound rather than an equality because the measurement is the
+        authority and the CAD table is the corroboration, not the other way
+        round."""
+        legacy = rp.plate_chain_m(cp.LEGACY_CANARM_PARAMS)
+        diff = np.abs(np.array(cp.CANARM_PLATE_CHAIN_M) - np.array(legacy))
+        assert diff.max() < 2e-3, diff
+
+    def test_the_cad_columns_match_the_research_tree_exactly(self):
+        """``UC``/``AA``/``JA``/``AO`` are transcribed, not fitted; only ``LL``
+        and ``JD`` carry the measurement."""
+        for col in (rp.COL_JA1, rp.COL_JA2, rp.COL_UC1, rp.COL_UC2,
+                    rp.COL_AA1, rp.COL_AA2, rp.COL_AO1, rp.COL_AO2):
             assert np.array_equal(cp.CANARM_PARAMS[:, col],
-                                  rp.DEFAULT_PARAMS[:, col])
+                                  cp.LEGACY_CANARM_PARAMS[:, col]), col

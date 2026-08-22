@@ -871,7 +871,42 @@ def infer_all(frame_markers, frame_flags, locks: dict,
 # --------------------------------------------------------------------------
 
 
-def q_from_frames(frames, phis=None) -> np.ndarray | None:
+#: Proximal-pair composition orders, mirroring
+#: ``UMArm_KINEMATICS.fkine.PROXIMAL_ORDERS`` -- the reader and the forward
+#: model must agree about which hinge of the proximal universal joint is bolted
+#: to the upper bracket, or ``q`` and ``fkine(q)`` describe different machines.
+PROXIMAL_ORDERS = ("xy", "yx")
+
+
+def swing_angles(v, order: str = "xy") -> tuple[float, float]:
+    """Link direction -> the proximal pair ``(t1, t2)``, in the given order.
+
+    ``"xy"`` inverts ``Rx(t1) Ry(t2) zhat == v`` and is exactly
+    :func:`mocap_to_q.ujoint_angles`, reused rather than restated.  ``"yx"``
+    inverts ``Ry(t2) Rx(t1) zhat == v``, whose closed form falls out of
+    ``Ry(t2) Rx(t1) zhat = [sin t2 cos t1, -sin t1, cos t2 cos t1]``::
+
+        t1 = asin(-v_y)          t2 = atan2(v_x, v_z)
+
+    The two agree to first order and diverge as ``t1 * t2``, which is exactly
+    the term the CAN arm's 2026-08-21 measurement found in the residual (see
+    ``UMArm_KINEMATICS.fkine``).  ``v`` need not be unit length for ``"xy"``;
+    ``"yx"`` needs it, so it is normalised here.
+    """
+    if order == "xy":
+        return ujoint_angles(v)
+    if order != "yx":
+        raise ValueError(f"order must be one of {PROXIMAL_ORDERS}; got {order!r}")
+    v = np.asarray(v, dtype=float)
+    n = float(np.linalg.norm(v))
+    if not (n > 0.0):
+        raise ValueError("cannot read swing angles off a zero-length direction")
+    v = v / n
+    return (float(math.asin(max(-1.0, min(1.0, -v[1])))),
+            float(math.atan2(v[0], v[2])))
+
+
+def q_from_frames(frames, phis=None, order: str = "xy") -> np.ndarray | None:
     """Full plate frames -> the 12-DOF ``q``, exact for multi-joint poses.
 
     The body-chain-correct recipe of design §4.3 (rev 1's previous-plate
@@ -882,9 +917,8 @@ def q_from_frames(frames, phis=None) -> np.ndarray | None:
 
     1. proximal joint: ``v = normalize(R_P^T (o_P - o_D))`` — proximal minus
        distal points +z at rest, the ``mocap_to_q`` link convention — and
-       ``(t1, t2) = ujoint_angles(v)`` (the shipped helper, reused not
-       re-derived).  ``Rx(t1) @ Ry(t2) @ z_hat == v`` exactly, which is what
-       makes step 2 a clean residual.
+       ``(t1, t2) = swing_angles(v, order)``, which inverts the proximal pair's
+       composition exactly, so step 2 is a clean residual either way.
     2. distal joint: the residual ``R45 = (Rx(t1) Ry(t2))^T R_P^T R_D``
        equals ``exp(t3 A1) exp(t4 A2)`` with A1/A2 the 45-deg twist axes
        (x+y)/sqrt2 and (-x+y)/sqrt2; the basis change
@@ -897,6 +931,13 @@ def q_from_frames(frames, phis=None) -> np.ndarray | None:
     pinned in the tests), q10/q11 come from plate 5's body frame, and the
     whole thing is invariant to any rigid motion of the volume — only
     relative rotations and body-frame differences are ever read.
+
+    ``order`` selects the proximal pair's composition and must match the
+    forward model's (``UMArm_KINEMATICS.fkine``): ``"xy"`` is the legacy
+    default, ``"yx"`` is what the CAN arm measured.  Getting it wrong does not
+    fail -- it leaves a ``-t1*t2`` twist in the residual that the two-angle
+    distal reader silently drops, and the error surfaces downstream as a
+    u-joint centre that fkine puts millimetres away from where mocap sees it.
 
     ``frames``: ``(>= 6, 4, 4)`` inferred plate frames (rows beyond 5
     ignored).  ``phis``: per-plate family angles, length 6; ``None`` means
@@ -933,8 +974,9 @@ def q_from_frames(frames, phis=None) -> np.ndarray | None:
         # must reject the frame, and `n < MIN_LINK_NORM` would wave it through.
         if not (n >= mc.MIN_LINK_NORM):
             return None
-        t1, t2 = ujoint_angles(v / n)
-        r45 = (_rx(t1) @ _ry(t2)).T @ r_body[p_idx].T @ r_body[d_idx]
+        t1, t2 = swing_angles(v / n, order)
+        prox = (_rx(t1) @ _ry(t2)) if order == "xy" else (_ry(t2) @ _rx(t1))
+        r45 = prox.T @ r_body[p_idx].T @ r_body[d_idx]
         mtx = RZ45.T @ r45 @ RZ45
         q[4 * i + 0] = t1
         q[4 * i + 1] = t2

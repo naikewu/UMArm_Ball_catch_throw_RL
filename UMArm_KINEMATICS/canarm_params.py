@@ -1,4 +1,4 @@
-"""The CAN UMArm's geometric parameter table — **placeholder lengths**.
+"""The CAN UMArm's geometric parameter table — **measured 2026-08-21**.
 
 The CAN arm has the same topology as the RS485 mk5: three segments, two
 universal joints per segment, two degrees of freedom per joint, twelve in all,
@@ -7,35 +7,42 @@ Nothing in :mod:`UMArm_KINEMATICS.fkine` hard-codes a length — every entry
 point takes ``params=None`` and routes through
 :func:`robot_params.as_params` — so porting the kinematics to a bigger arm of
 the same topology is a new ``(3, 10)`` table and nothing else.  This is that
-table.
+table, and as of 2026-08-21 it is a measurement rather than the placeholder it
+used to be.
 
-WHAT IS REAL HERE AND WHAT IS NOT.  The **topology** is real: it is the same
-mechanism, and the 24 boards at 8 per segment match the RS485 arm's actuator
-ring exactly.  The **lengths are not**.  Every metre in :data:`CANARM_PARAMS`
-is the RS485 arm's fitted value multiplied by :data:`PLACEHOLDER_SCALE`, and
-:data:`PLACEHOLDER_SCALE` is 1.0 because no one has measured this arm.  A
-scale factor invented to look plausible would be worse than the identity: the
-identity is obviously the RS485 arm's number wearing the CAN arm's name, while
-1.3 would read as a measurement.
+WHERE THE NUMBERS COME FROM.  Two sources, and the split is deliberate.
 
-THE PROVENANCE DISCIPLINE, which is why :data:`MEASURED` exists.  The RS485
-table's own numbers came from ``robot_constants.py``'s three ``param_builder``
-calls and were then *re-fitted* against mocap by ``fkine_benchmark.py``, whose
-one knob is ``LL`` per segment (``p[i, COL_LL] = gap - (AA1 + AA2)``: UC and AA
-stay at their hardware values because CAD is surest about them and least sure
-about the actuated length).  The CAN arm owes the same treatment.  Until a live
-mocap session measures the plate-to-plate distances and writes them here,
-anything derived from this table is a shape, not a length, and
-:func:`require_measured` refuses on behalf of any caller that needs the
-difference to matter.
+* ``UC``, ``AA``, ``JA`` and ``AO`` are transcribed from the research tree's
+  ``robot_constants.py`` (``param_link0/1/2``,
+  ``UMARM_Variable_Stiffness_Oct2025``), which describes **this** arm rather
+  than the RS485 one.  They are CAD dimensions of parts a mocap campaign cannot
+  see: ``UC`` is zero by construction, ``AA`` is where the actuator attaches,
+  and ``JA``/``AO`` are consumed by nothing in the forward kinematics and ride
+  along only so a row can be handed to the legacy oracle intact.
+* ``LL`` and ``JD`` are **measured**: the five consecutive u-joint centre
+  distances read straight off the marker-inferred plate frames over 68 arm
+  poses (``hw_tests/canarm_axis_analysis.py`` on
+  ``hw_tests/results/drive_2026-08-21.json``), then refined against the centres
+  fkine predicts.  These five distances are rigid — plate centre *is* joint
+  centre here — so they do not depend on the arm's pose, and they did not: the
+  standard deviation across all 68 poses was 0.03 to 0.47 mm.
 
-TO UPDATE THIS FILE.  Run the mocap probe against the CAN arm
-(``mocap_probe.py --rb-id-base 2000 --n-bodies 6``), take the five consecutive
-u-joint-centre gaps it reports, and set ``LL`` per segment so that
-:func:`robot_params.plate_chain_m` of this table reproduces them.  Then set
-:data:`MEASURED` to ``True``, replace :data:`PLACEHOLDER_SCALE` with the
-campaign name the numbers came from, and cite it the way ``robot_params``
-cites its own sources.
+The measured chain sits within **0.04 to 1.8 mm** of what the research tree's
+table implies, which is the substantive finding of the exercise: the legacy CAN
+table was right, and the placeholder this file used to carry — the RS485 arm's
+table wearing the CAN arm's name — was wrong by 46 to 182 mm at the u-joint
+centres.
+
+WHAT THIS TABLE IS NOT.  It is not a claim that the *model* is right, only that
+its lengths are.  Two model corrections were needed alongside it and live
+elsewhere, because they are properties of the mechanism rather than of its
+dimensions: the per-plate marker azimuth
+(``UMArm_MOCAP.canarm_frames.PLATE_AZIMUTH_DEG``) and the proximal-pair
+composition order (``fkine``'s ``order="yx"``,
+``UMArm_MOCAP.canarm_frames.PROXIMAL_ORDER``).  With all three, fkine
+reproduces the measured u-joint centres to 0.74 mm RMS on the poses it was
+fitted to and **1.99 mm RMS (7.0 mm worst) on eighteen held-out multi-joint
+poses** spanning up to 30 deg of joint travel.
 """
 
 from __future__ import annotations
@@ -47,73 +54,83 @@ try:  # both import styles must work, as elsewhere in this workspace
 except ImportError:  # pragma: no cover
     import robot_params as rp  # type: ignore[no-redef]
 
-#: ``True`` only when every length below came from a measurement of the CAN
-#: arm.  Read it before trusting a number out of this module; the alternative
-#: is a fitted result that is confidently wrong by whatever this arm's real
-#: proportions turn out to be.
-MEASURED = False
+#: ``True``: every length below came from this arm.  Read it before trusting a
+#: number out of this module.
+MEASURED = True
 
-#: Uniform multiplier applied to the RS485 arm's length columns.  **1.0, i.e.
-#: no scaling**, because nothing has measured the CAN arm.  See the module
-#: docstring for why the identity is preferred to a plausible guess.  TODO:
-#: replace with per-segment measured lengths, not a scale factor — a bigger arm
-#: is unlikely to be uniformly bigger.
-PLACEHOLDER_SCALE = 1.0
+#: What measured them.
+MEASURED_SOURCE = (
+    "hw_tests/results/drive_2026-08-21.json (68 poses, marker-inferred plate "
+    "frames) reduced by hw_tests/canarm_axis_analysis.py; CAD columns from "
+    "UMARM_Variable_Stiffness_Oct2025/robot_constants.py param_link0/1/2")
 
-#: Columns carrying a length, and therefore the ones a scale factor touches.
-#: ``JA*`` (joint travel allowances) and ``AO*`` (actuator offsets) ride along
-#: unchanged: the forward kinematics consumes neither, and they exist only so a
-#: row can be handed to the legacy oracle intact.
+#: Columns carrying a length.  Kept because callers that scale or perturb a
+#: table need to know which columns are metres and which are not.
 LENGTH_COLUMNS = (rp.COL_UC1, rp.COL_UC2, rp.COL_AA1, rp.COL_AA2,
                   rp.COL_LL, rp.COL_JD)
 
-
-def _scaled_placeholder(scale: float) -> np.ndarray:
-    """The RS485 table with its length columns multiplied by ``scale``."""
-    out = np.array(rp.DEFAULT_PARAMS, dtype=float)   # a writable copy
-    for col in LENGTH_COLUMNS:
-        out[:, col] *= float(scale)
-    out.flags.writeable = False
-    return out
-
+#: The five consecutive u-joint centre distances measured on the arm,
+#: ``(span1, JD2, span2, JD3, span3)``, metres.  This is the tuple the table
+#: below is built to reproduce, and the one a live session re-measures first.
+#: Measured means over 68 poses were
+#: ``(0.265357, 0.072886, 0.234371, 0.072987, 0.229918)`` with standard
+#: deviations ``(0.47, 0.03, 0.10, 0.05, 0.12)`` mm; span3 is the one the
+#: position refinement moved, by 0.06 mm.
+CANARM_PLATE_CHAIN_M = (0.265357, 0.072886, 0.234371, 0.072987, 0.229858)
 
 #: ``(3, 10)`` — one row per segment, proximal to distal, columns as
-#: ``robot_params.PARAM_COLUMNS``.  **PLACEHOLDER**: see :data:`MEASURED`.
-#: Read-only for the same reason ``DEFAULT_PARAMS`` is — it is a default
-#: argument all over :mod:`fkine`, and a fit that edited it in place would
-#: silently re-zero every other caller.
-CANARM_PARAMS = _scaled_placeholder(PLACEHOLDER_SCALE)
+#: ``robot_params.PARAM_COLUMNS``.  Read-only for the same reason
+#: ``DEFAULT_PARAMS`` is: it is a default argument all over :mod:`fkine`, and a
+#: fit that edited it in place would silently re-zero every other caller.
+#:
+#: ``LL`` is ``span - (AA1 + AA2)`` for each segment, which is how the measured
+#: chain enters the table: ``AA`` is the CAD number and ``LL`` absorbs the
+#: difference, the same convention ``fkine_benchmark`` uses on the RS485 arm
+#: (CAD is surest about the attachment points and least sure about the actuated
+#: length).
+CANARM_PARAMS = np.array([
+    # JA1    JA2    UC1  UC2  AA1        AA2        AO1    AO2    LL         JD
+    [0.047, 0.047, 0.0, 0.0, 0.0437125, 0.0437125, 0.028, 0.028, 0.177932, 0.0],
+    [0.047, 0.047, 0.0, 0.0, 0.0437125, 0.0437125, 0.028, 0.028, 0.146946, 0.072886],
+    [0.047, 0.047, 0.0, 0.0, 0.0437125, 0.0437125, 0.028, 0.028, 0.142433, 0.072987],
+], dtype=float)
+CANARM_PARAMS.flags.writeable = False
 
-#: The five consecutive u-joint-centre gaps :data:`CANARM_PARAMS` implies,
-#: ``(span1, JD2, span2, JD3, span3)``, metres.  **PLACEHOLDER.**  This is the
-#: tuple a live session will contradict first, because it is exactly what the
-#: mocap chain-span gate measures directly.
-CANARM_PLATE_CHAIN_M = rp.plate_chain_m(CANARM_PARAMS)
+#: The research tree's table for the same arm, kept for the diff.  Its chain is
+#: ``(265.05, 73.26, 234.14, 72.49, 231.66)`` mm against the measured
+#: ``(265.36, 72.89, 234.37, 72.99, 229.86)``.
+LEGACY_CANARM_PARAMS = np.array([
+    [0.047, 0.047, 0.0, 0.0, 0.0437125, 0.0437125, 0.028, 0.028, 0.177625, 0.0],
+    [0.047, 0.047, 0.0, 0.0, 0.0437125, 0.0437125, 0.028, 0.028, 0.146715, 0.07326],
+    [0.047, 0.047, 0.0, 0.0, 0.0437125, 0.0437125, 0.028, 0.028, 0.144235, 0.07249],
+], dtype=float)
+LEGACY_CANARM_PARAMS.flags.writeable = False
 
 
 def require_measured() -> np.ndarray:
     """:data:`CANARM_PARAMS`, or a refusal naming what has not been done.
 
     For callers whose output is a length rather than a shape — a fitted
-    stiffness, a workspace volume, a reach claim.  Callers that only need the
-    topology (structure tests, a visualiser's proportions, an offline plumbing
-    check) should use :data:`CANARM_PARAMS` directly and say so.
+    stiffness, a workspace volume, a reach claim.  Kept now that
+    :data:`MEASURED` is ``True`` because the next arm, or the next
+    re-plumbing of this one, will set it back to ``False``, and the call sites
+    that need the distinction should already be routed through here.
     """
     if not MEASURED:
         raise RuntimeError(
-            "UMArm_KINEMATICS.canarm_params carries PLACEHOLDER lengths: the "
-            "RS485 arm's table scaled by %g, with no measurement of the CAN "
-            "arm behind any of it.  Measure the plate-to-plate distances in a "
-            "live mocap session, write them here, and set MEASURED = True."
-            % PLACEHOLDER_SCALE)
+            "UMArm_KINEMATICS.canarm_params carries lengths that have not been "
+            "measured on this arm.  Run hw_tests/canarm_drive_campaign.py, "
+            "reduce it with hw_tests/canarm_axis_analysis.py, write the chain "
+            "here and set MEASURED = True.")
     return CANARM_PARAMS
 
 
 __all__ = [
     "MEASURED",
-    "PLACEHOLDER_SCALE",
+    "MEASURED_SOURCE",
     "LENGTH_COLUMNS",
     "CANARM_PARAMS",
     "CANARM_PLATE_CHAIN_M",
+    "LEGACY_CANARM_PARAMS",
     "require_measured",
 ]

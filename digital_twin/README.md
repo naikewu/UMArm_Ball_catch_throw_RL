@@ -133,10 +133,13 @@ Collection hygiene, from the RS485 campaigns:
 
 In this order, because each step's instrument is the previous step's output:
 
-1. `mjcf_generator` with **measured** chain lengths. Today
-   `UMArm_KINEMATICS.canarm_params.MEASURED` is `False` and its numbers are the
-   RS485 arm's, unscaled. Measure the five consecutive u-joint-centre gaps in a
-   live mocap session first; everything downstream is a shape until then.
+1. `mjcf_generator` with **measured** chain lengths. Done as of 2026-08-21:
+   `UMArm_KINEMATICS.canarm_params.MEASURED` is `True` and the five consecutive
+   u-joint-centre gaps came off the arm over 68 poses. Two model conventions
+   came with them and the twin needs both, since neither fails loudly when
+   wrong: `UMArm_MOCAP.canarm_frames.PLATE_AZIMUTH_DEG` (the marker brackets sit
+   45 deg from where the RS485 arm's do) and `fkine`'s `order="yx"` (the
+   proximal universal joint's y hinge is the bracket-fixed one).
 2. `actuator_model` per population, against the collected JSONL.
 3. `ring_analysis` on the recording, to find out what this arm's ring actually is
    — frequency, damping ratio, episode count — rather than assuming the RS485

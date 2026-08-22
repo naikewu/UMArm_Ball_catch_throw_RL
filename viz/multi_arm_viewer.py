@@ -587,9 +587,20 @@ def _build_adapters(spec: dict) -> dict:
             from UMArm_MOCAP.sim_stream import CanArmSimStream
             rx = CanArmSimStream(rate_hz=float(spec.get("rate_hz", 120.0)))
         else:
-            from UMArm_MOCAP.canarm_mocap import CanArmMocap
-            rx = CanArmMocap(**{k: v for k, v in spec.items()
-                                if k not in ("kind", "rate_hz")})
+            from UMArm_MOCAP.canarm_mocap import (CanArmMarkerMocap, CanArmMocap,
+                                                  load_canarm_locks)
+            kwargs = {k: v for k, v in spec.items()
+                      if k not in ("kind", "rate_hz")}
+            try:
+                # Prefer the marker-registered receiver: it publishes
+                # ``get_marker_poses``, which is the pose the solve actually
+                # used, and its ``q`` carries this arm's measured azimuths.
+                # The streamed frames are 45 deg round from the mechanism, so
+                # an overlay drawn from them is a picture of the wrong arm.
+                rx = CanArmMarkerMocap(load_canarm_locks(), **kwargs)
+            except Exception as lock_exc:
+                print(f"[viewer] streamed frames only: {lock_exc}")
+                rx = CanArmMocap(**kwargs)
         rx.start()
         return {"canarm": rx}
     except Exception as exc:

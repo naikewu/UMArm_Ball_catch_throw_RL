@@ -27,11 +27,14 @@ takes ``chain_m``, which is why one function draws both arms — the CAN arm fro
 :data:`DEFAULT_CANARM_CHAIN_M` and the RS485 arm from
 :data:`DEFAULT_RS485_CHAIN_M`, same topology, different five numbers.
 
-THE CAN ARM'S FIVE NUMBERS ARE PLACEHOLDERS.  They come from
-``UMArm_KINEMATICS.canarm_params``, whose ``MEASURED`` flag is ``False`` and
-whose lengths are the RS485 arm's scaled by 1.0.  A drawn arm of the wrong size
-is honest about being a shape; a drawn arm of a *plausibly invented* size is not,
-which is why nothing here multiplies them by a guess.
+THE CAN ARM'S FIVE NUMBERS ARE MEASURED, since 2026-08-21.  They come from
+``UMArm_KINEMATICS.canarm_params``, whose ``MEASURED`` flag is now ``True``:
+the five consecutive u-joint centre distances read off the marker-inferred
+plate frames over 68 arm poses, standard deviation 0.03-0.47 mm.  They used to
+be the RS485 arm's chain wearing this arm's name, which drew the tip 182 mm
+from where the cameras see it.  This module still refuses to invent a length —
+if the flag ever goes back to ``False`` the picture is a shape again, and
+:func:`_default_chains` says so rather than scaling a guess.
 
 EVERY ROBOT HANGS OFF A MOCAP BODY.  ``canarm_mount``, ``rs485_mount``,
 ``kinova_mount``.  A mocap body is what MuJoCo provides for "a pose an external
@@ -98,8 +101,8 @@ def _default_chains() -> tuple:
 
 
 #: Consecutive u-joint-centre gaps, metres, proximal to distal:
-#: ``(span1, JD2, span2, JD3, span3)``.  **PLACEHOLDER** — see the module
-#: docstring and ``UMArm_KINEMATICS.canarm_params.MEASURED``.
+#: ``(span1, JD2, span2, JD3, span3)``.  Measured on 2026-08-21 — see the
+#: module docstring and ``UMArm_KINEMATICS.canarm_params.MEASURED``.
 DEFAULT_CANARM_CHAIN_M, DEFAULT_RS485_CHAIN_M = _default_chains()
 
 #: Where each robot is parked when nothing is writing its mount.  These are

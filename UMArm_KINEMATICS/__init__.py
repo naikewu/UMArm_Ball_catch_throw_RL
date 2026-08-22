@@ -13,9 +13,17 @@ Two layers, deliberately separable (design ``docs/fkine_design.md`` §2):
   consumer must go through.
 
 * :mod:`canarm_params` — the CAN arm's table, added by this workspace.  Same
-  topology, **placeholder lengths**, and a ``MEASURED`` flag that is still
-  ``False``.  It is a second table rather than an edit to ``DEFAULT_PARAMS``,
-  which is the whole reason ``fkine`` takes ``params=None`` everywhere.
+  topology, **measured lengths** since 2026-08-21 (``MEASURED`` is ``True``).
+  It is a second table rather than an edit to ``DEFAULT_PARAMS``, which is the
+  whole reason ``fkine`` takes ``params=None`` everywhere.
+* :mod:`canarm_actuators` — which of the 24 CAN boards drives which joint and
+  in which direction, measured on the same campaign.  Segments 2 and 3 match
+  the research tree's table exactly; segment 1's replaced regulator platform is
+  the same four pairs rotated by 90 deg.
+
+``fkine`` also takes an ``order``: which hinge of each proximal universal joint
+is bolted to the upper bracket.  The default reproduces the legacy product
+bit for bit; the CAN arm measured the other one.
 
 numpy only — no scipy anywhere (design D2).  This is the *forward* complement
 of ``UMArm_MOCAP.mocap_to_q`` (mocap -> q); the round-trip between the two is

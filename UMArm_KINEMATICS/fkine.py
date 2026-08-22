@@ -26,6 +26,28 @@ per segment frame (``kinematics_mp.py:393-426`` at ``Distance = 0``):
   distal centre;
 * xi4: about **(-x+y)/sqrt(2)** through the same point.
 
+WHICH PROXIMAL AXIS IS CARRIED, AND WHY IT IS NOW A PARAMETER.  In a product of
+exponentials the **first** factor's axis is fixed in the proximal body and the
+second's is carried by it, so ``exp(xi1 t1) exp(xi2 t2)`` asserts that the
+proximal universal joint's x hinge is the one bolted to the upper bracket.  For
+the CAN arm that is backwards.  Measured on 2026-08-21 by driving all 24
+actuators and reading the plate frames from their markers, the residual
+rotation this product cannot represent — the z-Euler term
+``marker_frame.q_from_frames`` silently drops — is -0.91 to -0.95 times
+``t1 * t2`` with a standard deviation of 0.12-0.32 deg about that line, which is
+precisely the non-commutativity signature of the two factors being swapped.
+Composing them the other way collapses that residual from 1.0-1.4 deg of spread
+(8-9 deg peak to peak) to 0.12-0.31 deg, and drops the u-joint centre error on
+held-out multi-joint poses from 4.6 mm RMS to 2.0 mm.
+
+``order`` therefore selects the composition: ``"xy"`` is the legacy product and
+**the default**, bit-identical to ``exponentials_mk5.get_e1234`` and to every
+number this module produced before; ``"yx"`` swaps the proximal pair only.  The
+distal pair is *not* swapped in either mode — the same experiment tested that
+and swapping it as well is markedly worse, so its xi3 is genuinely the
+link-fixed axis.  The RS485 arm keeps the default until someone measures it the
+same way; nothing here claims the two arms are assembled alike.
+
 **The 45 deg bracket lives entirely in the xi3/xi4 axis directions.**  ``gst0``
 has identity rotation, so no Rz(45) ever accumulates between segments — the
 mocap->q extraction applies ``RZn45`` to *vectors* it reads, and fkine must not
@@ -179,22 +201,42 @@ def segment_twists(params_row) -> np.ndarray:
     ], dtype=float)
 
 
-def segment_transform(params_row, q4) -> np.ndarray:
+#: The two proximal-pair composition orders, and what each asserts about the
+#: hardware.  ``"xy"``: the joint's x hinge is bolted to the proximal bracket
+#: and its y hinge is carried — the legacy assumption, kept as the default so
+#: this module stays bit-identical to the Mathematica oracle.  ``"yx"``: the
+#: other way round, which is what the CAN arm measured (module docstring).
+PROXIMAL_ORDERS = ("xy", "yx")
+
+
+def segment_transform(params_row, q4, order: str = "xy") -> np.ndarray:
     """``e1234`` for one segment: the explicit ordered four-factor product.
 
-    Equals the legacy Mathematica closed form ``exponentials_mk5.get_e1234``
-    to 4.4e-16 (pinned by the oracle test over 500 random q), but readable:
-    the factor order *is* the joint order, and each factor is one Rodrigues
-    exponential (design D1)::
+    At ``order="xy"`` this equals the legacy Mathematica closed form
+    ``exponentials_mk5.get_e1234`` to 4.4e-16 (pinned by the oracle test over
+    500 random q), but readable: the factor order *is* the joint order, and
+    each factor is one Rodrigues exponential (design D1)::
 
         exp(xi1 t1) @ exp(xi2 t2) @ exp(xi3 t3) @ exp(xi4 t4)
+
+    At ``order="yx"`` the proximal pair is composed the other way::
+
+        exp(xi2 t2) @ exp(xi1 t1) @ exp(xi3 t3) @ exp(xi4 t4)
+
+    which is the CAN arm's measured assembly (module docstring).  Both proximal
+    twists pass through the segment frame origin, so the swap moves **no**
+    u-joint centre by itself — it changes the *orientation* the rest of the
+    chain inherits, and that is what propagates.
     """
     q4 = np.asarray(q4, dtype=float)
     if q4.shape != (4,):
         raise ValueError(f"segment angles must have shape (4,); got {q4.shape}")
+    if order not in PROXIMAL_ORDERS:
+        raise ValueError(f"order must be one of {PROXIMAL_ORDERS}; got {order!r}")
     xi1, xi2, xi3, xi4 = segment_twists(params_row)
-    return (twist_exp(xi1, q4[0]) @ twist_exp(xi2, q4[1])
-            @ twist_exp(xi3, q4[2]) @ twist_exp(xi4, q4[3]))
+    prox = (twist_exp(xi1, q4[0]) @ twist_exp(xi2, q4[1]) if order == "xy"
+            else twist_exp(xi2, q4[1]) @ twist_exp(xi1, q4[0]))
+    return prox @ twist_exp(xi3, q4[2]) @ twist_exp(xi4, q4[3])
 
 
 # --------------------------------------------------------------------------
@@ -219,7 +261,7 @@ def _as_q(q) -> np.ndarray:
     return q
 
 
-def _chain_frames(q: np.ndarray, params: np.ndarray):
+def _chain_frames(q: np.ndarray, params: np.ndarray, order: str = "xy"):
     """Yield ``(row, B_i, B_i @ E_i)`` for each segment, proximal to distal.
 
     ``B_i = T_{i-1} @ Tz(-JD_i)`` is the segment's proximal body frame — the
@@ -234,12 +276,12 @@ def _chain_frames(q: np.ndarray, params: np.ndarray):
         span = ((((row[rp.COL_UC1] + row[rp.COL_AA1]) + row[rp.COL_LL])
                  + row[rp.COL_AA2]) + row[rp.COL_UC2])
         b = t @ _tz(-row[rp.COL_JD])
-        be = b @ segment_transform(row, q[4 * i:4 * i + 4])
+        be = b @ segment_transform(row, q[4 * i:4 * i + 4], order)
         yield row, b, be
         t = be @ _tz(-span)
 
 
-def fkine(q, params=None) -> np.ndarray:
+def fkine(q, params=None, order: str = "xy") -> np.ndarray:
     """``(4, 4)`` pose of the last plate, in the robot (body-500) frame.
 
     Oracle-equivalent to the legacy ``fkine_mk5(params, q)``
@@ -252,14 +294,14 @@ def fkine(q, params=None) -> np.ndarray:
     q = _as_q(q)
     params = rp.as_params(params)
     t = np.eye(4)
-    for row, _b, be in _chain_frames(q, params):
+    for row, _b, be in _chain_frames(q, params, order):
         span = ((((row[rp.COL_UC1] + row[rp.COL_AA1]) + row[rp.COL_LL])
                  + row[rp.COL_AA2]) + row[rp.COL_UC2])
         t = be @ _tz(-span)
     return t
 
 
-def ujoint_centres(q, params=None) -> np.ndarray:
+def ujoint_centres(q, params=None, order: str = "xy") -> np.ndarray:
     """``(6, 3)`` u-joint centres u1..u6, robot frame, proximal to distal.
 
     Row ``2i`` is segment ``i+1``'s proximal centre, row ``2i+1`` its distal
@@ -272,7 +314,7 @@ def ujoint_centres(q, params=None) -> np.ndarray:
     q = _as_q(q)
     params = rp.as_params(params)
     out = np.empty((6, 3), dtype=float)
-    for i, (row, b, be) in enumerate(_chain_frames(q, params)):
+    for i, (row, b, be) in enumerate(_chain_frames(q, params, order)):
         uc1 = row[rp.COL_UC1]
         l_dist = row[rp.COL_AA1] + row[rp.COL_AA2] + row[rp.COL_LL] + uc1
         out[2 * i] = (b @ np.array([0.0, 0.0, -uc1, 1.0]))[0:3]
@@ -280,7 +322,7 @@ def ujoint_centres(q, params=None) -> np.ndarray:
     return out
 
 
-def plate_transforms(q, params=None) -> np.ndarray:
+def plate_transforms(q, params=None, order: str = "xy") -> np.ndarray:
     """``(6, 4, 4)`` body pose of plates 0..5, robot frame — the mounting model.
 
     Origins are the u-joint centres (plate i sits at centre i+1, exactly
@@ -307,7 +349,7 @@ def plate_transforms(q, params=None) -> np.ndarray:
     # Origins come from the same chain walk as ujoint_centres, same expressions,
     # so the two functions can never disagree about where a plate sits.
     out = np.empty((6, 4, 4), dtype=float)
-    for i, (row, b, be) in enumerate(_chain_frames(q, params)):
+    for i, (row, b, be) in enumerate(_chain_frames(q, params, order)):
         uc1 = row[rp.COL_UC1]
         l_dist = row[rp.COL_AA1] + row[rp.COL_AA2] + row[rp.COL_LL] + uc1
         out[2 * i] = np.eye(4)
@@ -319,7 +361,8 @@ def plate_transforms(q, params=None) -> np.ndarray:
     return out
 
 
-def predict_spatial(base_se4, q, params=None, ee_lever_m=None) -> np.ndarray:
+def predict_spatial(base_se4, q, params=None, ee_lever_m=None,
+                    order: str = "xy") -> np.ndarray:
     """Predicted u-joint centres in the **mocap spatial frame**: ``(6, 3)``.
 
     ``p_spatial = SE4(body 500) @ p_robot`` — the correspondence the legacy
@@ -336,7 +379,7 @@ def predict_spatial(base_se4, q, params=None, ee_lever_m=None) -> np.ndarray:
     base_se4 = np.asarray(base_se4, dtype=float)
     if base_se4.shape != (4, 4):
         raise ValueError(f"base_se4 must have shape (4, 4); got {base_se4.shape}")
-    centres = ujoint_centres(q, params)                       # validates q/params
+    centres = ujoint_centres(q, params, order)                # validates q/params
     rot = base_se4[0:3, 0:3]
     pos = base_se4[0:3, 3]
     out_rows = 6 if ee_lever_m is None else 7
@@ -346,6 +389,6 @@ def predict_spatial(base_se4, q, params=None, ee_lever_m=None) -> np.ndarray:
         lever = np.asarray(ee_lever_m, dtype=float)
         if lever.shape != (3,):
             raise ValueError(f"ee_lever_m must have shape (3,); got {lever.shape}")
-        ee = base_se4 @ fkine(q, params) @ np.array([*lever, 1.0])
+        ee = base_se4 @ fkine(q, params, order) @ np.array([*lever, 1.0])
         out[6] = ee[0:3]
     return out

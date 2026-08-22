@@ -209,23 +209,20 @@ class TestSimStream:
 
 
 class TestMarkerVariant:
-    """``CanArmMarkerMocap`` parameterizes by pass-through, and that is enough.
+    """``CanArmMarkerMocap`` routes at the CAN base and carries this arm's
+    two measured conventions.
 
-    ``MarkerMocap`` forwards ``**kwargs`` to ``MocapRx`` untouched, so the two
-    new arguments reach the same five read sites with no further change.  The
-    fixtures come from ``test_marker_mocap`` rather than being restated here:
-    a second copy of the bracket geometry is a second thing to keep true.
+    The fixtures come from ``test_marker_mocap`` rather than being restated
+    here: a second copy of the bracket geometry is a second thing to keep true.
+    They are built in the **RS485** conventions (family azimuths, ``"xy"``
+    proximal order), which is exactly what makes them useful twice over — with
+    those conventions passed explicitly the synthetic ``q`` round-trips
+    exactly, and with the CAN arm's defaults it does not, which is the whole
+    content of the claim that the defaults are applied and are different.
     """
 
-    def test_the_marker_path_routes_at_the_can_arms_base(self):
-        from .canarm_mocap import CanArmMarkerMocap
-        from .test_marker_mocap import (REST_Q, all_tracked, arm_locks,
-                                        arm_markers, arm_plates, volume_base)
-
-        base = volume_base(np.random.default_rng(11))
-        rx = CanArmMarkerMocap(arm_locks(base))
-        assert (rx.rb_id_base, rx.n_bodies) == (CANARM_RB_ID_BASE,
-                                                CANARM_N_BODIES)
+    def _one_frame(self, rx, base):
+        from .test_marker_mocap import REST_Q, all_tracked, arm_markers, arm_plates
 
         plates = arm_plates(REST_Q, base)
         for i in range(6):
@@ -235,21 +232,83 @@ class TestMarkerVariant:
         rx._flags_scratch = all_tracked()
         rx._on_new_frame({"frame_number": 3})
 
+    def test_the_marker_path_routes_at_the_can_arms_base(self):
+        """With the fixture's own conventions the solve is exact, which pins
+        the transport and the registration rather than the conventions."""
+        from .canarm_mocap import CanArmMarkerMocap
+        from .test_marker_mocap import REST_Q, arm_locks, volume_base
+
+        base = volume_base(np.random.default_rng(11))
+        rx = CanArmMarkerMocap(arm_locks(base), phis=None, order="xy")
+        assert (rx.rb_id_base, rx.n_bodies) == (CANARM_RB_ID_BASE,
+                                                CANARM_N_BODIES)
+        self._one_frame(rx, base)
         assert rx.stats.solved == 1
         assert rx.get_marker_poses() is not None
         assert np.allclose(rx.get_q(), REST_Q, atol=1e-6)
 
+    def test_the_can_arms_measured_conventions_are_the_defaults(self):
+        """The defaults are the reason this subclass exists.  A receiver built
+        with no arguments must carry ``canarm_frames``' measured azimuths and
+        proximal order — both of which are silent when wrong, so nothing else
+        would notice."""
+        from . import canarm_frames as cf
+        from .canarm_mocap import CanArmMarkerMocap
+        from .test_marker_mocap import arm_locks, volume_base
+
+        base = volume_base(np.random.default_rng(11))
+        rx = CanArmMarkerMocap(arm_locks(base))
+        assert np.allclose(rx.phis, cf.plate_phis_rad())
+        assert rx.order == cf.PROXIMAL_ORDER == "yx"
+        # 45 deg per plate away from the RS485 family angles, which is what the
+        # 2026-08-21 drive campaign measured.
+        delta = np.degrees(rx.phis) - np.array(cf.FAMILY_AZIMUTH_DEG)
+        assert np.all(np.abs(delta % 90.0 - 45.0) < 2.0), delta
+
+    def test_the_defaults_change_q_by_the_amount_they_should(self):
+        """A frame that round-trips under the RS485 conventions must NOT round
+        trip under the CAN arm's, or the defaults would be decorative."""
+        from .canarm_mocap import CanArmMarkerMocap
+        from .test_marker_mocap import REST_Q, arm_locks, volume_base
+
+        base = volume_base(np.random.default_rng(11))
+        rx = CanArmMarkerMocap(arm_locks(base))
+        self._one_frame(rx, base)
+        q = rx.get_q()
+        assert q is not None and np.isfinite(q).all()
+        assert not np.allclose(q, REST_Q, atol=1e-3)
+
 
 class TestLocksRefusal:
-    def test_the_default_template_is_absent_and_refused_loudly(self):
+    def test_an_absent_lock_file_is_refused_loudly(self):
         """A lock minted against other plates registers markers onto geometry
         that is not there and reports a confident ``q`` for it, so falling back
-        to the RS485 file would be worse than failing."""
-        assert not os.path.isfile(DEFAULT_TEMPLATE_PATH)
+        to the RS485 file would be worse than failing.  The message has to name
+        the file and say how to make one, because "no such file" on a path
+        nobody has minted yet is a question rather than an error."""
+        missing = os.path.join(os.path.dirname(DEFAULT_TEMPLATE_PATH),
+                               "no_such_session_locks.json")
+        assert not os.path.isfile(missing)
         with pytest.raises(FileNotFoundError) as exc:
-            load_canarm_locks()
+            load_canarm_locks(missing)
         assert "mocap_probe" in str(exc.value)
         assert "rs485_locks_example.json" in str(exc.value)
+        assert "Lock plates" in str(exc.value)
+
+    def test_the_default_lock_path_is_never_checked_in(self):
+        """Locks are scoped to a Motive session: they are minted against the
+        marker labels that session hands out, and one from a past afternoon
+        registers this session's markers onto plates as they were then.  It
+        fails loudly when stale -- every frame trips the template gate -- but
+        for a reason nobody would go looking for in a checked-in file.  So the
+        durable claim is not "the file is absent" (it exists on any bench that
+        has run a session) but "git never carries it"."""
+        ws = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ignore = os.path.join(ws, ".gitignore")
+        if not os.path.isfile(ignore):
+            pytest.skip("no .gitignore in this checkout")
+        rel = os.path.relpath(DEFAULT_TEMPLATE_PATH, ws).replace(os.sep, "/")
+        assert rel in open(ignore, encoding="utf-8").read()
 
 
 # --------------------------------------------------------------------------

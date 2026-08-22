@@ -13,17 +13,23 @@ called, so importing it is safe anywhere, including in tests.
 Added by this workspace, on top of the RS485 original:
 
 * :mod:`canarm_mocap` — receivers bound to the CAN arm's block of Motive rigid
-  bodies (briefed as 2000-2005, **not yet verified live**).  Which block a
-  receiver claims is a per-instance property of :class:`mocap_rx.MocapRx`
-  rather than a module constant, which is what lets two arms with different
-  bases be received in one process against one NatNet stream.
+  bodies, **2000-2005, verified live 2026-08-21**.  Which block a receiver
+  claims is a per-instance property of :class:`mocap_rx.MocapRx` rather than a
+  module constant, which is what lets two arms with different bases be received
+  in one process against one NatNet stream.
+* :mod:`canarm_frames` — that arm's plate frames read from the four markers of
+  each plate and nothing else, with the per-plate bracket azimuth and the
+  proximal-joint composition order both **measured** rather than assumed.  The
+  streamed body frames on this arm sit 45 deg round from the mechanism, so this
+  is the module a controller wants and ``mocap_to_q`` is the one a transport
+  diagnostic wants.
 * :mod:`sim_stream` — a synthetic producer that drives a real receiver's real
   listeners in-process, so the whole mocap -> ``q`` chain can be developed with
   no cameras and no UDP.
 
-Neither is imported here: ``canarm_mocap`` pulls in the marker stack and
-``sim_stream`` pulls in the probe, and this package's promise is that importing
-it costs nothing.  Import them by name.
+None of them is imported here: ``canarm_mocap`` and ``canarm_frames`` pull in
+the marker stack, ``sim_stream`` pulls in the probe, and this package's promise
+is that importing it costs nothing.  Import them by name.
 
 See ``docs/umarm_mocap_design.md`` for the design, ``natnet_sdk/PROVENANCE.md``
 for where the third-party SDK came from.

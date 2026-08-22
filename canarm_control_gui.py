@@ -28,6 +28,17 @@ WHAT IT ADDS, and why each one is here rather than in the TLE GUI:
   ``UMArm_MOCAP.sim_stream.CanArmSimStream``, a real receiver fed by a producer
   thread, which **opens no socket** — the whole viewer path can therefore be
   exercised, and this file self-tested, with no cameras and no network.
+* **A Lock plates button and a kinematics line**, added 2026-08-21.  ``live``
+  now prefers ``CanArmMarkerMocap`` — ``q`` registered onto the four markers of
+  each plate rather than read off Motive's manually aligned body frames, which
+  on this arm sit about 45 deg round from the mechanism's axes.  That receiver
+  needs one rest-time lock per plate, locks are scoped to a Motive session and
+  so cannot be checked in, and minting them is a 3 s capture of a still arm:
+  hence a button.  The kinematics line then reports the number the whole
+  calibration exists to make small — **the distance between each measured
+  u-joint centre and the one fkine predicts from the same frame's ``q``** —
+  because an operator watching the arm move is exactly who can tell a
+  kinematics error from a stream problem.
 
 THREE ABSENCES THE ARM MUST SURVIVE, and they are guarded rather than assumed:
 no mocap, no RS485 arm, no Kinova.  Each optional import is inside a try, each
@@ -78,6 +89,12 @@ import VEMA_TLE_controller as VTC                            # noqa: E402
 MOCAP_MS = 200
 
 VIEWER_JOIN_S = 3.0
+
+#: Seconds of stillness the Lock plates button captures.  Same window
+#: ``marker_mocap.mint_locks`` defaults to; short enough that an operator holds
+#: still for it, long enough that the per-marker standard deviation it gates on
+#: is a real sample rather than three frames of luck.
+LOCK_CAPTURE_S = 3.0
 
 
 class CanArmControllerApp(VTC.ControllerApp):
@@ -148,6 +165,9 @@ class CanArmControllerApp(VTC.ControllerApp):
         self.mocap_button = ttk.Button(row, text="Start mocap",
                                        command=self.toggle_mocap)
         self.mocap_button.pack(side="left")
+        self.lock_button = ttk.Button(row, text="Lock plates",
+                                      command=self.lock_plates)
+        self.lock_button.pack(side="left", padx=(4, 0))
 
         self.rs485_var = tk.BooleanVar(value=self._include_rs485)
         self.kinova_var = tk.BooleanVar(value=self._include_kinova)
@@ -165,6 +185,9 @@ class CanArmControllerApp(VTC.ControllerApp):
         self.mocap_status = tk.StringVar(value="mocap off")
         ttk.Label(frame, textvariable=self.mocap_status,
                   font=("Consolas", 9)).pack(anchor="w", pady=(4, 0))
+        self.kin_status = tk.StringVar(value="kinematics: mocap off")
+        ttk.Label(frame, textvariable=self.kin_status,
+                  font=("Consolas", 9)).pack(anchor="w")
 
     # ---- mocap ---------------------------------------------------------
     def toggle_mocap(self) -> None:
@@ -191,6 +214,65 @@ class CanArmControllerApp(VTC.ControllerApp):
         self.mocap_button.configure(text="Stop mocap")
         self.log(f"mocap started ({kind})")
 
+    def lock_plates(self) -> None:
+        """Mint this Motive session's plate locks from a 3 s rest capture.
+
+        THE ARM MUST BE STILL for the window, and the button says so in the log
+        rather than in a modal: a dialog that blocks the Tk loop also blocks the
+        node pump, and this window is attached to a bus that is holding
+        pressure.  ``mint_locks`` refuses on its own evidence — too few frames
+        with all four markers tracked, or a per-marker standard deviation above
+        its stillness bound — and the refusal is printed rather than swallowed,
+        because a lock minted from a moving arm is a template of a shape the
+        plate never has again and every later frame then fails the RMS gate.
+
+        ``x_mode="diagonal45"`` and no streamed reference: the whole point on
+        this arm is that Motive's alignment is not the mechanism's, so the lock
+        must be reproducible from the marker file alone.  The azimuth that turns
+        the bracket frame into the body frame is the measured
+        ``canarm_frames.PLATE_AZIMUTH_DEG``, applied per frame, not baked into
+        the lock.
+
+        Blocks for :data:`LOCK_CAPTURE_S`, which is the one deliberate exception
+        to "no Tk callback blocks" in this file besides the inherited
+        connect/scan — it is a button the operator pressed, and the alternative
+        is a state machine across three ``after()`` hops for a three-second
+        capture.
+        """
+        rx = self._mocap
+        if rx is None:
+            self.log("start mocap first; locks are minted from a live stream")
+            return
+        if self.mocap_source.get() != "live":
+            self.log("locks need labeled markers, which only the live stream "
+                     "carries; the sim stream injects rigid-body poses only")
+            return
+        self.log(f"hold the arm still: capturing {LOCK_CAPTURE_S:.0f} s ...")
+        self.root.update_idletasks()
+        try:
+            from UMArm_MOCAP import canarm_mocap as CM
+            from UMArm_MOCAP.marker_mocap import mint_locks, save_locks
+
+            locks, report = mint_locks(rx, LOCK_CAPTURE_S, x_mode="diagonal45",
+                                       log=self.log)
+            if not report.get("ok"):
+                for line in report.get("refusals", []):
+                    self.log(f"[ERROR] lock refused -- {line}")
+                return
+            import os
+            os.makedirs(os.path.dirname(CM.DEFAULT_TEMPLATE_PATH), exist_ok=True)
+            save_locks(CM.DEFAULT_TEMPLATE_PATH, locks,
+                       meta={"source": "canarm_control_gui Lock plates",
+                             "seconds": LOCK_CAPTURE_S, "x_mode": "diagonal45"})
+            self.log(f"locks written to {CM.DEFAULT_TEMPLATE_PATH}")
+        except Exception as exc:
+            self.log(f"[ERROR] lock plates: {type(exc).__name__}: {exc}")
+            return
+        # Restart so the running receiver is the marker one.  A receiver cannot
+        # grow locks in place: its solve method is chosen by its class.
+        self._stop_mocap()
+        self.toggle_mocap()
+
     def _stop_mocap(self) -> None:
         rx, self._mocap = self._mocap, None
         if rx is not None:
@@ -209,6 +291,7 @@ class CanArmControllerApp(VTC.ControllerApp):
         self._reap_viewer()
         try:
             self.mocap_status.set(_mocap_line(self._mocap, self._viewer_proc))
+            self.kin_status.set(_kin_line(self._mocap))
         except tk.TclError:                                  # pragma: no cover
             return
         self.root.after(MOCAP_MS, self._refresh_mocap)
@@ -396,12 +479,71 @@ def _build_mocap(kind: str):
         from UMArm_MOCAP.sim_stream import CanArmSimStream
         rx = CanArmSimStream()
     elif kind == "live":
-        from UMArm_MOCAP.canarm_mocap import CanArmMocap
-        rx = CanArmMocap()
+        from UMArm_MOCAP.canarm_mocap import (CanArmMarkerMocap, CanArmMocap,
+                                              load_canarm_locks)
+        try:
+            locks = load_canarm_locks()
+        except (FileNotFoundError, ValueError) as exc:
+            # Not an error: locks are per Motive session, so the first run
+            # after a recalibration legitimately has none.  Degrade to the
+            # streamed frames and SAY the q is on the wrong azimuth, because a
+            # streamed q looks entirely healthy while being 45 deg round from
+            # the mechanism on this arm.
+            rx = CanArmMocap()
+            rx.lock_note = f"no marker locks ({exc.__class__.__name__})"
+        else:
+            rx = CanArmMarkerMocap(locks)
+            rx.lock_note = ""
     else:
         raise ValueError(f"unknown mocap source {kind!r}")
     rx.start()
     return rx
+
+
+def _kin_line(rx) -> str:
+    """The kinematics line: is the model where the cameras say the arm is?
+
+    Reports the distance between each measured u-joint centre and the centre
+    ``fkine`` predicts from the same frame's ``q``.  Plate 0 is omitted because
+    it is identically zero — the chain is anchored there — so the five numbers
+    printed are the whole signal.  On the 2026-08-21 calibration this reads
+    roughly 0.2 / 0.3 / 0.5 / 1.0 / 1.8 mm over a static pose; a number an order
+    of magnitude larger means the locks are stale, a plate has lost a marker, or
+    the azimuth calibration does not belong to this Motive session.
+
+    Never raises: this is a status line, and a status line is not worth a crash.
+    """
+    if rx is None:
+        return "kinematics: mocap off"
+    getter = getattr(rx, "get_marker_poses", None)
+    if not callable(getter):
+        note = getattr(rx, "lock_note", "") or "streamed frames"
+        return (f"kinematics: {note} -- press Lock plates for the marker-"
+                f"registered q that fkine is calibrated against")
+    try:
+        import numpy as np
+
+        from UMArm_MOCAP import canarm_frames as CF
+
+        poses = getter()
+        if poses is None:
+            stats = rx.solve_stats()
+            worst = max(stats.last_rms_m.values(), default=float("nan"))
+            return (f"kinematics: markers not solving "
+                    f"({stats.solved}/{stats.frames} frames, worst template "
+                    f"residual {worst * 1000:.2f} mm)")
+        res = CF.fk_residual_m(poses)
+        if res is None:
+            return "kinematics: frame set does not convert to q"
+        q = CF.q_from_plate_frames(poses)
+        mm = np.asarray(res) * 1000.0
+        return ("fkine vs mocap (mm) "
+                + " ".join(f"u{p+1}{mm[p]:6.2f}" for p in range(1, CF.N_PLATES))
+                + f"   rms {float(np.sqrt((mm[1:] ** 2).mean())):5.2f}"
+                + (f"   |q| max {float(np.degrees(np.abs(q)).max()):5.1f} deg"
+                   if q is not None else ""))
+    except Exception as exc:
+        return f"kinematics unavailable: {type(exc).__name__}: {exc}"
 
 
 def _mocap_line(rx, viewer_proc) -> str:

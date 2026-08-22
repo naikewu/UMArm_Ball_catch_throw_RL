@@ -1,78 +1,43 @@
 """Receivers bound to the CAN UMArm's block of Motive rigid bodies.
 
-The CAN UMArm streams **six** rigid bodies, ids **2000 to 2005**, base to tip,
-per the 2026-08-20 brief.  That number is **STILL TO BE VERIFIED LIVE AGAINST
-MOTIVE**: a verification session was attempted on 2026-08-20 and could not
-settle it, because no NatNet stream reached this PC at all.  The id is written
-here as a named constant rather than spread through the receiver so that
-settling it later is one edit in one file.
+The CAN UMArm streams **six** rigid bodies, ids **2000 to 2005**, base to tip.
+**Verified live on 2026-08-21**: a wide-open census
+(``hw_tests/mocap_census.py``) enumerated the whole volume at 115 Hz and found
+exactly three contiguous blocks — ``500``-``505`` (the RS485 sister arm),
+``1008`` (the Kinova Gen3) and ``2000``-``2005`` (this arm) — each carrying
+four labeled markers in slots 1..4.  Height settles which end is which: body
+2000 sits at z = 0.92 m and 2005 at z = 0.04 m, and this arm hangs base-up, so
+2000 is the base plate and the array index is ``id - 2000``.  The three-way id
+dispute the 2026-08-20 notes recorded is therefore closed, and the 500-block
+claim in ``mocap_constants`` is right about the *other* arm rather than wrong.
 
-LIVE ATTEMPT, 2026-08-20 17:35-17:50, RESULT: **NO STREAM, ROSTER EMPTY.**
-``hw_tests/mocap_census.py`` opened a wide-open receiver -- one that routes no
-ids and drops nothing -- against ``server 192.168.1.100 / client 192.168.1.120 /
-multicast 239.255.42.99:1511`` and recorded **zero frames** over 10, 12 and 30 s
-windows.  The failure is below this package rather than inside it, and was
-localised in four passes, each of which rules out one explanation:
+(The 2026-08-20 session saw no stream at all — Motive's host answered ICMP but
+its streaming engine was not serving, so NAT_PING went unanswered and the
+census came back empty.  Nothing in this package was at fault, and nothing here
+had to change when the stream came back.)
 
-* ``NatNetClient.run()`` returned true and sent NAT_CONNECT, so the client
-  bound its sockets and joined the group; the SDK is not the obstacle.
-* A raw multicast socket on 239.255.42.99:1511, and a unicast bind on the same
-  port, both saw **0 datagrams** -- so nothing was received and mis-parsed.
-* A **NAT_PING to 192.168.1.100:1510 drew no reply** across 30 s of repeats,
-  while ICMP to that host succeeds and its ARP entry is Reachable.  A NatNet
-  server answers a ping with a server-info packet whatever its streaming
-  settings, so the host is up and Motive's streaming engine is not serving.
-* The group was re-joined on **every** local IPv4 interface at once (the camera
-  NIC, the Wi-Fi, loopback) across data ports 1511-1513: still 0.  A join that
-  attached to the wrong interface is therefore excluded, and so is a moved data
-  port.  ``Get-NetNeighbor`` shows only ``192.168.1.100`` and the Kinova's
-  ``192.168.1.10`` on that subnet, so there is no second Motive host to have
-  found instead.
-
-Consequently the three-way id dispute below **remains open**, no CAN-arm ``q``
-has been observed, no plate-gap chain has been measured, and
-``UMArm_KINEMATICS.canarm_params.MEASURED`` is still ``False`` and must stay so.
-Re-run ``hw_tests/mocap_census.py`` first once Motive's Data Streaming pane is
-broadcasting again; ``hw_tests/canarm_mocap_live.py`` then does the rest.
-
-WHY THE BASE ID IS IN DOUBT.  Three sources disagree, and only Motive can
-arbitrate:
-
-WHY THE BASE ID IS IN DOUBT.  Three sources disagree, and only Motive can
-arbitrate:
-
-* the committed RS485 code says that arm is **500-505**
-  (``mocap_constants.RIGID_BODY_ID_MASK = 500``, and the index map beside it
-  describes 500..507 plus the Kinova at 1008);
-* the 2026-08-20 brief says the RS485 arm is **1000-1005** and the CAN arm
-  **2000-2005**;
-* the legacy VNEMA client agrees with the brief about the RS485 arm
-  (``portable_sync_comm_layer/mocap/mocap.py``: ``DEFAULT_ARM_IDS =
-  range(1000, 1006)``).
-
-Either the Motive project was renumbered since the 2026-08-11 recalibration and
-the RS485 repo is stale, or the brief's 1000-1005 is approximate.  The live
-check settles it, and the 2026-08-20 attempt above did not get to make it.
-Only the Kinova's **1008** is consistent across all three,
-and it keeps its own routing in :class:`~UMArm_MOCAP.mocap_rx.MocapRx`
-regardless of which arm a receiver is bound to.
-
-WHAT IS SAFE ABOUT GUESSING WRONG.  ``MocapRx._on_rigid_body`` drops ids
-outside its own block rather than trusting them, so a wrong base yields an arm
-that never converts — loudly stale — not an arm whose joints quietly encode a
-stray body.  What it does **not** protect against is a base that is wrong by an
-amount that still lands inside another asset's block; that is why the check is
-against Motive's asset list and not against whether frames arrive.
+TWO RECEIVERS, AND THE DIFFERENCE THAT MATTERS.  :class:`CanArmMocap` builds
+``q`` from the poses Motive streams.  :class:`CanArmMarkerMocap` builds it from
+the four markers of each plate, registered against a rest-time template.  On
+this arm the difference is not a refinement, it is a correction: Motive's
+manually aligned body frames sit about 45 deg round from the mechanism's axes
+(measured 2026-08-21 — the streamed body x lands within ~2 deg of a marker
+diagonal, and the revolute axes lie along the diagonals), and a ``q`` read off
+the streamed frames is smooth, repeatable and wrong by that rotation.  Prefer
+the marker receiver for anything that acts on ``q``; keep the streamed one for
+transport diagnostics, where the pose is only being used to say "the body is
+there".
 
 WHAT IS NOT PORTABLE FROM THE RS485 ARM.  Marker locks are minted per Motive
-session against particular plates, so the RS485 arm's committed
-``locks.json`` describes neither these plates nor this asset roster.
-:data:`DEFAULT_TEMPLATE_PATH` names a file that **does not exist yet**, and
-``marker_mocap.load_locks`` raises rather than falling back when it is absent.
-Mint the CAN arm's own with ``mocap_probe.py --rb-id-base 2000 --n-bodies 6
---lock-out <path>`` or :func:`marker_mocap.mint_locks` against a live rest
-capture.  The RS485 file is carried at ``templates/rs485_locks_example.json``
-purely as a worked example of the format.
+session against particular plates, so the RS485 arm's committed ``locks.json``
+describes neither these plates nor this asset roster.
+:data:`DEFAULT_TEMPLATE_PATH` names this arm's file; ``load_canarm_locks``
+raises rather than falling back when it is absent.  Mint with
+``mocap_probe.py --rb-id-base 2000 --n-bodies 6 --x-mode diagonal45
+--lock-out <path>``, with :func:`UMArm_MOCAP.canarm_frames.mint_locks` against
+a rest capture, or from the control GUI's **Lock plates** button.  The RS485
+file is carried at ``templates/rs485_locks_example.json`` purely as a worked
+example of the format.
 """
 
 from __future__ import annotations
@@ -88,20 +53,19 @@ from .mocap_rx import MocapRx
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 #: Motive streaming id of the CAN arm's base plate.  Array row ``i`` is id
-#: ``CANARM_RB_ID_BASE + i``.  **Unverified**; see the module docstring.
+#: ``CANARM_RB_ID_BASE + i``.  Verified live 2026-08-21; see the module
+#: docstring.
 CANARM_RB_ID_BASE = 2000
 
 #: How many rigid bodies that block carries: 2000 (base) .. 2005 (tip).  Six,
 #: not the RS485 arm's seven, because the CAN arm's Motive project carries no
-#: end-effector plate — which matches the RS485 volume in practice, where plate
-#: 6 is reported ABSENT every window.  **Unverified**; see the module docstring.
+#: end-effector plate.  Verified live 2026-08-21.
 CANARM_N_BODIES = 6
 
-#: The CAN arm's marker locks.  **This file does not exist yet** and is not
-#: created by this module; loading must refuse loudly rather than reach for the
-#: RS485 arm's templates, because a lock minted against different plates
-#: registers markers onto geometry that is not there and reports a confident
-#: ``q`` for it.
+#: The CAN arm's marker locks.  Session-scoped and therefore not checked in;
+#: loading must refuse loudly rather than reach for the RS485 arm's templates,
+#: because a lock minted against different plates registers markers onto
+#: geometry that is not there and reports a confident ``q`` for it.
 DEFAULT_TEMPLATE_PATH = os.path.join(_HERE, "templates", "canarm_locks.json")
 
 
@@ -113,9 +77,9 @@ class CanArmMocap(MocapRx):
     CAN-arm receiver and an RS485-arm receiver are the same code reading two
     blocks of one NatNet stream, and can run side by side in one process.
 
-    ``rb_id_base`` and ``n_bodies`` remain overridable, since the brief's
-    2000-2005 is not yet confirmed and an operator who finds the real numbers
-    should not have to edit a module to use them.
+    Its ``q`` is read off **Motive's** body frames, whose azimuth this arm's
+    2026-08-21 session measured 45 deg away from the mechanism — see the module
+    docstring, and prefer :class:`CanArmMarkerMocap` for control.
     """
 
     def __init__(self, *,
@@ -126,27 +90,42 @@ class CanArmMocap(MocapRx):
 
 
 class CanArmMarkerMocap(MarkerMocap):
-    """:class:`MarkerMocap` bound to the same block.
+    """:class:`MarkerMocap` bound to the same block, with this arm's azimuths.
 
-    ``MarkerMocap`` subclasses ``MocapRx`` and forwards ``**kwargs`` to it
-    untouched, so the same two arguments reach the same five read sites and no
-    further parameterization is needed.  What it adds over
-    :class:`CanArmMocap` is the marker-registered ``q`` — the reason that path
-    exists is that Motive is free to move a rigid body's pivot when it
-    re-solves an asset, without telling any client, whereas the marker
-    positions stay true.
+    Three things are supplied here that the base class cannot know: the id
+    block, **the per-plate bracket azimuth**, and **which hinge of the proximal
+    universal joint is bolted to the upper bracket**
+    (``canarm_frames.PROXIMAL_ORDER``, measured rather than assumed).  Those
+    two defaults are the whole reason this subclass is worth having — ``MarkerMocap`` falls back to the
+    RS485 arm's ``FAMILY_PHI_RAD``, this arm's brackets are 45 deg round from
+    those, and the failure mode of getting it wrong is a plausible ``q`` rather
+    than an error.  Pass ``phis=None`` explicitly to opt out and take the
+    family defaults, which is what the before/after comparison in
+    ``hw_tests/canarm_axis_analysis.py`` does.
 
     *locks* must be the **CAN arm's** locks; see :data:`DEFAULT_TEMPLATE_PATH`.
     ``MarkerMocap.REQUIRED_PLATES`` is already ``range(6)``, which is exactly
     this arm's plate count, so nothing about the required set needs relaxing.
     """
 
+    #: Sentinel distinguishing "the caller said nothing" from "the caller asked
+    #: for the family defaults", which are different requests and would
+    #: otherwise both arrive as ``None``.
+    _AZIMUTH_DEFAULT = object()
+
     def __init__(self, locks: dict, *,
                  rb_id_base: int = CANARM_RB_ID_BASE,
                  n_bodies: int = CANARM_N_BODIES,
+                 phis=_AZIMUTH_DEFAULT,
+                 order=_AZIMUTH_DEFAULT,
                  **kwargs) -> None:
+        from .canarm_frames import PROXIMAL_ORDER, plate_phis_rad
+        if phis is CanArmMarkerMocap._AZIMUTH_DEFAULT:
+            phis = plate_phis_rad()
+        if order is CanArmMarkerMocap._AZIMUTH_DEFAULT:
+            order = PROXIMAL_ORDER
         super().__init__(locks, rb_id_base=rb_id_base, n_bodies=n_bodies,
-                         **kwargs)
+                         phis=phis, order=order, **kwargs)
 
 
 def load_canarm_locks(path: str | None = None) -> dict:
@@ -162,10 +141,12 @@ def load_canarm_locks(path: str | None = None) -> dict:
     if not os.path.isfile(path):
         raise FileNotFoundError(
             "%s does not exist.  The CAN arm's marker locks have not been "
-            "minted; the RS485 arm's templates in templates/"
-            "rs485_locks_example.json describe different plates and must not "
-            "be substituted.  Mint with: python UMArm_MOCAP/mocap_probe.py "
-            "--rb-id-base %d --n-bodies %d --lock-out %s"
+            "minted for this Motive session; the RS485 arm's "
+            "templates/rs485_locks_example.json describes different plates and "
+            "must not be substituted.  Mint with: python "
+            "UMArm_MOCAP/mocap_probe.py --rb-id-base %d --n-bodies %d "
+            "--x-mode diagonal45 --lock-out %s, or press Lock plates in "
+            "canarm_control_gui.py."
             % (path, CANARM_RB_ID_BASE, CANARM_N_BODIES, path))
     return load_locks(path)
 

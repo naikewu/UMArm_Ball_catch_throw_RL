@@ -43,6 +43,7 @@ Run:  ``python -m pytest UMArm_KINEMATICS/test_fkine.py -q``
 
 from __future__ import annotations
 
+import math
 import os
 import sys
 
@@ -711,3 +712,83 @@ class TestOracleFkine:
     def test_q0_matches_the_oracle(self):
         theirs = _legacy_km.fkine_mk5(rp.DEFAULT_PARAMS, np.zeros(12))
         assert np.max(np.abs(fkine(np.zeros(12)) - theirs)) < ORACLE_TOL
+
+
+class TestProximalOrder:
+    """The ``order`` parameter, added 2026-08-21 after the CAN arm measured it.
+
+    Two claims, and the first one is what makes the second safe: the default is
+    byte-for-byte the pre-existing behaviour, so the RS485 arm and the legacy
+    oracle are untouched; and ``"yx"`` really is the other composition, which
+    matters because the difference is second order in the joint angles and
+    therefore invisible at small ``q``.
+    """
+
+    def test_the_default_is_bit_identical_to_the_legacy_product(self):
+        rng = np.random.default_rng(2026)
+        for _ in range(50):
+            q = rng.uniform(-0.6, 0.6, 12)
+            assert np.array_equal(fkine(q), fkine(q, None, "xy"))
+            assert np.array_equal(ujoint_centres(q), ujoint_centres(q, None, "xy"))
+            assert np.array_equal(plate_transforms(q),
+                                  plate_transforms(q, None, "xy"))
+
+    def test_yx_is_exactly_the_swapped_two_factor_product(self):
+        row = rp.DEFAULT_PARAMS[1]
+        q4 = np.array([0.31, -0.22, 0.17, 0.28])
+        xi1, xi2, xi3, xi4 = segment_twists(row)
+        expected = (twist_exp(xi2, q4[1]) @ twist_exp(xi1, q4[0])
+                    @ twist_exp(xi3, q4[2]) @ twist_exp(xi4, q4[3]))
+        assert np.allclose(segment_transform(row, q4, "yx"), expected, atol=0.0,
+                           rtol=0.0)
+
+    def test_the_two_products_differ_by_exactly_t1_times_t2(self):
+        """The signature the CAN arm was diagnosed by.  At the same ``q4`` the
+        two products differ by a rotation of ``t1 * t2``, which is why the
+        wrong order is invisible near the zero pose and worth degrees at the
+        excursions a driven arm actually reaches."""
+        row = rp.DEFAULT_PARAMS[0]
+        for deg in (1.0, 5.0, 15.0, 30.0):
+            t = math.radians(deg)
+            q4 = np.array([t, t, 0.0, 0.0])
+            a = segment_transform(row, q4, "xy")[0:3, 0:3]
+            b = segment_transform(row, q4, "yx")[0:3, 0:3]
+            ang = math.acos(max(-1.0, min(1.0, (np.trace(a.T @ b) - 1.0) / 2.0)))
+            assert abs(ang - t * t) <= 0.03 * t * t, (deg, ang, t * t)
+
+    def test_the_swap_is_a_reparameterization_of_the_same_link_direction(self):
+        """The proximal pair is read *from* the link direction, so the two
+        orders are not two mechanisms — they are two coordinates for one.  Given
+        the same direction both put the distal u-joint centre in exactly the
+        same place; what differs is the orientation the rest of the chain
+        inherits, and that is the part that shows up millimetres downstream."""
+        from UMArm_MOCAP.marker_frame import swing_angles
+
+        row = rp.DEFAULT_PARAMS[0]
+        q_xy = np.array([0.4, -0.3, 0.0, 0.0,
+                         0.25, 0.20, 0.0, 0.0,
+                         0.22, -0.18, 0.0, 0.0])
+        e_xy = segment_transform(row, q_xy[0:4], "xy")
+        v = e_xy[0:3, 0:3] @ np.array([0.0, 0.0, 1.0])
+
+        q_yx = q_xy.copy()
+        q_yx[0], q_yx[1] = swing_angles(v, "yx")
+        assert not np.allclose(q_yx[0:2], q_xy[0:2], atol=1e-6)
+
+        a = ujoint_centres(q_xy, None, "xy")
+        b = ujoint_centres(q_yx, None, "yx")
+        # Segment 1's own two centres are unmoved: same direction, same length.
+        assert np.allclose(a[0:2], b[0:2], atol=1e-12)
+        # The residual between the two segment transforms is a pure rotation
+        # about the link axis -- which is why it moves nothing until a
+        # *downstream* joint bends out of that axis.
+        e_yx = segment_transform(row, q_yx[0:4], "yx")
+        rel = e_xy[0:3, 0:3].T @ e_yx[0:3, 0:3]
+        assert np.allclose(rel[0:3, 2], (0.0, 0.0, 1.0), atol=1e-12)
+        assert math.degrees(math.acos(
+            max(-1.0, min(1.0, (np.trace(rel) - 1.0) / 2.0)))) > 5.0
+        assert np.linalg.norm(a[5] - b[5]) > 1e-3
+
+    def test_an_unknown_order_raises(self):
+        with pytest.raises(ValueError, match="order must be one of"):
+            segment_transform(rp.DEFAULT_PARAMS[0], np.zeros(4), "yz")
