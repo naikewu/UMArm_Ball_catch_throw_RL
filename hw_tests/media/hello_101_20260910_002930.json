@@ -1,0 +1,103 @@
+{
+  "schema": "canarm_hello/1",
+  "created_local": "20260910_002930",
+  "base": "0x101",
+  "psi": 12.0,
+  "expected_joint": 2,
+  "expected_sign": 1,
+  "q_rest_deg": [
+    0.08957852459365248,
+    2.3518041229576743,
+    2.145040018674794,
+    -6.717659918991573,
+    -8.027919206972772,
+    -0.23031024905414516,
+    8.221839370403346,
+    3.3267202429291687,
+    -1.984305927305089,
+    -7.55541749597561,
+    5.42862882686127,
+    6.940837185515548
+  ],
+  "q_drive_deg": [
+    -3.4290905758470487,
+    -0.8065081319811214,
+    18.641924953262812,
+    -5.65779378601353,
+    -11.320327587356608,
+    -5.332886783834941,
+    5.105513571650766,
+    3.136675163135061,
+    -2.328782416205501,
+    -7.72625164451754,
+    5.535923284381497,
+    6.722934965132682
+  ],
+  "dq_deg": [
+    -3.518669100440701,
+    -3.1583122549387954,
+    16.496884934588017,
+    1.0598661329780432,
+    -3.292408380383837,
+    -5.1025765347807965,
+    -3.11632579875258,
+    -0.19004507979410762,
+    -0.34447648890041227,
+    -0.1708341485419303,
+    0.10729445752022757,
+    -0.21790222038286586
+  ],
+  "reached_psi": 12.030848329048844,
+  "dominant_joint": 2,
+  "motion_fraction": 0.012506265664160401,
+  "motion_centroid_px": [
+    344.5814128256513,
+    252.08967935871743
+  ],
+  "pair_image": "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\hw_tests\\media\\hello_101_20260910_002930_pair.jpg",
+  "clips": [
+    "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\hw_tests\\media\\hello_101_20260910_002930.mp4"
+  ],
+  "checks": [
+    {
+      "name": "camera delivers frames",
+      "ok": true,
+      "detail": "6 frames, 0.0 fps"
+    },
+    {
+      "name": "mocap streaming",
+      "ok": true,
+      "detail": "23 frames at 121.2 Hz, bodies 2000-2005"
+    },
+    {
+      "name": "all 24 boards present",
+      "ok": true,
+      "detail": "24 of 24 answered the scan"
+    },
+    {
+      "name": "commanded pressure arrived at the board",
+      "ok": true,
+      "detail": "0x101 read 12.03 psi against a 12.0 psi target"
+    },
+    {
+      "name": "mocap saw the arm move",
+      "ok": true,
+      "detail": "largest joint change 16.50 deg on joint 2 (s1.u2.t3)"
+    },
+    {
+      "name": "the joint that moved is the one the map names",
+      "ok": true,
+      "detail": "moved joint 2, map says 2"
+    },
+    {
+      "name": "the direction matches the map's sign",
+      "ok": true,
+      "detail": "dq[2] = +16.50 deg, map sign +1"
+    },
+    {
+      "name": "camera saw motion",
+      "ok": true,
+      "detail": "1.25% of pixels changed, centroid at x=345 y=252 of 700x456"
+    }
+  ]
+}

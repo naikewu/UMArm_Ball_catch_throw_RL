@@ -120,6 +120,14 @@ class Backend:
         self._pending_native: deque[tuple[int, bytes]] = deque()
         self._extended_cursor = 0
         self._last_extended_poll = 0.0
+        #: The target table actually put on the wire this cycle,
+        #: ``{base: (counts, enable)}``.  Recorded because a data collection has
+        #: to log what was *commanded*, and reading ``node.target_psi`` after
+        #: the fact races the thread generating the excitation: by the time an
+        #: observer looks, the next target may already be staged.
+        self._cycle_targets: dict[int, tuple[int, bool]] = {}
+        #: Optional per-cycle observer; see :meth:`set_cycle_observer`.
+        self._on_cycle = None
 
     # ---- lifecycle -----------------------------------------------------
     def log(self, message: str) -> None:
@@ -304,6 +312,7 @@ class Backend:
 
     def _send_cycle(self, disable_everything: bool = False) -> None:
         targets = self._build_targets(disable_everything)
+        self._cycle_targets = targets
         if not targets:
             return
         frames = P.build_runtime_table(targets)
@@ -364,6 +373,14 @@ class Backend:
                 replies = dict(self._cycle_replies)
             self._publish(t_sync, replies)
 
+            observer = self._on_cycle
+            if observer is not None:
+                try:
+                    observer(t_sync, self._cycle_targets, replies)
+                except Exception as exc:
+                    self.log(f"[ERROR] cycle observer raised: {exc}")
+                    self._on_cycle = None
+
             self._flush_native()
             self._poll_extended(t_sync)
 
@@ -408,6 +425,30 @@ class Backend:
                 self.stats.period_ms = 1000.0 / self.cycle_hz
 
     # ---- readout -------------------------------------------------------
+    def set_cycle_observer(self, callback) -> None:
+        """Install a callback fired once per cycle, on the cycle thread.
+
+        Signature ``callback(t_sync, targets, replies)`` where ``t_sync`` is the
+        ``time.perf_counter()`` stamp of the sync edge, ``targets`` is
+        ``{base: (counts, enable)}`` exactly as transmitted this cycle, and
+        ``replies`` is ``{base: (t_reply, CompactStatus)}`` for the boards that
+        answered inside the receive window.
+
+        This exists because a 150 Hz recording cannot be taken by polling.
+        :meth:`snapshot_nodes` deep-copies twenty-four dataclasses and their
+        ``extended`` dicts, and a poller runs on its own clock, so every sample
+        would be both expensive and off the sync grid -- and the sync edge is
+        the only instant the whole arm agrees on.
+
+        **The callback runs inline on the cycle thread**, between the publish
+        and the next tick, so anything it does is subtracted from the 6.67 ms
+        budget.  It must not block: append to a deque and let another thread
+        serialise.  A callback that raises is logged and then *uninstalled*,
+        because a fault repeating at 150 Hz would otherwise bury the log and
+        stall the bus.  Pass ``None`` to remove it.
+        """
+        self._on_cycle = callback
+
     def snapshot_nodes(self) -> dict[int, NodeState]:
         import copy
 
