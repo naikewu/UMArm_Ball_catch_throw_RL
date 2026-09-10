@@ -420,6 +420,7 @@ def train_shooting(tm: TorchModel, windows: "ds.WindowSet", *, epochs: int = 120
                    substep_s: float = DEFAULT_SUBSTEP_S,
                    train_gains: bool = True, chunk: int = DEFAULT_CHUNK,
                    gain_clip=am.GAIN_CLIP, log_every: int = 10,
+                   checkpoint_every: int = 0, on_checkpoint=None,
                    log=print) -> list:
     """The primary objective.  Returns the per-epoch loss list.
 
@@ -454,6 +455,12 @@ def train_shooting(tm: TorchModel, windows: "ds.WindowSet", *, epochs: int = 120
         if log_every and (ep % log_every == 0 or ep == epochs - 1):
             log(f"  shoot epoch {ep:4d}/{epochs}  loss {loss:.6e}  "
                 f"rms {np.sqrt(loss) * am.P_SCALE_PA:8.1f} Pa")
+        # A checkpoint only at the end is a checkpoint that does not exist for
+        # most of the run: the first full fit on this arm was six hours of
+        # shooting with nothing on disk, and stopping it early would have cost
+        # the warm start too.
+        if checkpoint_every and on_checkpoint is not None                 and ep and ep % checkpoint_every == 0:
+            on_checkpoint(ep, losses)
     return losses
 
 
@@ -665,7 +672,9 @@ def run(session_dir, out_path, *, epochs: int = 120, warm_epochs: int = 300,
         window_cycles: int = 300, substep_s: float = DEFAULT_SUBSTEP_S,
         lr: float = 1e-3, gains_lr: float = 1e-2, chunk: int = DEFAULT_CHUNK,
         seed: int = 20260910, dtype: str = "float64", warm_start: bool = True,
-        train_gains: bool = True, tendon=None, log=print) -> dict:
+        stride: "int | None" = None,
+        train_gains: bool = True, tendon=None, checkpoint_every: int = 10,
+        log=print) -> dict:
     """Leak fit -> optional warm start -> shooting -> held-out evaluation -> checkpoint.
 
     Returns the metrics dictionary that is also written into the checkpoint's
@@ -687,8 +696,8 @@ def run(session_dir, out_path, *, epochs: int = 120, warm_epochs: int = 300,
             "twin's MJCF. l and ldot have the right units and the wrong "
             "geometry; this fit is a pipeline check, not a model of the arm.")
     train, hold, rec, _, _ = ds.build_windows(
-        session_dir, window_cycles=window_cycles, holdout_frac=holdout_frac,
-        seed=seed, tendon=tendon, log=log)
+        session_dir, window_cycles=window_cycles, stride=stride,
+        holdout_frac=holdout_frac, seed=seed, tendon=tendon, log=log)
     log(f"  {rec.n_cycles} cycles, {rec.episode_ids().size} episodes, "
         f"{len(train)} train windows, {len(hold)} holdout windows, "
         f"{train.n_ticks} cycles each")
@@ -706,9 +715,21 @@ def run(session_dir, out_path, *, epochs: int = 120, warm_epochs: int = 300,
     warm = []
     if warm_start and warm_epochs > 0:
         warm = train_warm_start(tm, train, epochs=warm_epochs, log=log)
-    shoot_losses = train_shooting(tm, train, epochs=epochs, lr=lr,
-                                  gains_lr=gains_lr, substep_s=substep_s,
-                                  train_gains=train_gains, chunk=chunk, log=log)
+    def _save_partial(ep, losses):
+        tm.write_back(model)
+        model.clip_parameters()
+        model.save(out_path, meta={
+            "kind": "canarm flow net, PARTIAL -- shooting still running",
+            "epochs_done": int(ep), "epochs_planned": int(epochs),
+            "shoot_loss_first_last": [losses[0], losses[-1]],
+            "created": time.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        log(f"    checkpointed at epoch {ep} -> {out_path}")
+
+    shoot_losses = train_shooting(
+        tm, train, epochs=epochs, lr=lr, gains_lr=gains_lr,
+        substep_s=substep_s, train_gains=train_gains, chunk=chunk, log=log,
+        checkpoint_every=checkpoint_every, on_checkpoint=_save_partial)
 
     final = evaluate(tm, hold, substep_s=substep_s, chunk=chunk)
     train_metrics = evaluate(tm, train, substep_s=substep_s, chunk=chunk)
@@ -779,6 +800,13 @@ def main(argv=None) -> int:
     ap.add_argument("--gains-lr", type=float, default=1e-2)
     ap.add_argument("--seed", type=int, default=20260910)
     ap.add_argument("--dtype", choices=("float64", "float32"), default="float64")
+    ap.add_argument("--checkpoint-every", type=int, default=10,
+                    help="write the checkpoint every N shooting epochs, so a "
+                         "run that is stopped early still leaves a usable model")
+    ap.add_argument("--window-stride", type=int, default=None,
+                    help="cycles between window starts; larger than "
+                         "--window-cycles subsamples the windows, which is the "
+                         "lever on epoch cost that does not shorten the horizon")
     ap.add_argument("--no-gains", action="store_true",
                     help="freeze fill/vent gains (one-rig data cannot identify them)")
     ap.add_argument("--make-synthetic", metavar="DIR",
@@ -799,6 +827,7 @@ def main(argv=None) -> int:
         ap.error("one of --session or --make-synthetic is required")
 
     run(session, args.out, epochs=args.epochs, warm_epochs=args.warm_epochs,
+        checkpoint_every=args.checkpoint_every, stride=args.window_stride,
         device=args.device, holdout_frac=args.holdout,
         window_cycles=args.window_cycles, substep_s=args.substep_s,
         lr=args.lr, gains_lr=args.gains_lr, chunk=args.chunk, seed=args.seed,
