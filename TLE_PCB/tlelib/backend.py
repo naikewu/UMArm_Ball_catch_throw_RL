@@ -396,8 +396,14 @@ class Backend:
             if observer is not None:
                 try:
                     observer(t_sync, self._cycle_targets, replies)
-                except Exception as exc:
-                    self.log(f"[ERROR] cycle observer raised: {exc}")
+                except Exception:
+                    # The traceback, not just str(exc): an observer is a
+                    # caller's code, and "IndexError: index 24 is out of
+                    # bounds" without a line number is a fault that costs a
+                    # whole hardware session to localise.
+                    import traceback as _tb
+                    self.log("[ERROR] cycle observer raised, uninstalling it: "
+                             + _tb.format_exc().replace("\n", " | "))
                     self._on_cycle = None
 
             self._flush_native()

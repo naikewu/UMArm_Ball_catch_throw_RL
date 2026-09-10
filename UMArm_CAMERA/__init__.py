@@ -25,6 +25,7 @@ from .camera import (
     CONTENT_CROP,
     PRE_ROLL_S,
     probe_cameras,
+    silence_opencv_logging,
 )
 
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     "CONTENT_CROP",
     "PRE_ROLL_S",
     "probe_cameras",
+    "silence_opencv_logging",
 ]

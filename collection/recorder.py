@@ -119,6 +119,11 @@ class Recorder:
 
         self._meta = dict(metadata or {})
         self._last_mocap_seq = -1
+        #: Traceback of whatever killed the writer thread, or ``""``.  Checked
+        #: by the campaign's watchdog, and written into the session report.
+        self.writer_error = ""
+        #: Traceback of whatever the cycle observer last raised, or ``""``.
+        self.observer_error = ""
         self._stream_fh = None
         self._stream_rows = 0
         self._stream_upto = None
@@ -204,6 +209,18 @@ class Recorder:
     # -- the writer thread -------------------------------------------------- #
 
     def _write_loop(self) -> None:
+        try:
+            self._write_loop_inner()
+        except BaseException as exc:  # noqa: BLE001 - the thread's last words
+            import traceback
+            self.writer_error = "".join(traceback.format_exception(exc))
+            # A writer thread that dies silently costs the whole session: on
+            # 2026-09-10 one stopped 83 s in and the campaign walked another
+            # four minutes of excitation into a file nobody was writing.
+            print("RECORDER WRITER THREAD DIED:\n" + self.writer_error,
+                  flush=True)
+
+    def _write_loop_inner(self) -> None:
         while True:
             with self._qlock:
                 batch = list(self._q)

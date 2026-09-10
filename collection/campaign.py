@@ -19,9 +19,27 @@ a disabled board stops venting it, which would put a slow ramp underneath every
 measurement.  The only place the enable bits go down deliberately is the leak
 probe, where shutting both valves *is* the measurement.
 
-**Every exit path stops the cycle.** ``Backend.stop_cycle`` sends a table with
-every enable bit clear before the port closes, and it is reached from the normal
-return, from an exception, and from ``Ctrl-C`` alike.
+**Every exit path vents first, then stops the cycle.**  Clearing a 7 mm board's
+enable bit does **not** de-energise its solenoids.  ``firmware/legacy/main/main.c``
+skips the whole control body when the enable bit is clear, and all three
+``gpio_set_level(V_IN/V_OUT, ...)`` calls sit below that branch, so a disable
+*freezes* the valves where they were; that tree also has no link-loss timeout,
+so a board disabled while inflating goes on inflating with nothing able to stop
+it but a fresh enabled frame or power.
+
+Measured on this arm on 2026-09-10: all twenty-four boards charged to 12 psi and
+then disabled for 8 s, twice.  The per-board drift repeated to within 3 % between
+the two traps, and it ranged from -0.01 to -1.08 psi/s -- two orders of
+magnitude, which a leak alone does not explain.  ``0x109``, ``0x113`` and
+``0x117`` emptied to 0.1-4.1 psi, i.e. they froze with the **exhaust open**;
+``0x110`` rose at +0.041 psi/s, the known supply-side leak.  None happened to
+freeze inflating, but that is the sample, not a guarantee.
+
+So :meth:`Campaign._vent_and_disable` commands zero and *waits for the arm to
+empty* before any enable bit goes down.  The last command a board sees is then a
+step down, which leaves it venting or in its deadband -- both safe directions to
+freeze in.  This is the same rule the RS485 twin's protocol states as "vent past
+the closed branch's fixed point BEFORE shutting the valves".
 
 Usage::
 
@@ -189,6 +207,7 @@ class Campaign:
         self._seg_t0 = 0.0
         self._enable_all = True
         self._meas_psi = np.zeros(24, dtype=float)
+        self._last_rows = 0
         self._cal_zero = np.zeros(24, dtype=float)
         self._cal_scale = np.ones(24, dtype=float)
         self.notes: list = []
@@ -228,6 +247,26 @@ class Campaign:
         arrays, and ``set_targets`` takes the backend lock once.  Nothing here
         formats, opens a file, or waits.
         """
+        try:
+            self._observe(t_sync, targets, replies)
+        except Exception:
+            # NOTHING in this path may escape unrecorded.  Backend uninstalls
+            # an observer that raises, which takes the recording AND the
+            # excitation down together: on 2026-09-10 exactly that happened
+            # 83 s into a session and the campaign walked another four minutes
+            # of excitation into a file nobody was writing.  The whole body
+            # therefore sits inside this one handler rather than having the
+            # safety-critical part inside a narrower one -- the first version
+            # guarded only the target generation, and the fault was elsewhere.
+            self.rec.observer_error = traceback.format_exc()
+            self._stop.set()
+            try:
+                self.be.set_targets({b: self.env.idle_psi for b in ALL_BASES})
+            except Exception:
+                pass
+            raise
+
+    def _observe(self, t_sync, targets, replies) -> None:
         self.rec.on_cycle(t_sync, targets, replies)
 
         # The measured pressures the anomaly watcher needs, taken from the
@@ -243,23 +282,13 @@ class Campaign:
         seg = self._seg
         if seg is None or self._stop.is_set():
             return
-        try:
-            psi = seg.fn(t_sync - self._seg_t0)
-            psi = self.env.safe(psi, where=f"segment {seg.name}")
-            # The second assertion the module docstring promises: nothing
-            # reaches the bus without it, including a target from a generator
-            # that forgot to clamp.
-            self.env.assert_safe(psi, where="pre-transmit")
-        except Exception:
-            # A safety failure on this path must stop the arm, not be logged
-            # and stepped over.  Raising here would let Backend uninstall the
-            # observer and take the recording down with it, so the stop is
-            # explicit and the targets go to idle in this same cycle.
-            self._stop.set()
-            self.notes.append("SAFETY ASSERTION in the cycle observer:\n"
-                              + traceback.format_exc())
-            self.be.set_targets({b: self.env.idle_psi for b in ALL_BASES})
-            return
+        psi = seg.fn(t_sync - self._seg_t0)
+        psi = self.env.safe(psi, where=f"segment {seg.name}")
+        # The second assertion the module docstring promises: nothing reaches
+        # the bus without it, including a target from a generator that forgot
+        # to clamp.  A failure propagates to :meth:`_on_cycle`'s handler, which
+        # stops the session and idles the arm in this same cycle.
+        self.env.assert_safe(psi, where="pre-transmit")
         self._cmd_psi = psi
         self.be.set_targets({b: float(psi[i]) for i, b in enumerate(ALL_BASES)})
         self.stats["drive_ticks"] += 1
@@ -275,6 +304,40 @@ class Campaign:
         took 15 Hz off this arm when the operator GUI did it for a plot.
         """
         return self._meas_psi.copy()
+
+    def _vent_and_disable(self, *, timeout_s: float = 12.0,
+                          floor_psi: float = 1.5) -> dict:
+        """Command zero, wait for the arm to empty, and only then disable.
+
+        Returns what it observed, for the session report.  See the module
+        docstring: a 7 mm board freezes its solenoids where the disable found
+        them, so the only safe moment to clear an enable bit is one where every
+        board is venting or shut.  Commanding zero and waiting guarantees that;
+        clearing the bit straight from a hold does not.
+
+        The timeout is not a failure path.  A board that will not empty --
+        ``0x110`` inflates from its supply side and never will -- is reported
+        and left; waiting longer would not help, and refusing to disable would
+        leave the whole arm regulating instead.
+        """
+        self.be.set_targets({b: 0.0 for b in ALL_BASES})
+        self.be.set_enabled_all(True)
+        deadline = time.perf_counter() + timeout_s
+        while time.perf_counter() < deadline:
+            time.sleep(0.1)
+            if float(np.nanmax(self._meas_psi)) <= floor_psi:
+                break
+        held = {f"0x{b:03X}": round(float(self._meas_psi[i]), 2)
+                for i, b in enumerate(ALL_BASES)
+                if self._meas_psi[i] > floor_psi}
+        self._set_enable_all(False)
+        if held:
+            print("campaign: vented before disabling; still above "
+                  f"{floor_psi} psi: {held}")
+        else:
+            print(f"campaign: arm vented below {floor_psi} psi, then disabled")
+        return {"seconds_waited": round(timeout_s - (deadline - time.perf_counter()), 2),
+                "still_pressurised_psi": held}
 
     def _set_enable_all(self, on: bool) -> None:
         # set_enabled_all takes the lock once and logs once; the per-board call
@@ -339,7 +402,10 @@ class Campaign:
             print(f"campaign: mocap up, {st.fps:.1f} Hz")
 
             port = bench_env.resolve_can_port(a.port)
-            self.be = Backend(port=port, bitrate=bench_env.BITRATE)
+            # Without a sink the Backend's errors go only to a deque nobody
+            # reads, which is how a dead cycle thread stayed invisible.
+            self.be = Backend(port=port, bitrate=bench_env.BITRATE,
+                              log=lambda m: print("   backend: " + m, flush=True))
             self.be.open()
             try:
                 return self._run_bus()
@@ -420,8 +486,21 @@ class Campaign:
         rc = 0
         try:
             for idx, sg in enumerate(self.segments):
+                if self._runaway_guard():
+                    print("campaign: STOPPING -- a board ran away while "
+                          "disabled")
+                    rc = 1
+                    break
+                why = self._watchdog(idx)
+                if why:
+                    print("campaign: STOPPING -- " + why)
+                    self.notes.append("watchdog: " + why)
+                    rc = 1
+                    break
                 if self._stop.is_set():
-                    print("campaign: drive thread stopped the session")
+                    print("campaign: the cycle observer stopped the session")
+                    self.notes.append("observer stop: "
+                                      + (self.rec.observer_error or "safety"))
                     rc = 1
                     break
                 with self._seg_lock:
@@ -470,13 +549,70 @@ class Campaign:
         finally:
             self._stop.set()
             self.be.set_cycle_observer(None)
-            self.be.set_targets({b: self.env.idle_psi for b in ALL_BASES})
-            self._set_enable_all(True)
-            time.sleep(1.0)
+            self.vent_report = self._vent_and_disable()
             if self.rec is not None:
                 self.rec.close()
             self._write_session_report(t_session)
         return rc
+
+    #: A board that climbs past this while its enable bit is clear has frozen
+    #: with its inlet open, which the firmware gives no way to stop except a
+    #: fresh enabled frame.  Twelve psi over the leak probe's 12 psi charge is
+    #: far outside the natural drift measured on 2026-09-10 (worst +0.041 psi/s
+    #: on 0x110, so 0.33 psi over an 8 s trap) and still well inside the
+    #: operator's 30 psi rule.
+    RUNAWAY_PSI = 24.0
+
+    def _runaway_guard(self) -> bool:
+        """True if a disabled board is inflating, after re-enabling the arm.
+
+        The recovery is the point: re-enabling restores the regulator, which is
+        the only thing that can shut a frozen inlet valve short of power.
+        """
+        if self._enable_all:
+            return False
+        if float(np.nanmax(self._meas_psi)) < self.RUNAWAY_PSI:
+            return False
+        bad = {f"0x{b:03X}": round(float(self._meas_psi[i]), 2)
+               for i, b in enumerate(ALL_BASES)
+               if self._meas_psi[i] >= self.RUNAWAY_PSI}
+        self.notes.append(f"RUNAWAY while disabled: {bad}")
+        self.be.set_targets({b: self.env.idle_psi for b in ALL_BASES})
+        self._set_enable_all(True)
+        return True
+
+    def _watchdog(self, idx: int) -> str:
+        """Why the session must stop, or ``""`` if it may continue.
+
+        Three ways a session can be dead while still looking busy, all of them
+        seen on this bench:
+
+        * the **cycle thread exited** -- ``Backend._cycle_loop`` clears its run
+          flag and breaks on a transmit failure, after which nothing reaches
+          the bus and nothing says so;
+        * the **observer was uninstalled** -- ``Backend`` removes an observer
+          that raises, so the recording and the excitation stop together while
+          the segment walk carries on;
+        * the **writer thread died** -- rows keep being queued and dropped.
+
+        Checked at every segment boundary, which on this plan is at worst every
+        18 s, because the cost of finding out late is the whole session.
+        """
+        if not self.be.running:
+            return ("the 150 Hz cycle thread has exited; nothing is reaching "
+                    "the bus. Backend log tail: "
+                    + " | ".join(list(self.be.log_lines)[-4:]))
+        if self.rec.writer_error:
+            return "the recorder's writer thread died:\n" + self.rec.writer_error
+        if self.rec.observer_error:
+            return ("the cycle observer raised and was uninstalled:\n"
+                    + self.rec.observer_error)
+        if idx > 0 and self.rec.rows_written <= self._last_rows:
+            return (f"no rows were recorded during segment {idx} "
+                    f"(still {self.rec.rows_written}); the recording has "
+                    f"stalled even though the cycle is running")
+        self._last_rows = self.rec.rows_written
+        return ""
 
     def _watch(self, t: float, sg) -> None:
         if sg.meta.get("disable_all"):
@@ -513,7 +649,13 @@ class Campaign:
             "camera_frames": cam.frames if cam else 0,
             "camera_dropped": cam.dropped if cam else 0,
             "camera_error": cam.error if cam else "camera disabled",
+            "camera_lost": bool(cam.lost) if cam else True,
+            "camera_reopens": cam.reopens if cam else 0,
+            "recorder_writer_error": self.rec.writer_error if self.rec else "",
+            "recorder_observer_error": self.rec.observer_error if self.rec else "",
+            "cycle_still_running_at_end": bool(self.be.running) if self.be else False,
             "notes": self.notes,
+            "vent_before_disable": getattr(self, "vent_report", None),
         }
         path = os.path.join(self.session_dir, "session_report.json")
         with open(path, "w", encoding="utf-8") as fh:

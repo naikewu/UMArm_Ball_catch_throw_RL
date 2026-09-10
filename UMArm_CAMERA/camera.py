@@ -20,6 +20,7 @@ is an encode and must not sit in the grab path either.
 
 from __future__ import annotations
 
+import json
 import os
 import queue
 import threading
@@ -77,6 +78,22 @@ CLIP_FPS = 15.0
 #: H.264 for the same picture, which is what :data:`ARM_CROP` buys back.
 CLIP_FOURCC = "mp4v"
 
+#: Consecutive failed grabs after which the device is treated as gone.  The
+#: bench camera is a mirrorless body, and on 2026-09-10 it dropped out 298 s
+#: into a session with ``MF_E_VIDEO_RECORDING_DEVICE_INVALIDATED`` -- the body
+#: had gone to sleep.  The first version of this module retried every 5 ms and
+#: OpenCV logged three lines per attempt, so a sleeping camera produced 4882
+#: stderr lines and a thread spinning at 200 Hz against a 150 Hz control cycle.
+#: Sixty failures is one second of a dead device, which is long enough that a
+#: transient USB hiccup is not mistaken for a dropout.
+GRAB_FAIL_LIMIT = 60
+
+#: Seconds to wait before the single reopen attempt, and how long a reopened
+#: device is given to deliver a frame.  One attempt, not a loop: a body that
+#: has powered itself off will not come back until someone touches it, and a
+#: reopen loop is the same busy-wait in slower clothing.
+REOPEN_DELAY_S = 2.0
+
 #: Seconds of history the ring buffer holds, so a clip triggered by an anomaly
 #: still contains the moments before it was recognised.  The ring stores frames
 #: already cropped and downscaled to :data:`CLIP_SIZE` and decimated to
@@ -98,6 +115,36 @@ class CameraState:
     error: str = ""
     #: Names of clips finished so far, newest last.
     clip_paths: list = field(default_factory=list)
+    #: True once the device stopped answering and the reopen did not help.
+    #: The campaign keeps recording; it just stops getting pictures.
+    lost: bool = False
+    #: Consecutive grab failures at the moment the state was read.
+    consecutive_failures: int = 0
+    #: How many times the device was reopened over the session.
+    reopens: int = 0
+
+
+def silence_opencv_logging() -> bool:
+    """Stop OpenCV writing to stderr from C++.  True if it took.
+
+    Worth its own function because the name moved: OpenCV 5 exposes it as
+    ``cv2.utils.logging.setLogLevel`` and has no module-level ``setLogLevel``,
+    so the obvious call fails with ``AttributeError`` -- and wrapped in a
+    try/except, that failure is invisible while the log keeps flooding.
+    """
+    if cv2 is None:
+        return False
+    try:
+        from cv2.utils import logging as _cvlog
+        _cvlog.setLogLevel(_cvlog.LOG_LEVEL_SILENT)
+        return True
+    except Exception:
+        pass
+    try:
+        cv2.setLogLevel(0)          # OpenCV 4 spelling
+        return True
+    except Exception:
+        return False
 
 
 def probe_cameras(max_index: int = 6) -> list:
@@ -202,6 +249,14 @@ class BenchCamera:
             self._state.error = f"camera open failed: {exc!r}"
             self.enabled = False
             return False
+
+        # A device fault must not be able to flood the log: OpenCV writes three
+        # lines per failed grab straight to stderr from C++, and a redirected
+        # stderr makes each of those a blocking write.  The call lives in
+        # ``cv2.utils.logging`` in OpenCV 5 -- ``cv2.setLogLevel`` does not
+        # exist there, and a try/except around the wrong name silences the
+        # silencer instead of the log.
+        silence_opencv_logging()
 
         self._stop.clear()
         self._grab_thread = threading.Thread(target=self._grab_loop,
@@ -313,8 +368,40 @@ class BenchCamera:
 
     # -- threads ------------------------------------------------------------ #
 
+    def _reopen(self) -> bool:
+        """One attempt to bring the device back, after it stopped answering.
+
+        Returns whether it delivered a frame.  On failure the camera is marked
+        lost and every method becomes a no-op: the campaign's primary product
+        is the JSONL recording, and losing the video must not lose the data.
+        """
+        try:
+            if self._cap is not None:
+                self._cap.release()
+        except Exception:
+            pass
+        self._cap = None
+        time.sleep(REOPEN_DELAY_S)
+        for backend in (cv2.CAP_MSMF, cv2.CAP_DSHOW):
+            try:
+                cap = cv2.VideoCapture(self.index, backend)
+                if cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAPTURE_SIZE[0])
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAPTURE_SIZE[1])
+                    ok, frame = cap.read()
+                    if ok and frame is not None:
+                        self._cap = cap
+                        with self._lock:
+                            self._state.reopens += 1
+                        return True
+                cap.release()
+            except Exception:
+                pass
+        return False
+
     def _grab_loop(self) -> None:
         x0, y0, x1, y1 = self.crop
+        fails = 0
         n_since = 0
         t_since = time.monotonic()
         # The camera runs at ~60 fps but clips are written at CLIP_FPS, so the
@@ -326,17 +413,39 @@ class BenchCamera:
             try:
                 ok, frame = self._cap.read()
             except Exception as exc:  # pragma: no cover - device-specific
+                ok, frame = False, None
                 with self._lock:
                     self._state.error = f"grab failed: {exc!r}"
-                    self._state.dropped += 1
-                time.sleep(0.05)
-                continue
             now = time.monotonic()
             if not ok or frame is None:
+                fails += 1
                 with self._lock:
                     self._state.dropped += 1
-                time.sleep(0.005)
-                continue
+                    self._state.consecutive_failures = fails
+                if fails < GRAB_FAIL_LIMIT:
+                    # Back off as failures accumulate rather than hammering the
+                    # device: a retry every 5 ms is a 200 Hz thread competing
+                    # with a 150 Hz control cycle for the GIL, which is the
+                    # opposite of what a camera fault should cost.
+                    time.sleep(min(0.2, 0.005 * fails))
+                    continue
+                if self._reopen():
+                    fails = 0
+                    with self._lock:
+                        self._state.error = "device reopened after a dropout"
+                        self._state.consecutive_failures = 0
+                    continue
+                with self._lock:
+                    self._state.lost = True
+                    self._state.opened = False
+                    self._state.error = (
+                        f"camera stopped answering after {self._state.frames} "
+                        f"frames and did not reopen; the session continues "
+                        f"without video")
+                self.enabled = False
+                self.end_clip()
+                return
+            fails = 0
             if now < next_keep:
                 continue
             next_keep = max(now, next_keep + period)
@@ -384,6 +493,13 @@ class BenchCamera:
         if not frames:
             return
         os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
+        # The stamps are written beside the clip and they are not optional.
+        # A grabber that decimates a jittery 60 fps source to a nominal 15
+        # produces a file whose frame index is only approximately its time, and
+        # a side-by-side that assumed otherwise would drift by a frame every few
+        # seconds -- which reads as the twin lagging the arm, a claim the
+        # recording does not support.  Written as JSON rather than .npy so the
+        # file is readable without numpy and by anything.
         writer = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*self.fourcc),
                                  self.fps, self.size)
         if not writer.isOpened():
@@ -407,5 +523,13 @@ class BenchCamera:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1,
                                 cv2.LINE_AA)
                 writer.write(out)
+            with open(os.path.splitext(path)[0] + ".stamps.json", "w",
+                      encoding="utf-8") as fh:
+                json.dump({"t_mono_s": [float(t) for t, _ in frames],
+                           "fps_nominal": self.fps,
+                           "size": list(self.size),
+                           "crop": list(self.crop),
+                           "label": label,
+                           "frames": len(frames)}, fh)
         finally:
             writer.release()
