@@ -745,9 +745,9 @@ class TendonKinematics:
         straight into ``qpos``, which on this arm swaps each proximal pair
         (``mjcf_generator.QPOS_FROM_Q``), so the twelve proximal muscles' ``l``
         and ``ldot`` came from the other axis of their u-joint.  The flow
-        checkpoint of 2026-09-10 was trained on those features; its held-out
-        pressure RMS under the corrected ones is recorded in
-        ``hw_tests/report_canarm_twin_refine_2026-09-10.md``.
+        checkpoint of 2026-09-10 was trained on those features.  Over its own
+        10 824 held-out windows it scores 3681.9 Pa under them and 3676.2 Pa
+        under the corrected ones (-0.15 %), so it was kept, not retrained.
         """
         q = np.atleast_2d(np.asarray(q, dtype=np.float64))
         nq = self.model.nq
