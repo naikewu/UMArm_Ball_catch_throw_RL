@@ -47,6 +47,7 @@ detail at ``reference/sim_core.md`` section 2.
 from __future__ import annotations
 
 import heapq
+import math
 import random
 import struct
 import threading
@@ -56,14 +57,16 @@ from . import sim_core
 
 try:  # pragma: no cover - whichever of the two paths is live is exercised
     from TLE_PCB.tlelib import proto as P
-    from TLE_PCB.tlelib.backend import Backend
+    from TLE_PCB.tlelib.backend import RX_WINDOW_FRAC, Backend
+    from TLE_PCB.tlelib.timing import sleep_until
 except ImportError:  # pragma: no cover
     import sys
     from pathlib import Path
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from TLE_PCB.tlelib import proto as P
-    from TLE_PCB.tlelib.backend import Backend
+    from TLE_PCB.tlelib.backend import RX_WINDOW_FRAC, Backend
+    from TLE_PCB.tlelib.timing import sleep_until
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +88,37 @@ REPLY_LATENCY_LAST_MS = 3.35
 TLE_FIRMWARE_VERSION = "1.46"
 SEVEN_MM_FIRMWARE_VERSION = "0.2.1"
 
+#: s.  How long the bus must have carried no sync edge before the link's own
+#: delivery thread starts moving the arm's clock (``SimCanLink._keep_time``).
+#: Seven 150 Hz periods: long enough that a driving host's edges, which advance
+#: the arm themselves, never leave a gap this wide, and a tenth of the TLE
+#: boards' 500 ms sync-loss failsafe, so a silent host still trips it on time.
+#: Until 2026-09-10 the delivery thread advanced physics on every wake-up,
+#: including the wake-ups that were waiting to deliver a reply, and it did so
+#: holding the condition the cycle thread schedules replies under.  Measured
+#: headless with the placeholder plant: reply delivery ran a median 0.9 ms late
+#: (p99 3.2 ms) and 47-63 of 300 cycles missed a reply; after
+#: ``test_sim_core.py`` had run in the same interpreter, 4.9 ms late (p99
+#: 8.1 ms) and 130-148 of 300, which is the order-dependent failure of
+#: ``test_m2``, ``test_m3`` and the absent-board test.
+QUIET_AFTER_S = 0.05
+
+#: s after the batch stamp.  A reply due within this horizon is delivered by the
+#: thread that computed it -- the edge's caller in-process, the plant receiver
+#: for ``physics="process"`` -- which waits for the reply's arbitration time and
+#: then fires it; only a reply due later is left to the delivery thread.  4 ms is
+#: the 3.35 ms arbitration spread plus 0.65 ms, and ``SimMaster`` caps it at
+#: ``Backend``'s receive window (5.47 ms at 150 Hz), so a reply due after the
+#: window is still scheduled past it and still missed.  Why a wait on the same
+#: thread and not a hand-off: with the delivery thread doing no physics at all,
+#: it still delivered a median 3.4-4.1 ms late (p99 7.4 ms) after
+#: ``test_sim_core.py`` had run in the interpreter, against 0.7 ms alone, with
+#: no other Python thread alive and with the garbage collector frozen, disabled
+#: or run beforehand (146-167 of 300 cycles incomplete in every case).  A second
+#: thread's wake-up is at the mercy of the interpreter lock and the OS scheduler;
+#: a thread that already holds the reply is not.
+INLINE_HOLD_S = 0.004
+
 
 def reply_latency_ms(base: int, *,
                      first_ms: float = REPLY_LATENCY_BASE_MS,
@@ -102,6 +136,26 @@ def reply_latency_ms(base: int, *,
     span = max(1, int(last_base) - int(first_base))
     step = (float(last_ms) - float(first_ms)) / span
     return float(first_ms) + step * (int(base) - int(first_base))
+
+
+def decode_runtime_table(data: bytes):
+    """``{base: (counts, enable)}`` from one table frame, or ``None`` if it is not one.
+
+    ``proto``'s own layout: byte 0 carries the ``0x80`` marker and the start
+    slot, byte 1 the slot mask, then one 12-bit-plus-flags word per slot.
+    """
+    if len(data) != 8 or not data[0] & P.RUNTIME_TABLE_MARKER:
+        return None
+    start_slot = data[0] & P.RUNTIME_TABLE_SLOTMASK
+    mask = data[1]
+    staged = {}
+    for offset in range(P.RUNTIME_TABLE_SLOTS):
+        if not mask & (1 << offset):
+            continue
+        word = struct.unpack_from("<H", data, 2 + offset * 2)[0]
+        base = P.ACTUATOR_FIRST + start_slot + offset
+        staged[base] = (word & P.PRESSURE_MASK, bool((word >> 12) & P.CONTROL_ENABLE))
+    return staged
 
 
 # ---------------------------------------------------------------------------
@@ -135,8 +189,12 @@ class SimCanLink:
                  clock=time.perf_counter,
                  advance: bool = True,
                  idle_advance_s: float = 0.005,
+                 quiet_after_s: float = QUIET_AFTER_S,
+                 inline_hold_s: float = INLINE_HOLD_S,
                  seed: int = 20260910) -> None:
         self.arm = arm
+        #: See :data:`INLINE_HOLD_S`.
+        self.inline_hold_s = float(inline_hold_s)
         self.port = port
         self.bitrate = bitrate
         self.adapter_version = "SIM"
@@ -159,6 +217,9 @@ class SimCanLink:
         #: It is not a determinism hazard: reaching ``T`` is a pure function of
         #: ``T`` (invariant C5), and a stale target is a no-op.
         self.idle_advance_s = float(idle_advance_s)
+        #: The idle advance runs only once no edge has arrived for this long.
+        #: See :data:`QUIET_AFTER_S`.
+        self.quiet_after_s = float(quiet_after_s)
 
         self._rng = random.Random(seed)
         self._taps = []
@@ -166,6 +227,11 @@ class SimCanLink:
         self._pending = []                     # heap of (due, seq, can_id, data)
         self._seq = 0
         self._batch_t0 = None
+        self._last_edge_t = -math.inf
+        #: Serialises every pop-and-fire, so a reply the delivery thread popped
+        #: for an earlier cycle can never land after a fresher reply the edge
+        #: fired inline for the same board.
+        self._fire_lock = threading.RLock()
         self._cv = threading.Condition()
         self._stop = threading.Event()
         self._thread = None
@@ -264,24 +330,22 @@ class SimCanLink:
         of 0..127.  Checking it here means a host that ever stops setting it
         fails loudly in the twin instead of quietly commanding nothing.
         """
-        if not data[0] & P.RUNTIME_TABLE_MARKER:
+        staged = decode_runtime_table(data)
+        if staged is None:
             self.unmodelled_frames += 1
             return
-        start_slot = data[0] & P.RUNTIME_TABLE_SLOTMASK
-        mask = data[1]
-        staged = {}
-        for offset in range(P.RUNTIME_TABLE_SLOTS):
-            if not mask & (1 << offset):
-                continue
-            word = struct.unpack_from("<H", data, 2 + offset * 2)[0]
-            base = P.ACTUATOR_FIRST + start_slot + offset
-            staged[base] = (word & P.PRESSURE_MASK,
-                            bool((word >> 12) & P.CONTROL_ENABLE))
         if staged:
-            self.arm.stage_targets(staged)
+            self._stage(staged)
+
+    def _stage(self, staged: dict) -> None:
+        """Hand a decoded table to the plant.  In-process: straight onto the arm."""
+        self.arm.stage_targets(staged)
 
     def _sync_edge(self) -> None:
-        """Advance physics to now, apply the edge, and queue the replies."""
+        """Advance physics to now, apply the edge, and hand over the replies.
+
+        See :meth:`_hand_over` for who delivers them and when.
+        """
         now = self.clock() if self._batch_t0 is None else self._batch_t0
         with self.arm.lock:
             if self.advance:
@@ -296,13 +360,40 @@ class SimCanLink:
                 status = node.compact_status()
                 word = (status.counts & P.PRESSURE_MASK) | ((status.flags & P.FLAGS_MASK) << 12)
                 replies.append((base, struct.pack("<H", word)))
-        latency = 0.0
-        for base, payload in replies:
-            latency = reply_latency_ms(base, first_ms=self.first_ms,
-                                       last_ms=self.last_ms) / 1000.0
-            if self.reply_jitter_sd_ms:
-                latency += self._rng.gauss(0.0, self.reply_jitter_sd_ms / 1000.0)
-            self._schedule(now + latency, base, payload)
+        self._last_edge_t = self.clock()
+        self._hand_over(now, replies)
+
+    def _hand_over(self, t0: float, replies) -> None:
+        """Deliver one edge's replies at their arbitration times, from this thread.
+
+        Each reply is stamped ``t0 + reply_latency_ms(id)`` -- the stamp
+        ``Backend._publish`` turns into the latency column -- and fired by the
+        thread that holds it: at once if that time has passed (on the fitted twin
+        one 6.67 ms advance costs about 3.3 ms of CPU, past the whole 1.87-3.35
+        ms spread), otherwise after waiting for it.  Only a reply due beyond
+        :attr:`inline_hold_s` is left on the heap for the delivery thread, which
+        is what keeps a reply due after ``Backend``'s receive window missed.
+        Before 2026-09-10 every reply went to the delivery thread, and a reply
+        the metal would have put on the wire in time was missed by the twin's
+        own thread scheduling (:data:`INLINE_HOLD_S` has the measurement).
+        Anything an earlier edge left pending is fired first, so a stale reply
+        can never overwrite this edge's reply for the same board.
+        """
+        horizon = t0 + self.inline_hold_s
+        with self._fire_lock:
+            self._fire_due(self.clock())
+            for base, payload in replies:
+                latency = reply_latency_ms(base, first_ms=self.first_ms,
+                                           last_ms=self.last_ms) / 1000.0
+                if self.reply_jitter_sd_ms:
+                    latency += self._rng.gauss(0.0, self.reply_jitter_sd_ms / 1000.0)
+                due = t0 + latency
+                if due > horizon:
+                    self._schedule(due, base, payload)
+                    continue
+                sleep_until(due)
+                self.rx_count += 1
+                self._fire(due, base, payload)
 
     def _schedule(self, due: float, can_id: int, payload: bytes) -> None:
         with self._cv:
@@ -312,33 +403,60 @@ class SimCanLink:
 
     # ---- receive ---------------------------------------------------------
     def _deliver(self) -> None:
+        """Fire replies at their arbitration times; keep the clock when the bus is quiet.
+
+        Physics is never stepped while a reply is waiting, and never under the
+        condition :meth:`_schedule` needs.  Both used to happen: every wake-up
+        that found a reply not yet due advanced the arm first, so the reply was
+        delivered one physics advance late and the cycle thread's next
+        schedule blocked behind it.  :data:`QUIET_AFTER_S` gives the measurement.
+        """
         while not self._stop.is_set():
+            quiet = False
             with self._cv:
                 if not self._pending:
                     self._cv.wait(self.idle_advance_s)
-                    self._keep_time()
-                    continue
-                due = self._pending[0][0]
-                remaining = due - self.clock()
-                if remaining > 0.0:
-                    self._cv.wait(min(remaining, self.idle_advance_s))
-                    self._keep_time()
-                    continue
-                _, _, can_id, payload = heapq.heappop(self._pending)
-            #: Stamped with the arbitration due time rather than with the
-            #: delivery thread's own wake-up.  ``Backend._publish`` computes
-            #: ``reply_latency_ms`` from this stamp, and stamping the wake-up
-            #: would fold the host OS's scheduler jitter into a column that on
-            #: the metal measures the bus.
-            self.rx_count += 1
-            self._fire(due, can_id, payload)
+                    quiet = not self._pending
+                else:
+                    remaining = self._pending[0][0] - self.clock()
+                    if remaining > 0.0:
+                        self._cv.wait(min(remaining, self.idle_advance_s))
+                        continue
+            if quiet:
+                self._keep_time()
+                continue
+            self._fire_due(self.clock())
+
+    def _fire_due(self, t: float) -> None:
+        """Pop and fire, in due order, every pending reply due at or before *t*."""
+        with self._fire_lock:
+            while True:
+                with self._cv:
+                    if not self._pending or self._pending[0][0] > t:
+                        return
+                    due, _, can_id, payload = heapq.heappop(self._pending)
+                #: Stamped with the arbitration due time rather than with the
+                #: delivery thread's own wake-up.  ``Backend._publish`` computes
+                #: ``reply_latency_ms`` from this stamp, and stamping the wake-up
+                #: would fold the host OS's scheduler jitter into a column that
+                #: on the metal measures the bus.
+                self.rx_count += 1
+                self._fire(due, can_id, payload)
 
     def _keep_time(self) -> None:
-        """Move the arm's clock while the bus is quiet.  See ``idle_advance_s``."""
+        """Move the arm's clock while the bus is quiet.  See ``idle_advance_s``.
+
+        Only once no edge has arrived for :attr:`quiet_after_s`: while a host
+        drives, its edges advance the arm, and a second advancer between them
+        only competes with the cycle thread for the interpreter lock.
+        """
         if not self.advance:
             return
+        now = self.clock()
+        if now - self._last_edge_t < self.quiet_after_s:
+            return
         with self.arm.lock:
-            self.arm.advance_to(self.clock())
+            self.arm.advance_to(now)
 
     def _fire(self, t: float, can_id: int, data: bytes) -> None:
         with self._tap_lock:
@@ -406,9 +524,13 @@ class SimMaster(Backend):
                  clock=time.perf_counter,
                  advance: bool = True,
                  idle_advance_s: float = 0.005,
+                 quiet_after_s: float = QUIET_AFTER_S,
+                 inline_hold_s: float = INLINE_HOLD_S,
                  seed: int = 20260910,
                  **simarm_kwargs) -> None:
         super().__init__(port=port, bitrate=bitrate, cycle_hz=cycle_hz, log=log)
+        # Never hold a reply past the receive window this Backend will listen for.
+        inline_hold_s = min(float(inline_hold_s), RX_WINDOW_FRAC / float(cycle_hz))
         if arm is None:
             arm = sim_core.SimArm(seed=seed, **simarm_kwargs)
         elif simarm_kwargs:
@@ -425,7 +547,9 @@ class SimMaster(Backend):
                                first_ms=first_ms, last_ms=last_ms,
                                reply_jitter_sd_ms=reply_jitter_sd_ms,
                                clock=clock, advance=advance,
-                               idle_advance_s=idle_advance_s, seed=seed)
+                               idle_advance_s=idle_advance_s,
+                               quiet_after_s=quiet_after_s,
+                               inline_hold_s=inline_hold_s, seed=seed)
 
     def snapshot_arm(self) -> dict:
         """Plant truth beside the host's view, for a test or a plot.

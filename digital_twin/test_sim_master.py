@@ -20,6 +20,7 @@ starts it pays its own duration.  They are kept under a second apiece.
 from __future__ import annotations
 
 import inspect
+import threading
 import time
 
 import numpy as np
@@ -423,6 +424,123 @@ def test_the_reply_carries_the_pressure_latched_at_the_edge():
 
     assert node.compact_status().counts == latched
     assert node.cal.counts_to_psi(latched) == pytest.approx(9.0, abs=0.1)
+
+
+def test_a_reply_already_due_when_physics_returns_is_heard_on_that_edge():
+    """No second thread stands between a due reply and the host.
+
+    The link is never opened, so no delivery thread exists, and the physics is
+    made to outlast the whole 1.87-3.35 ms arbitration spread -- as one 6.67 ms
+    advance of the fitted twin does.  Every reply is therefore due when the
+    physics returns, and all 24 must reach the tap inside ``send_batch``, stamped
+    with their arbitration times.  Before the fix they sat on the heap for a
+    delivery thread that, in a live window, had to win the interpreter lock back
+    from the thread that had just spent it on physics.
+    """
+    master = make_master()
+    link, arm = master.link, master.arm
+    heard = []
+    link.add_tap(lambda t, can_id, data: heard.append((t, can_id)))
+    real_advance = arm.advance_to
+
+    def slow_advance(t):
+        out = real_advance(t)
+        time.sleep(0.006)
+        return out
+
+    arm.advance_to = slow_advance
+    arm.advance_to(time.perf_counter())            # pin the origin
+    t0 = time.perf_counter()
+    link._batch_t0 = t0
+    try:
+        link._route(P.ID_BROADCAST, b"")
+    finally:
+        link._batch_t0 = None
+
+    assert [can_id for _t, can_id in heard] == list(sc.ALL_IDS)
+    stamps = np.array([t for t, _ in heard]) - t0
+    np.testing.assert_allclose(stamps * 1000.0,
+                               [sm.reply_latency_ms(b) for b in sc.ALL_IDS], atol=1e-9)
+    assert link.rx_count == 24 and not link._pending
+
+
+def test_a_reply_not_yet_due_is_fired_at_its_time_by_the_thread_that_holds_it():
+    """Delivery never waits on a second thread's wake-up, and never fires early.
+
+    Fast physics this time, so every reply is still in the future when the edge
+    has been applied.  With no delivery thread in existence (the link is not
+    opened), all 24 must still reach the tap before ``send_batch`` returns, each
+    no earlier than its arbitration time.  Before the fix they waited on the
+    heap for a delivery thread that ran a median 3.4-4.1 ms late once
+    ``test_sim_core`` had run in the same interpreter.
+    """
+    master = make_master()
+    link, arm = master.link, master.arm
+    heard = []
+    link.add_tap(lambda t, can_id, data: heard.append((t, time.perf_counter(), can_id)))
+    arm.advance_to(time.perf_counter())
+    t0 = time.perf_counter()
+    link._batch_t0 = t0
+    try:
+        link._route(P.ID_BROADCAST, b"")
+    finally:
+        link._batch_t0 = None
+    returned = time.perf_counter()
+
+    assert [can_id for _t, _w, can_id in heard] == list(sc.ALL_IDS)
+    for stamp, wall, _ in heard:
+        assert wall >= stamp, "a reply was heard before its arbitration time"
+    assert returned - t0 >= sm.reply_latency_ms(P.ACTUATOR_LAST) / 1000.0
+    assert not link._pending
+
+
+def test_a_reply_due_past_the_hold_is_left_for_the_delivery_thread():
+    """What keeps a reply due after the receive window a miss, as on the metal."""
+    master = make_master(first_ms=1.0, last_ms=9.0)
+    link, arm = master.link, master.arm
+    assert link.inline_hold_s == pytest.approx(min(sm.INLINE_HOLD_S,
+                                                   0.82 / P.CYCLE_HZ))
+    heard = []
+    link.add_tap(lambda t, can_id, data: heard.append(can_id))
+    arm.advance_to(time.perf_counter())
+    link.send(*P.build_sync())
+    early = {b for b in sc.ALL_IDS
+             if sm.reply_latency_ms(b, first_ms=1.0, last_ms=9.0) / 1000.0
+             <= link.inline_hold_s}
+    assert set(heard) == early and 0 < len(early) < 24
+    assert len(link._pending) == 24 - len(early)
+    link.open()
+    time.sleep(0.05)
+    link.close()
+    assert sorted(heard) == list(sc.ALL_IDS)
+
+
+def test_the_delivery_thread_leaves_physics_to_the_edges_while_the_host_drives():
+    """Only a quiet bus is kept in time by the link's own thread.
+
+    The idle advance exists so a silent host still trips the TLE failsafe.  It
+    used to run on every wake-up of the delivery thread, including the ones
+    waiting to deliver a reply, under the condition replies are scheduled with.
+    """
+    master = make_master()
+    arm = master.arm
+    real_advance = arm.advance_to
+    during_cycle = []
+
+    def spy(t):
+        if master.running and master.stats.cycles > 2:
+            during_cycle.append(threading.current_thread().name)
+        return real_advance(t)
+
+    arm.advance_to = spy
+    snap = _drive(master, {0x101: 8.0}, run_s=0.6)
+    master.close()
+
+    assert snap[0x101].replies > 0
+    assert "sim-canlink" not in during_cycle, (
+        f"{during_cycle.count('sim-canlink')} advances on the delivery thread while "
+        f"the host was driving")
+    assert "sync-master" in during_cycle
 
 
 def test_history_decimates_under_the_lock():
