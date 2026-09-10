@@ -779,15 +779,19 @@ def test_masses_follow_their_arguments():
     pinned = G.build_model(**_KW)
     pinned_heavy = G.build_model(actuator_mass=0.060, **_KW)
     assert pinned_heavy.body_mass.sum() == pytest.approx(pinned.body_mass.sum())
-    # The sleeve's share of the pinned 0.70 kg rises, but cannot double: the
-    # component link grows from 0.487 to 0.727 kg with it, so the sleeve goes
-    # from 0.030*0.70/0.487 to 0.060*0.70/0.727 kg, a factor of 1.34.
+    # CHANGED 2026-09-10: under a pinned link total the sleeve keeps its own
+    # mass exactly -- the one number measured on this arm -- and the structure
+    # (rod, hubs, Ys) gives way.  The old rule scaled the sleeve with the total
+    # and put 43 g sleeves on the 0.70 kg prior link.
     span1 = G.segment_geometry()[0].span
-    comp = lambda act: (G.DEFAULT_LINK_DENSITY_KG_M * span1 + 2 * G.DEFAULT_HUB_MASS_KG
-                        + 4 * G.DEFAULT_Y_MASS_KG + 8 * act)
+    structure = (G.DEFAULT_LINK_DENSITY_KG_M * span1 + 2 * G.DEFAULT_HUB_MASS_KG
+                 + 4 * G.DEFAULT_Y_MASS_KG)
     for act in (0.030, 0.060):
-        assert _geom_mass(G.generate_xml(actuator_mass=act, **_KW), "canarm_s1_a1_sleeve") \
-            == pytest.approx(act * G.DEFAULT_LINK_MASS_KG[0] / comp(act), rel=1e-9)
+        xml = G.generate_xml(actuator_mass=act, **_KW)
+        assert _geom_mass(xml, "canarm_s1_a1_sleeve") == pytest.approx(act, rel=1e-12)
+        assert _geom_mass(xml, "canarm_seg1_hub_top") == pytest.approx(
+            G.DEFAULT_HUB_MASS_KG * (G.DEFAULT_LINK_MASS_KG[0] - 8 * act) / structure,
+            rel=1e-9)
 
 
 def test_per_segment_mass_totals_are_honoured():
@@ -814,23 +818,64 @@ def test_per_segment_mass_totals_are_honoured():
             pytest.approx(G.DEFAULT_LINK_MASS_KG[n - 1], abs=1e-9)
 
     geo = G.segment_geometry()
-    comp = [G.DEFAULT_LINK_DENSITY_KG_M * g.span + 2 * G.DEFAULT_HUB_MASS_KG
-            + 4 * G.DEFAULT_Y_MASS_KG + 8 * G.DEFAULT_ACTUATOR_MASS_KG for g in geo]
+    sleeves = 8 * G.DEFAULT_ACTUATOR_MASS_KG
+    structure = [G.DEFAULT_LINK_DENSITY_KG_M * g.span + 2 * G.DEFAULT_HUB_MASS_KG
+                 + 4 * G.DEFAULT_Y_MASS_KG for g in geo]
     free = G.build_model(link_mass_kg=None, bracket_mass_kg=None, **_KW)
     for n in (1, 2, 3):
-        assert _body_mass(free, f"canarm_seg{n}_link") == pytest.approx(comp[n - 1], abs=1e-9)
-    # the spread is proportional: a sleeve keeps its share of the component link
+        assert _body_mass(free, f"canarm_seg{n}_link") == pytest.approx(
+            structure[n - 1] + sleeves, abs=1e-9)
+    # The sleeves keep the measured 30 g under a pinned total; the structure
+    # takes the rest in its component proportions (CHANGED 2026-09-10).
     pinned_xml = G.generate_xml(link_mass_kg=links, bracket_mass_kg=brackets, **_KW)
     free_xml = G.generate_xml(link_mass_kg=None, bracket_mass_kg=None, **_KW)
-    assert _geom_mass(pinned_xml, "canarm_s1_a1_sleeve") == pytest.approx(
-        G.DEFAULT_ACTUATOR_MASS_KG * links[0] / comp[0], rel=1e-9)
-    assert _geom_mass(free_xml, "canarm_s1_a1_sleeve") == pytest.approx(
-        G.DEFAULT_ACTUATOR_MASS_KG, rel=1e-9)
+    for xml in (pinned_xml, free_xml):
+        assert _geom_mass(xml, "canarm_s1_a1_sleeve") == pytest.approx(
+            G.DEFAULT_ACTUATOR_MASS_KG, rel=1e-12)
+    assert _geom_mass(pinned_xml, "canarm_seg1_rod") == pytest.approx(
+        G.DEFAULT_LINK_DENSITY_KG_M * geo[0].span * (links[0] - sleeves) / structure[0],
+        rel=1e-9)
 
     with pytest.raises(ValueError):
         G.generate_xml(link_mass_kg=(0.5, 0.5), **_KW)
     with pytest.raises(ValueError):
         G.generate_xml(bracket_mass_kg=-0.1, **_KW)
+    with pytest.raises(ValueError, match="sleeves"):
+        G.generate_xml(link_mass_kg=(0.9, 0.24, 0.5), **_KW)
+
+
+def test_joint_stiffness_lands_on_its_segments_four_hinges_and_defaults_to_none():
+    """The passive-stiffness tunable added for the 2026-09-10 physical refit.
+
+    Zero by default and then **absent from the document**, so every model built
+    before the term existed is reproduced; per segment otherwise, on that
+    segment's proximal and distal hinges and no others, with the spring at rest
+    at ``q = 0``.  Negative and ``None`` are refused.
+    """
+    base = G.build_model(**_KW)
+    assert np.all(base.jnt_stiffness == 0.0)
+    assert "stiffness=" not in G.generate_xml(**_KW).split("<worldbody>")[1]
+
+    k = (0.4, 1.5, 2.25)
+    m = G.build_model(joint_stiffness=k, **_KW)
+    names = G.joint_names()
+    for i, name in enumerate(names):
+        jid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, name)
+        assert m.jnt_stiffness[jid] == pytest.approx(k[i // 4], rel=1e-12), name
+        assert m.qpos_spring[m.jnt_qposadr[jid]] == 0.0
+    one = G.build_model(joint_stiffness=0.7, **_KW)
+    assert np.allclose(one.jnt_stiffness, 0.7)
+    assert "joint_stiffness=(0.4, 1.5, 2.25)" in G.generate_xml(joint_stiffness=k, **_KW)
+
+    for bad in (-0.1, (0.1, 0.2), None, (0.1, float("nan"), 0.2)):
+        with pytest.raises(ValueError):
+            G.generate_xml(joint_stiffness=bad, **_KW)
+
+    # It is a restoring torque: a hinge displaced with no gravity comes back.
+    data = mujoco.MjData(m)
+    data.qpos[:] = 0.1
+    mujoco.mj_forward(m, data)
+    assert np.all(data.qfrc_passive < 0.0)
 
 
 def test_mass_and_drawing_tunables_reach_the_model_through_simarm():
@@ -875,7 +920,7 @@ def test_every_contracted_tunable_is_a_named_keyword():
     for name in ("joint_damping", "joint_frictionloss", "tendon_damping",
                  "link_density", "plate_mass", "base_pos", "base_rpy_deg",
                  "link_mass_kg", "bracket_mass_kg", "y_tip_radius",
-                 "y_tip_z_offset", "actuator_radius"):
+                 "y_tip_z_offset", "actuator_radius", "joint_stiffness"):
         assert name in sig, name
         assert sig[name].default is not inspect.Parameter.empty, name
         assert sig[name].kind is inspect.Parameter.KEYWORD_ONLY, name

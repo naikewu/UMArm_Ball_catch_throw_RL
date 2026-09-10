@@ -47,6 +47,10 @@ logs/
 reports/*.csv
 real_system_data_collection/
 
+# A mechanical fit's best-so-far checkpoint while it runs (digital_twin.mech_fit
+# progress_path).  Only a complete fit is promoted onto canarm_mech.json.
+digital_twin/checkpoints/*.running.json
+
 # Large recorded data of any provenance
 *.npz
 *.jsonl

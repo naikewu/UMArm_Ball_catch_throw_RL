@@ -31,24 +31,86 @@ from digital_twin import twin_params as TP
 # ---------------------------------------------------------------------------
 
 def test_every_parameter_has_bounds_around_its_start_and_names_its_evidence():
-    assert MF.N_PARAMS == 15, "3 link + 3 bracket masses, 3 gains, 3 shapes, 3 dissipation"
+    assert MF.N_PARAMS == 15, ("link structure, ring, spacer; 3 gains, 3 shapes, "
+                               "3 dissipation, 3 joint stiffnesses")
+    assert MF.MASS_NAMES == ("link_structure_kg", "ring_mass_kg", "spacer_mass_kg")
     assert len(set(MF.NAMES)) == MF.N_PARAMS
     for p in MF.PARAMS:
         assert 0.0 < p.lo < p.start < p.hi, p.name
         assert len(p.evidence) > 40, f"{p.name} states no evidence for its bounds"
 
 
-def test_the_mass_bounds_bracket_the_prior_and_respect_the_actuator_floor():
-    """A link cannot weigh less than its eight 30 g sleeves; the total brackets ~2.1 kg."""
-    links = [p for p in MF.PARAMS if p.name.startswith("link_mass")]
-    assert all(p.lo > 8 * MG.DEFAULT_ACTUATOR_MASS_KG for p in links)
-    masses = MF.PARAMS[:6]
-    lo_total = sum(p.lo for p in masses) + MG.DEFAULT_TIP_MASS_KG
-    hi_total = sum(p.hi for p in masses) + MG.DEFAULT_TIP_MASS_KG
-    prior = sum(MG.KOOPMAN_PROMAX_LINK_MASS_KG) + sum(MG.KOOPMAN_PROMAX_UJOINT_MASS_KG)
-    assert 24 * MG.DEFAULT_ACTUATOR_MASS_KG < lo_total < prior < hi_total
-    assert MF.PARAMS[5].name == "bracket_mass_kg_3"
-    assert MF.PARAMS[5].lo < MF.PARAMS[3].lo, "segment 3's ring-only body may be small"
+def test_the_masses_are_built_the_way_the_hardware_is():
+    """Shared parts, measured sleeves, one ring at the tip -- the physical refit.
+
+    The first fit's six free body totals came back as 0.60 / 2.02 / 3.88 kg per
+    metre of link and two identical connectors 5x apart.  Here every link carries
+    exactly eight 30 g sleeves plus one shared structure (only its rod share
+    follows the span), both connectors are ring + spacer + ring, and segment 3's
+    distal body is one ring.
+    """
+    rng = np.random.default_rng(11)
+    for _ in range(20):
+        v = MF.from_unit(rng.uniform(0.0, 1.0, MF.N_PARAMS))
+        links = MF.link_masses_kg(v)
+        brackets = MF.bracket_masses_kg(v)
+        sleeves = 8 * MG.DEFAULT_ACTUATOR_MASS_KG
+        assert all(m > sleeves for m in links)
+        structure = [m - sleeves for m in links]
+        assert max(structure) / min(structure) < 1.02, "same parts on every segment"
+        assert structure[0] > structure[1] > structure[2], "the rod share follows the span"
+        assert brackets[0] == pytest.approx(brackets[1], rel=1e-15)
+        assert brackets[0] == pytest.approx(2 * v["ring_mass_kg"] + v["spacer_mass_kg"])
+        assert brackets[2] == pytest.approx(v["ring_mass_kg"], rel=1e-15)
+        assert MF.moving_mass_kg(v) == pytest.approx(
+            sum(links) + sum(brackets) + MG.DEFAULT_TIP_MASS_KG)
+
+    lo = MF.moving_mass_kg({p.name: p.lo for p in MF.PARAMS})
+    hi = MF.moving_mass_kg({p.name: p.hi for p in MF.PARAMS})
+    prior = MF.moving_mass_kg(MF.start_values())
+    assert 24 * MG.DEFAULT_ACTUATOR_MASS_KG < lo < prior < hi
+    koopman = (sum(MG.KOOPMAN_PROMAX_LINK_MASS_KG)
+               + 2 * MG.KOOPMAN_PROMAX_UJOINT_MASS_KG[0])
+    assert prior == pytest.approx(koopman + MF.PRIOR_RING_KG + MG.DEFAULT_TIP_MASS_KG,
+                                  abs=1e-9), "the start is the Koopman prior, body for body"
+
+
+def test_the_prior_costs_one_percent_of_the_reference_loss_per_octave():
+    """What a mass has to buy its way off the prior with, and nothing else pays it."""
+    at_prior = MF.start_values()
+    assert MF.prior_penalty_deg(at_prior) == pytest.approx(0.0, abs=1e-15)
+    per_octave = MF.PRIOR_WEIGHT_PER_OCTAVE * MF.PRIOR_REFERENCE_LOSS_DEG
+    assert per_octave == pytest.approx(MF.PIN_FRACTION * 1.444)
+    for name in MF.MASS_NAMES:
+        for k, octaves in ((2.0, 1.0), (0.5, 1.0), (4.0, 2.0)):
+            v = dict(at_prior)
+            v[name] = at_prior[name] * k
+            assert MF.prior_penalty_deg(v) == pytest.approx(per_octave * octaves ** 2)
+    v = dict(at_prior)
+    for name in MF.GAIN_NAMES + MF.SHAPE_NAMES + MF.DISSIPATION_NAMES + MF.STIFFNESS_NAMES:
+        v[name] = at_prior[name] * 1.7
+    assert MF.prior_penalty_deg(v) == pytest.approx(0.0, abs=1e-15)
+
+
+def test_the_shape_bounds_come_from_the_training_contraction_alone():
+    """No held-out pose sizes a bound, and the bound keeps every muscle taut there.
+
+    The first fit's 1.45 was sized from the validation poses' 21.7 mm and bound
+    on all three segments.  The training windows contract 18.64 / 18.42 / 21.45 mm,
+    which puts the bounds at 1.55 / 1.51 / 1.47.
+    """
+    assert MF.SHAPE_HI == (1.55, 1.51, 1.47)
+    for seg, (e, l0) in enumerate(zip(MF.TRAINING_MAX_CONTRACTION_M, AM.L0_SEED_M)):
+        hi = MF.PARAMS[MF.NAMES.index(MF.SHAPE_NAMES[seg])].hi
+        assert hi == MF.SHAPE_HI[seg]
+        slack_at = l0 * (1.0 - hi / math.sqrt(3.0))
+        assert slack_at >= e, "the muscle must still pull at the largest training contraction"
+        assert l0 * (1.0 - (hi + 0.01) / math.sqrt(3.0)) < e, "rounded down by at most 0.01"
+        assert "TRAINING" in MF.PARAMS[MF.NAMES.index(MF.SHAPE_NAMES[seg])].evidence
+        assert "validation" not in MF.PARAMS[MF.NAMES.index(MF.SHAPE_NAMES[seg])].evidence
+    MF.check_excursion_envelope(MF.TRAINING_MAX_CONTRACTION_M)
+    with pytest.raises(ValueError, match="re-derive"):
+        MF.check_excursion_envelope((0.0, 0.0, MF.TRAINING_MAX_CONTRACTION_M[2] + 0.001))
 
 
 def test_the_gain_bounds_bracket_the_earlier_outer_fit_by_a_factor_of_three():
@@ -99,7 +161,32 @@ def test_values_come_back_from_an_outer_fit_file_with_the_rest_at_the_start():
     values = MF.values_from_mech(outer)
     np.testing.assert_allclose(MF.force_law(values)[0], MF.OUTER_FIT_COEFF, rtol=1e-12)
     assert values["tendon_damping"] == 0.5 and values["joint_damping"] == 0.01
-    assert values["link_mass_kg_1"] == MG.DEFAULT_LINK_MASS_KG[0]
+    assert values["link_structure_kg"] == MF.PRIOR_LINK_STRUCTURE_KG
+    assert values["joint_stiffness_1"] == MF.start_values()["joint_stiffness_1"]
+
+
+def test_the_first_free_mass_fit_projects_onto_the_physical_parameters():
+    """``--start`` from the 2026-09-10 free-mass checkpoint, as the docstring states."""
+    links, brackets = [0.3997, 0.7125, 1.1306], [0.1183, 0.5923, 0.0248]
+    doc = {"coeff": list(MF.OUTER_FIT_COEFF), "tendon_damping": 45.4,
+           "joint_damping": 0.0014, "joint_frictionloss": 0.079,
+           "mjcf": {"link_mass_kg": links, "bracket_mass_kg": brackets}}
+    v = MF.values_from_mech(doc)
+    sleeves = 8 * MG.DEFAULT_ACTUATOR_MASS_KG
+    want = np.mean([(m - sleeves) / s for m, s in zip(links, MF.STRUCTURE_SHARE)])
+    assert v["link_structure_kg"] == pytest.approx(want)
+    assert v["ring_mass_kg"] == pytest.approx(0.0248)
+    assert v["spacer_mass_kg"] == pytest.approx((0.1183 + 0.5923) / 2 - 2 * 0.0248)
+    # The projection keeps the links' total structure to within the span shares'
+    # spread (under 1 %), not exactly: three free totals become one shared part.
+    assert sum(MF.link_masses_kg(v)) == pytest.approx(3 * sleeves + 3 * want, rel=1e-12)
+    assert sum(MF.link_masses_kg(v)) == pytest.approx(sum(links), rel=0.01)
+    clipped = MF.clip_to_bounds(dict(v, joint_frictionloss=9.0))
+    assert MF.in_bounds(clipped) and clipped["joint_frictionloss"] == 0.5
+
+    written = MF.mech_document(MF.start_values(), status="complete")
+    assert MF.values_from_mech(written) == MF.start_values(), \
+        "a checkpoint this module wrote is read from its own parameters"
 
 
 # ---------------------------------------------------------------------------
@@ -264,20 +351,24 @@ def test_profile_lines_scale_exactly_what_they_name():
     best = MF.start_values()
     cands = MF.profile_candidates(best)
     assert [c[0] for c in cands].count("best") == 1
-    assert len(cands) == 1 + 6 * 4 + 4 + 4 + 2
+    assert len(cands) == 1 + (3 + 3) * 4 + 4 + 4 + 2
+    scaled = MF.MASS_NAMES + MF.GAIN_NAMES + MF.STIFFNESS_NAMES
     for line, k, v, extra in cands:
-        if line in MF.MASS_NAMES:
+        if line in MF.MASS_NAMES + MF.STIFFNESS_NAMES:
             assert v[line] == pytest.approx(best[line] * k)
             assert all(v[n] == best[n] for n in MF.NAMES if n != line)
-        elif line == "mass_and_gain":
-            assert all(v[n] == pytest.approx(best[n] * k) for n in MF.MASS_NAMES + MF.GAIN_NAMES)
+        elif line == "mass_gain_and_stiffness":
+            assert all(v[n] == pytest.approx(best[n] * k) for n in scaled)
             assert all(v[n] == best[n] for n in MF.SHAPE_NAMES + MF.DISSIPATION_NAMES)
             assert extra == {}
-        elif line == "mass_gain_and_all_dissipation":
+        elif line == "mass_gain_stiffness_and_all_dissipation":
             assert extra == {"damp_b1_scale": k}
-            assert all(v[n] == pytest.approx(best[n] * k) for n in MF.DISSIPATION_NAMES)
+            assert all(v[n] == pytest.approx(best[n] * k)
+                       for n in scaled + MF.DISSIPATION_NAMES)
         elif line == "joint_armature":
             assert extra == {"joint_armature": pytest.approx(MG.JOINT_ARMATURE * k)}
+        else:
+            assert line == "best", line
 
 
 def test_a_flat_profile_is_not_pinned_and_a_valley_is():
@@ -308,15 +399,64 @@ def test_the_checkpoint_loads_through_twin_params_as_the_twin_that_was_scored(tm
     kw = TP.load_twin_kwargs(flow=None, mech=path, log=lambda *_: None)
     mine = MF.twin_kwargs(values, kw["actuator"])
     assert set(kw) == set(mine)
+    assert {"plate_mass", "spacer_mass", "joint_stiffness"} <= set(kw)
     np.testing.assert_allclose(kw["actuator"].coeff, mine["actuator"].coeff, rtol=1e-15)
     np.testing.assert_allclose(kw["actuator"].bf, mine["actuator"].bf, rtol=1e-15)
-    for key in ("tendon_damping", "joint_damping", "joint_frictionloss"):
+    for key in ("tendon_damping", "joint_damping", "joint_frictionloss",
+                "plate_mass", "spacer_mass"):
         assert kw[key] == pytest.approx(mine[key], rel=1e-15)
-    for key in ("link_mass_kg", "bracket_mass_kg"):
+    for key in ("link_mass_kg", "bracket_mass_kg", "joint_stiffness"):
         np.testing.assert_allclose(kw[key], mine[key], rtol=1e-15)
+
+    # And the compiled model carries the physical parameterisation part for part.
+    import mujoco
+    import xml.etree.ElementTree as ET
+
+    tunables = {k: v for k, v in kw.items() if k not in
+                ("actuator", "tendon_damping", "joint_damping", "joint_frictionloss")}
+    xml = MG.generate_xml(**tunables)
+    model = mujoco.MjModel.from_xml_string(xml)
+    geoms = {g.get("name"): float(g.get("mass")) for g in ET.fromstring(xml).iter("geom")
+             if g.get("mass") is not None}
+    for n in (1, 2, 3):
+        link = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, f"canarm_seg{n}_link")
+        assert model.body_mass[link] == pytest.approx(MF.link_masses_kg(values)[n - 1], abs=1e-9)
+        assert geoms[f"canarm_seg{n}_plate2_geom"] == pytest.approx(values["ring_mass_kg"],
+                                                                     rel=1e-9)
+    assert geoms["canarm_s1_a1_sleeve"] == pytest.approx(MF.SLEEVE_MASS_KG, rel=1e-12)
+    names = MG.joint_names()
+    for i, name in enumerate(names):
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+        assert model.jnt_stiffness[jid] == pytest.approx(
+            values[MF.STIFFNESS_NAMES[i // 4]], rel=1e-9)
 
     doc = json.loads(path.read_text(encoding="utf-8"))
     assert doc["date"] == MF.FIT_DATE == "2026-09-10"
     assert set(doc["bounds"]) == set(MF.NAMES)
     back = MF.values_from_mech(doc, l0=kw["actuator"].l0)
     np.testing.assert_allclose(MF.as_vector(back), MF.as_vector(values), rtol=1e-12)
+
+
+def test_a_running_fit_never_replaces_the_checkpoint_the_twin_loads(tmp_path):
+    """Progress goes beside ``canarm_mech.json``; only a complete fit is promoted.
+
+    The first fit rewrote ``--out`` every generation with a ``running`` status, so
+    a re-run with default arguments changed the twin the GUI's SIM adapter and
+    ``deliverable.py`` load, mid-fit and without a log line.
+    """
+    out = tmp_path / "canarm_mech.json"
+    progress = MF.progress_path(str(out))
+    assert progress != str(out.resolve()) and progress.endswith("canarm_mech.running.json")
+    assert MF.progress_path(str(TP.DEFAULT_MECH)) != str(TP.DEFAULT_MECH)
+
+    MF.write_json(str(out), {"status": "complete", "marker": "the twin in use"})
+    MF.write_json(progress, MF.mech_document(MF.start_values(),
+                                             status="running: generation 3 of 70"))
+    with pytest.raises(ValueError, match="only a complete fit"):
+        MF.promote(progress, str(out))
+    assert json.loads(out.read_text(encoding="utf-8"))["marker"] == "the twin in use"
+
+    MF.write_json(progress, MF.mech_document(MF.start_values(), status="complete"))
+    MF.promote(progress, str(out))
+    assert json.loads(out.read_text(encoding="utf-8"))["status"] == "complete"
+    assert not (tmp_path / "canarm_mech.running.json").exists()

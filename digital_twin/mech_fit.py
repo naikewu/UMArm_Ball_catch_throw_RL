@@ -14,17 +14,46 @@ recordings instead.
 WHAT IS SEARCHED.  Fifteen numbers, each in log space between bounds whose
 evidence is written beside them in :data:`PARAMS`:
 
-=========================  ===============================  ================================
-parameter                  bounds                           start
-=========================  ===============================  ================================
-``link_mass_kg`` x3        0.25 - 1.50 kg                   Koopman prior 0.70 / 0.50 / 0.50
-``bracket_mass_kg`` x3     0.05 - 0.60 kg (seg 3 0.01-0.40)  0.20 / 0.20 / 0.10
-``rest_gain_n_per_pa`` x3  1e-5 - 1e-3 N/Pa                 outer fit 1.62e-4/1.34e-4/3.15e-5
-``bf_over_l0`` x3          0.50 - 1.45                      RS485 shape 1.216 / 1.364 / 1.269
-``tendon_damping``         0.01 - 100 N s/m                 outer fit 0.316
-``joint_damping``          0.001 - 3.0 N m s/rad            outer fit 0.00822
-``joint_frictionloss``     0.001 - 0.5 N m                  RS485 fit 0.025
-=========================  ===============================  ================================
+==========================  ==============================  ================================
+parameter                   bounds                          start (fresh run)
+==========================  ==============================  ================================
+``link_structure_kg``       0.05 - 1.20 kg                  Koopman prior 0.327 (mean)
+``ring_mass_kg``            0.01 - 0.20 kg                  Koopman connector share 0.05
+``spacer_mass_kg``          0.01 - 0.40 kg                  Koopman connector share 0.10
+``rest_gain_n_per_pa`` x3   1e-5 - 1e-3 N/Pa                outer fit 1.62e-4/1.34e-4/3.15e-5
+``bf_over_l0`` x3           0.50 - 1.55 / 1.51 / 1.47       RS485 shape 1.216 / 1.364 / 1.269
+``tendon_damping``          0.01 - 100 N s/m                outer fit 0.316
+``joint_damping``           0.001 - 3.0 N m s/rad           outer fit 0.00822
+``joint_frictionloss``      0.001 - 0.5 N m                 RS485 fit 0.025
+``joint_stiffness`` x3      0.001 - 10 N m/rad              0.01 (the term's absence)
+==========================  ==============================  ================================
+
+THE MASSES ARE PARAMETERISED AS THE HARDWARE IS BUILT (the physical refit of
+2026-09-10).  The first fit searched six free body totals and returned links of
+0.40 / 0.71 / 1.13 kg and brackets of 0.12 / 0.59 / 0.025 kg: 0.60 / 2.02 /
+3.88 kg per metre of link once the sleeves are removed, although the three
+segments are the same ProMax parts, and two identical inter-segment connectors
+5x apart.  Only link 3 was pinned by the data; the rest sat where the optimiser
+stopped.  So the masses are now three shared numbers:
+
+* a link body = the eight sleeves at the measured 30 g each (fixed, honoured
+  exactly by ``mjcf_generator.segment_masses``) + one ``link_structure_kg``
+  shared by all three segments (rod, two bearing hubs, four Ys), whose rod share
+  scales with each segment's span through the generator's component
+  proportions;
+* the body rigid with segment 1's or 2's distal ring = ring + spacer + ring
+  (``2 * ring_mass_kg + spacer_mass_kg``), identical for both connectors;
+* segment 3's distal body = one ring (``ring_mass_kg``), there being no spacer
+  and no next segment.
+
+A **passive joint stiffness** per segment joins the search
+(``mjcf_generator.DEFAULT_JOINT_STIFFNESS``, zero until now), because the first
+fit leaned on its bounds exactly where the model lacked restoring torque.  And
+the three masses are **regularised toward the Koopman prior** until a weighing
+exists (:func:`prior_penalty_deg`): the data has to pay 1 % of the reference loss
+for each factor of two a mass moves, the same 1 % the profiles use to call a
+parameter pinned, so a mass the data cannot see stays at the prior instead of
+drifting to wherever CMA-ES stopped.
 
 The force law is searched as a rest gain and a shape rather than as ``coeff`` and
 ``bf``.  ``ActuatorModel.force_n`` pulls with ``coeff * p * (3 l^2 - bf^2)``, so
@@ -91,36 +120,43 @@ candidate and step away, and it exceeds the 160 deg that is the largest RMS two
 deflection traces inside a +-40 deg joint range can differ by.
 
 WHAT THE DATA CAN PIN, STATED BEFORE THE FIT RATHER THAN AFTER IT.  Scaling
-every mass and every muscle gain by one factor ``k`` scales the gravity torque,
-the inertia and the muscle torque by ``k``.  The equation of motion is then
-unchanged except that every dissipation term and the joint armature are ``1/k``
-as large relative to it.  Therefore:
+every mass, every muscle gain and every joint stiffness by one factor ``k``
+scales the gravity torque, the inertia, the muscle torque and the elastic torque
+by ``k``.  The equation of motion is then unchanged except that every
+dissipation term and the joint armature are ``1/k`` as large relative to it.
+Therefore:
 
-* the statics (staircase, pair sweep) pin ``gain / mass`` and nothing more;
+* the statics (staircase, pair sweep) pin ``gain / mass`` (and ``stiffness /
+  mass``) and nothing more;
 * the dynamics separate the two only through terms that do not scale with ``k``:
   ``damp_b1`` (the pressure-scheduled tendon damping, 9.9e-4 N s/m per Pa, an
   RS485 fit that outweighs a 0.3 N s/m base by two orders of magnitude at
   10 psi) and ``mjcf_generator.JOINT_ARMATURE`` = 0.01 kg m^2.  Both are carried
   over, and neither has been measured on this arm;
-* scaling mass, gain, the three fitted dissipation scalars **and** ``damp_b1`` by
-  ``k`` together leaves only the armature to break the symmetry.
+* scaling mass, gain, stiffness, the three fitted dissipation scalars **and**
+  ``damp_b1`` by ``k`` together leaves only the armature to break the symmetry.
 
-:func:`profile_candidates` measures the loss along all three directions and
-along each mass alone, so the checkpoint says which masses the data pinned
-rather than implying that it pinned all of them.
+:func:`profile_candidates` measures the loss along all three directions, along
+each mass alone and along each stiffness alone, and reports the **data** loss
+without the prior penalty, so the checkpoint says what the recordings pinned
+rather than what the prior held.
 
 WHAT THIS DOES NOT SHOW.  A mass reported here is a mass that makes *this model*
-reproduce *these recordings*, which is not a weighing.  The model has no
-passive joint stiffness, so any elastic restoring torque the arm gets from its
-pneumatic tubing and wiring can only be expressed as gravity (mass) or as the
-force law's shape.  The ring radii ``AO``/``AA``/``JA`` are CAD, so a moment arm
-that is wrong on the metal is absorbed into the gain.  The flow net is held
-fixed, and a pressure error it makes is fitted as a mechanical one.
+reproduce *these recordings* under a prior, which is not a weighing; where the
+profile is flat the answer is the prior.  A fitted joint stiffness is whatever
+restoring torque the model is otherwise short of, and nothing proves it is
+tubing.  The ring radii ``AO``/``AA``/``JA`` are CAD, so a moment arm that is
+wrong on the metal is absorbed into the gain.  The flow net is held fixed, and a
+pressure error it makes is fitted as a mechanical one.
 
 Usage::
 
-    .venv\Scripts\python.exe -m digital_twin.mech_fit --workers 24 --generations 70
+    .venv\Scripts\python.exe -m digital_twin.mech_fit --workers 24 --generations 70 \
+        --start digital_twin/checkpoints/canarm_mech.json
     .venv\Scripts\python.exe -m digital_twin.mech_fit --profile-only digital_twin/checkpoints/canarm_mech.json
+
+A run writes ``canarm_mech.running.json`` every generation and replaces
+``canarm_mech.json`` only when it completes (:func:`progress_path`).
 """
 
 from __future__ import annotations
@@ -258,19 +294,115 @@ class Param:
     evidence: str
 
 
-_LINK_WHY = (
-    "lower 0.25 kg: the link carries its eight actuators, 8 x 30 g = 0.24 kg, the "
-    "only mass measured on this arm; upper 1.50 kg: 2.1x the heaviest Koopman "
-    "ProMax prior link (0.70 kg) and 3x the other two (0.50 kg)")
-_BRACKET_WHY = (
-    "lower 0.05 kg: the body carries two u-joint rings and a spacer, and one "
-    "47 mm-radius aluminium ring 4 mm thick with an estimated 12 mm annulus is "
-    "33 g; upper 0.60 kg: 3x the Koopman prior connector (0.20 kg)")
-_BRACKET3_WHY = (
-    "segment 3's distal body carries one ring and plate 5 and no spacer, so it may "
-    "be small: lower 0.01 kg is a third of one estimated 33 g ring, below the "
-    "0.10 kg default (itself an estimate, the Koopman 0.001 kg being a "
-    "no-linkage placeholder); upper 0.40 kg: 4x that default")
+# -- the physical mass model ---------------------------------------------------
+
+#: kg per McKibben sleeve: the operator's ~30 g, **the only mass measured on this
+#: arm**.  Fixed, and honoured exactly by ``mjcf_generator.segment_masses``.
+SLEEVE_MASS_KG = MG.DEFAULT_ACTUATOR_MASS_KG
+
+#: Sleeves per link body.  All eight actuators of a segment hang from its Ys,
+#: which are rigid with the centre rod.
+SLEEVES_PER_LINK = 8
+
+_GEOMETRY = MG.segment_geometry()
+
+#: m, each segment's u-joint-centre span (the measured chain, 2026-08-21).
+SPANS_M = tuple(float(g.span) for g in _GEOMETRY)
+
+#: kg, the generator's component estimate of each link's structure (rod at
+#: ``DEFAULT_LINK_DENSITY_KG_M`` x span + two hubs + four Ys).  Used for its
+#: *proportions* only: segment ``i``'s structure is ``link_structure_kg x
+#: STRUCTURE_SHARE[i]``, so the rod share scales with span and the hubs and Ys,
+#: which are the same parts on every segment, do not.
+_STRUCTURE_COMPONENT_KG = tuple(
+    MG.DEFAULT_LINK_DENSITY_KG_M * s + 2.0 * MG.DEFAULT_HUB_MASS_KG
+    + 4.0 * MG.DEFAULT_Y_MASS_KG for s in SPANS_M)
+STRUCTURE_SHARE = tuple(c / (sum(_STRUCTURE_COMPONENT_KG) / 3.0)
+                        for c in _STRUCTURE_COMPONENT_KG)
+
+#: Whether each segment's distal body carries a JD spacer (and so the next
+#: segment's proximal ring).  Segments 1 and 2: yes; segment 3: no.
+HAS_CONNECTOR = tuple(bool(_GEOMETRY[i + 1].jd) if i + 1 < len(_GEOMETRY) else False
+                      for i in range(len(_GEOMETRY)))
+
+#: kg, the Koopman ProMax prior for a link's structure: the mean over the three
+#: segments of ``rod_mass_kg`` (0.70 / 0.50 / 0.50, which includes the eight
+#: sleeves) minus the 0.24 kg of sleeves, i.e. mean(0.46, 0.26, 0.26).
+PRIOR_LINK_STRUCTURE_KG = float(np.mean(
+    [m - SLEEVES_PER_LINK * SLEEVE_MASS_KG for m in MG.KOOPMAN_PROMAX_LINK_MASS_KG]))
+
+#: kg, the Koopman prior's 0.20 kg inter-segment connector (``ujoint_mass_kg``)
+#: split ring : spacer : ring in the generator's component proportions
+#: (0.12 : 0.24 : 0.12), i.e. 0.05 kg per ring and 0.10 kg of spacer.
+_CONNECTOR_COMPONENTS = (2.0 * MG.DEFAULT_PLATE_MASS_KG + MG.DEFAULT_SPACER_MASS_KG)
+PRIOR_RING_KG = float(MG.KOOPMAN_PROMAX_UJOINT_MASS_KG[0]
+                      * MG.DEFAULT_PLATE_MASS_KG / _CONNECTOR_COMPONENTS)
+PRIOR_SPACER_KG = float(MG.KOOPMAN_PROMAX_UJOINT_MASS_KG[0]
+                        * MG.DEFAULT_SPACER_MASS_KG / _CONNECTOR_COMPONENTS)
+
+#: deg.  The loss scale the mass prior is priced in: the optimum of the first
+#: mechanical fit of 2026-09-10 (free body masses, no stiffness), 1.444 deg over
+#: these same training windows.  A constant rather than the run's own start loss,
+#: so the objective is one fixed function of the parameters.
+PRIOR_REFERENCE_LOSS_DEG = 1.444
+
+#: What one factor of two between a mass and its prior costs, as a fraction of
+#: :data:`PRIOR_REFERENCE_LOSS_DEG`.  Equal to :data:`PIN_FRACTION`, the rise the
+#: profiles call "pinned": a mass moves off the prior only as far as the data can
+#: pay for at the rate that would count as the data seeing it.
+PRIOR_WEIGHT_PER_OCTAVE = 0.01
+
+#: m, the largest muscle contraction (``-min(ten_length - tendon_length0)``) per
+#: segment over the thirteen **training** windows' measured poses, from
+#: :func:`excursion_envelope` on 2026-09-10: segment 1 in ``ring_000``, segment 2
+#: in ``stair_10A``, segment 3 in ``stair_115``.  The ``bf/l0`` upper bounds below
+#: are derived from these and nothing else; the first fit's single 1.45 bound had
+#: been sized from the held-out validation poses (21.7 mm), which no bound may
+#: see.  ``--plan-only`` and every run recompute the envelope and refuse to
+#: proceed if a window set now contracts further than this.
+TRAINING_MAX_CONTRACTION_M = (0.01864, 0.01842, 0.02145)
+
+
+def shape_upper_bound(contraction_m: float, l0_m: float) -> float:
+    """The largest ``bf/l0`` at which a muscle still pulls at *contraction_m*.
+
+    The force law pulls with ``bf^2 - 3 l^2 < 0`` and goes slack at ``l =
+    bf/sqrt(3)``, so a shape ``r`` keeps the muscle taut through a contraction
+    ``e`` exactly when ``r <= sqrt(3) (1 - e/l0)``.  Rounded **down** to 0.01 so
+    the bound never lets the muscle go slack inside a contraction the training
+    windows show it pulling through.
+    """
+    r = math.sqrt(3.0) * (1.0 - float(contraction_m) / float(l0_m))
+    return math.floor(r * 100.0 + 1e-9) / 100.0
+
+
+#: The per-segment ``bf/l0`` upper bounds: 1.55 / 1.51 / 1.47.
+SHAPE_HI = tuple(shape_upper_bound(e, l0) for e, l0 in
+                 zip(TRAINING_MAX_CONTRACTION_M, AM.L0_SEED_M))
+
+_STRUCTURE_WHY = (
+    "one link's rod + two bearing hubs + four Ys, shared by all three segments (the "
+    "same ProMax parts; the rod share scales with span); the eight 30 g sleeves are "
+    "added on top and never fitted.  Lower 0.05 kg: two aluminium hubs and four Y "
+    "supports cannot weigh less; upper 1.20 kg: 3.7x the Koopman prior structure "
+    f"({PRIOR_LINK_STRUCTURE_KG:.3f} kg) and 1.3x the heaviest link structure the "
+    "first free-mass fit returned (0.89 kg)")
+_RING_WHY = (
+    "one u-joint outer ring with its four tendon brackets; segment 3's distal body "
+    "is exactly one ring.  Lower 0.01 kg: a third of the 33 g estimated for a "
+    "47 mm-radius aluminium ring 4 mm thick with a 12 mm annulus; upper 0.20 kg: "
+    "the whole Koopman connector")
+_SPACER_WHY = (
+    "the JD spacer between one segment's distal ring and the next segment's "
+    "proximal ring, the same part on both connectors.  Lower 0.01 kg: a hollow "
+    "73 mm aluminium post; upper 0.40 kg: 2x the whole Koopman connector")
+_STIFFNESS_WHY = (
+    "passive restoring stiffness on the segment's four hinges (tubing and wiring), "
+    "never measured.  Lower 0.001 N m/rad: a fifth of the 0.005 N m/rad of gravity "
+    "stiffness at joints 10-11, i.e. absent; upper 10 N m/rad: one 12 psi muscle "
+    "(about 2.2 N/psi x 12 psi at the 43 mm arm, 1.1 N m) would then move its joint "
+    "6.5 deg on stiffness alone, below the 8.9-21.1 deg the 2026-08-21 drive "
+    "campaign measured for one board at 12 psi")
 _GAIN_WHY = (
     "rest force per pascal K = coeff (3 l0^2 - bf^2); upper 1e-3 N/Pa: the "
     "Chou-Hannaford zero-contraction limit pi D0^2/4 (3 cos^2 20deg - 1) of a 25 mm "
@@ -278,26 +410,30 @@ _GAIN_WHY = (
     "1e-5 N/Pa: 3.2x below the weakest earlier fit (segment 3, 3.15e-5).  The "
     "earlier multipliers 0.009-0.045 of the RS485 seed span 3.15e-5..1.62e-4 N/Pa, "
     "bracketed 3.2x below and 6.2x above")
-_SHAPE_WHY = (
-    "r = bf / l0 sets the normalised length stiffness 6/(3 - r^2); lower 0.50 "
-    "(stiffness 2.18, within 9 % of its r -> 0 limit of 2, below which the shape "
-    "is indistinguishable); upper 1.45 (stiffness 6.69; the muscle goes slack at "
-    "l = r l0/sqrt3 = 0.837 l0, i.e. 29.0/23.9/23.2 mm of contraction on segments "
-    "1/2/3, beyond the 21.7 mm largest excursion over the validation poses)")
+def _shape_why(seg: int) -> str:
+    e = TRAINING_MAX_CONTRACTION_M[seg]
+    l0 = AM.L0_SEED_M[seg]
+    hi = SHAPE_HI[seg]
+    return (
+        "r = bf / l0 sets the normalised length stiffness 6/(3 - r^2); lower 0.50 "
+        "(stiffness 2.18, within 9 % of its r -> 0 limit of 2, below which the shape "
+        f"is indistinguishable); upper {hi:.2f}: the muscle goes slack at l = r l0/sqrt3, "
+        f"i.e. {l0 * (1.0 - hi / math.sqrt(3.0)) * 1000.0:.1f} mm of contraction on "
+        f"this segment's l0 = {l0 * 1000.0:.1f} mm, just beyond the {e * 1000.0:.2f} mm "
+        "largest contraction over the TRAINING windows' poses "
+        "(TRAINING_MAX_CONTRACTION_M), rounded down to 0.01; no held-out row sets it")
+
 
 PARAMS = (
-    Param("link_mass_kg_1", 0.25, 1.50, MG.DEFAULT_LINK_MASS_KG[0], "kg", _LINK_WHY),
-    Param("link_mass_kg_2", 0.25, 1.50, MG.DEFAULT_LINK_MASS_KG[1], "kg", _LINK_WHY),
-    Param("link_mass_kg_3", 0.25, 1.50, MG.DEFAULT_LINK_MASS_KG[2], "kg", _LINK_WHY),
-    Param("bracket_mass_kg_1", 0.05, 0.60, MG.DEFAULT_BRACKET_MASS_KG[0], "kg", _BRACKET_WHY),
-    Param("bracket_mass_kg_2", 0.05, 0.60, MG.DEFAULT_BRACKET_MASS_KG[1], "kg", _BRACKET_WHY),
-    Param("bracket_mass_kg_3", 0.01, 0.40, MG.DEFAULT_BRACKET_MASS_KG[2], "kg", _BRACKET3_WHY),
+    Param("link_structure_kg", 0.05, 1.20, PRIOR_LINK_STRUCTURE_KG, "kg", _STRUCTURE_WHY),
+    Param("ring_mass_kg", 0.01, 0.20, PRIOR_RING_KG, "kg", _RING_WHY),
+    Param("spacer_mass_kg", 0.01, 0.40, PRIOR_SPACER_KG, "kg", _SPACER_WHY),
     Param("rest_gain_n_per_pa_1", 1e-5, 1e-3, float(_K_START[0]), "N/Pa", _GAIN_WHY),
     Param("rest_gain_n_per_pa_2", 1e-5, 1e-3, float(_K_START[1]), "N/Pa", _GAIN_WHY),
     Param("rest_gain_n_per_pa_3", 1e-5, 1e-3, float(_K_START[2]), "N/Pa", _GAIN_WHY),
-    Param("bf_over_l0_1", 0.50, 1.45, float(AM.BF_TO_L0_REF[0]), "-", _SHAPE_WHY),
-    Param("bf_over_l0_2", 0.50, 1.45, float(AM.BF_TO_L0_REF[1]), "-", _SHAPE_WHY),
-    Param("bf_over_l0_3", 0.50, 1.45, float(AM.BF_TO_L0_REF[2]), "-", _SHAPE_WHY),
+    Param("bf_over_l0_1", 0.50, SHAPE_HI[0], float(AM.BF_TO_L0_REF[0]), "-", _shape_why(0)),
+    Param("bf_over_l0_2", 0.50, SHAPE_HI[1], float(AM.BF_TO_L0_REF[1]), "-", _shape_why(1)),
+    Param("bf_over_l0_3", 0.50, SHAPE_HI[2], float(AM.BF_TO_L0_REF[2]), "-", _shape_why(2)),
     Param("tendon_damping", 0.01, 100.0, OUTER_FIT_TENDON_DAMPING, "N s/m",
           "the p = 0 base of the tendon damping; damp_b1 x p adds 68 N s/m at 10 psi, "
           "so upper 100 N s/m lets the base rival the scheduled term at 15 psi; "
@@ -310,14 +446,23 @@ PARAMS = (
           "upper 0.5 sits below the RS485 arm's superseded 0.70 N m, which alone "
           "exceeded the peak elastic torque of a 1 deg oscillation; lower 0.001 is "
           "1/25 of the RS485 fit's 0.025 default"),
+    Param("joint_stiffness_1", 1e-3, 10.0, 0.01, "N m/rad", _STIFFNESS_WHY),
+    Param("joint_stiffness_2", 1e-3, 10.0, 0.01, "N m/rad", _STIFFNESS_WHY),
+    Param("joint_stiffness_3", 1e-3, 10.0, 0.01, "N m/rad", _STIFFNESS_WHY),
 )
 
 NAMES = tuple(p.name for p in PARAMS)
 N_PARAMS = len(PARAMS)
-MASS_NAMES = NAMES[0:6]
-GAIN_NAMES = NAMES[6:9]
-SHAPE_NAMES = NAMES[9:12]
-DISSIPATION_NAMES = NAMES[12:15]
+MASS_NAMES = NAMES[0:3]
+GAIN_NAMES = NAMES[3:6]
+SHAPE_NAMES = NAMES[6:9]
+DISSIPATION_NAMES = NAMES[9:12]
+STIFFNESS_NAMES = NAMES[12:15]
+
+#: Each mass parameter's prior, for :func:`prior_penalty_deg`.
+MASS_PRIOR = {"link_structure_kg": PRIOR_LINK_STRUCTURE_KG,
+              "ring_mass_kg": PRIOR_RING_KG,
+              "spacer_mass_kg": PRIOR_SPACER_KG}
 _LOG_LO = np.log(np.array([p.lo for p in PARAMS]))
 _LOG_HI = np.log(np.array([p.hi for p in PARAMS]))
 
@@ -382,9 +527,19 @@ def gain_and_shape(coeff, bf, l0=AM.L0_SEED_M):
 def values_from_mech(doc: dict, l0=AM.L0_SEED_M) -> dict:
     """Parameter values from a mechanical JSON in the ``twin_params`` schema.
 
-    Missing entries (an ``outer_fit`` file has no masses, no ``bf`` and no
-    friction) take the start point's, so ``--start canarm_outer.json`` works.
+    A checkpoint this module wrote carries ``parameters`` and is read from them.
+    Anything older is projected: an ``outer_fit`` file has no masses, no ``bf``,
+    no friction and no stiffness, which take the start point's, so ``--start
+    canarm_outer.json`` works; the first free-mass fit's six body totals map onto
+    the physical parameters as ``link_structure_kg`` = the mean over segments of
+    (link - sleeves) / :data:`STRUCTURE_SHARE`, ``ring_mass_kg`` = segment 3's
+    body, and ``spacer_mass_kg`` = the mean connector less two rings.  The
+    projection can fall outside the bounds; :func:`clip_to_bounds` is the
+    caller's.
     """
+    params = doc.get("parameters") or {}
+    if all(n in params for n in NAMES):
+        return {n: float(params[n]) for n in NAMES}
     values = start_values()
     bf = np.asarray(doc.get("bf", AM.BF_SEED_M), dtype=float)
     gain, shape = gain_and_shape(doc["coeff"], bf, l0)
@@ -395,17 +550,97 @@ def values_from_mech(doc: dict, l0=AM.L0_SEED_M) -> dict:
         if key in doc:
             values[key] = float(doc[key])
     mjcf = doc.get("mjcf") or {}
-    for key, names in (("link_mass_kg", MASS_NAMES[0:3]),
-                       ("bracket_mass_kg", MASS_NAMES[3:6])):
-        if key in mjcf:
-            for n, v in zip(names, MG.resolve_per_segment(mjcf[key], key)):
-                values[n] = float(v)
+    if mjcf.get("link_mass_kg") is not None:
+        links = MG.resolve_per_segment(mjcf["link_mass_kg"], "link_mass_kg")
+        values["link_structure_kg"] = float(np.mean(
+            [(m - SLEEVES_PER_LINK * SLEEVE_MASS_KG) / s
+             for m, s in zip(links, STRUCTURE_SHARE)]))
+    if mjcf.get("plate_mass") is not None:
+        values["ring_mass_kg"] = float(mjcf["plate_mass"])
+    if mjcf.get("spacer_mass") is not None:
+        values["spacer_mass_kg"] = float(mjcf["spacer_mass"])
+    if mjcf.get("bracket_mass_kg") is not None and mjcf.get("plate_mass") is None:
+        brackets = MG.resolve_per_segment(mjcf["bracket_mass_kg"], "bracket_mass_kg")
+        ring = float(brackets[2])
+        connectors = [b for b, c in zip(brackets, HAS_CONNECTOR) if c]
+        values["ring_mass_kg"] = ring
+        values["spacer_mass_kg"] = float(np.mean(connectors)) - 2.0 * ring
+    if mjcf.get("joint_stiffness") is not None:
+        for n, v in zip(STIFFNESS_NAMES, MG.resolve_per_segment_nonnegative(
+                mjcf["joint_stiffness"], "joint_stiffness")):
+            values[n] = float(v)
     return values
+
+
+def clip_to_bounds(values) -> dict:
+    """Each value clipped onto its bounds (a projected start may fall outside)."""
+    return {p.name: float(np.clip(float(values[p.name]), p.lo, p.hi)) for p in PARAMS}
+
+
+def link_masses_kg(values) -> tuple:
+    """Per-segment link body totals: eight 30 g sleeves + the shared structure."""
+    s = float(values["link_structure_kg"])
+    return tuple(SLEEVES_PER_LINK * SLEEVE_MASS_KG + s * share for share in STRUCTURE_SHARE)
+
+
+def bracket_masses_kg(values) -> tuple:
+    """Per-segment distal-body totals: ring + spacer + ring, or one ring for segment 3."""
+    ring = float(values["ring_mass_kg"])
+    spacer = float(values["spacer_mass_kg"])
+    return tuple(2.0 * ring + spacer if c else ring for c in HAS_CONNECTOR)
 
 
 def moving_mass_kg(values) -> float:
     """Links + brackets + the tip stub: everything below the static base."""
-    return float(sum(float(values[n]) for n in MASS_NAMES) + MG.DEFAULT_TIP_MASS_KG)
+    return float(sum(link_masses_kg(values)) + sum(bracket_masses_kg(values))
+                 + MG.DEFAULT_TIP_MASS_KG)
+
+
+def prior_penalty_deg(values) -> float:
+    """The mass prior, in degrees of loss: ``w L_ref sum(log2(m / m_prior)^2)``.
+
+    ``w`` = :data:`PRIOR_WEIGHT_PER_OCTAVE` and ``L_ref`` =
+    :data:`PRIOR_REFERENCE_LOSS_DEG`, so a single mass a factor of two from its
+    prior costs 0.0144 deg, the rise the profiles count as the data pinning a
+    parameter.  Zero at the prior.  Gains, shapes, dissipation and stiffness carry
+    no prior: none of them has one worth the name.
+    """
+    total = 0.0
+    for name, prior in MASS_PRIOR.items():
+        total += math.log2(float(values[name]) / prior) ** 2
+    return float(PRIOR_WEIGHT_PER_OCTAVE * PRIOR_REFERENCE_LOSS_DEG * total)
+
+
+def excursion_envelope(windows, *, xml=None) -> tuple:
+    """``(3,)`` largest contraction per segment over *windows*' posed rows, m.
+
+    Through ``dataset.TendonKinematics`` on the twin's own geometry, which writes
+    ``q`` to the hinges by name.  This is what :data:`TRAINING_MAX_CONTRACTION_M`
+    was measured with, and what a run re-checks before it trusts
+    :data:`SHAPE_HI`.
+    """
+    from digital_twin import dataset as ds
+
+    tk = ds.TendonKinematics(MG.generate_xml() if xml is None else xml)
+    worst = np.zeros(3)
+    for w in windows:
+        q = np.asarray(w.rec.q_rad)[np.asarray(w.rec.q_valid, dtype=bool)]
+        if q.size == 0:
+            continue
+        d = tk.dlen(q)
+        for s in range(3):
+            worst[s] = max(worst[s], float(-d[:, 8 * s:8 * (s + 1)].min()))
+    return tuple(float(v) for v in worst)
+
+
+def check_excursion_envelope(envelope, *, tol_m: float = 1e-4) -> None:
+    """Raise if a window set contracts further than the bounds were sized for."""
+    for s, (got, want) in enumerate(zip(envelope, TRAINING_MAX_CONTRACTION_M)):
+        if got > want + tol_m:
+            raise ValueError(
+                f"segment {s + 1}: the training windows now contract {got * 1000:.2f} mm, "
+                f"beyond the {want * 1000:.2f} mm TRAINING_MAX_CONTRACTION_M the bf/l0 "
+                f"upper bound {SHAPE_HI[s]:.2f} was derived from; re-derive the bound")
 
 
 # ---------------------------------------------------------------------------
@@ -434,12 +669,30 @@ def twin_kwargs(values, base, *, damp_b1_scale: float = 1.0,
         "tendon_damping": float(values["tendon_damping"]),
         "joint_damping": float(values["joint_damping"]),
         "joint_frictionloss": float(values["joint_frictionloss"]),
-        "link_mass_kg": tuple(float(values[n]) for n in MASS_NAMES[0:3]),
-        "bracket_mass_kg": tuple(float(values[n]) for n in MASS_NAMES[3:6]),
     }
+    kw.update(mjcf_tunables(values))
     if joint_armature is not None:
         kw["joint_armature"] = float(joint_armature)
     return kw
+
+
+def mjcf_tunables(values) -> dict:
+    """The ``generate_xml`` keywords the physical mass model and stiffness become.
+
+    Both the body totals and the ring/spacer components are passed.  With
+    ``plate_mass`` = ring and ``spacer_mass`` = spacer, the generator's
+    proportional spread of a bracket total lands each part on exactly its own
+    mass, so the checkpoint names the totals a reader looks for and the model
+    carries the parts the parameters describe.  (The static base's disk takes
+    ``plate_mass`` too; it hangs off the mount and enters no equation of motion.)
+    """
+    return {
+        "link_mass_kg": link_masses_kg(values),
+        "bracket_mass_kg": bracket_masses_kg(values),
+        "plate_mass": float(values["ring_mass_kg"]),
+        "spacer_mass": float(values["spacer_mass_kg"]),
+        "joint_stiffness": tuple(float(values[n]) for n in STIFFNESS_NAMES),
+    }
 
 
 def mech_document(values, *, l0=AM.L0_SEED_M, status: str = "complete",
@@ -449,24 +702,39 @@ def mech_document(values, *, l0=AM.L0_SEED_M, status: str = "complete",
     values = dict(zip(NAMES, vec.tolist()))
     coeff, bf = force_law(values, l0)
     gain, shape = gain_and_shape(coeff, bf, l0)
+    tunables = mjcf_tunables(values)
     doc = {
         "coeff": coeff.tolist(),
         "bf": bf.tolist(),
         "tendon_damping": float(values["tendon_damping"]),
         "joint_damping": float(values["joint_damping"]),
         "joint_frictionloss": float(values["joint_frictionloss"]),
-        "mjcf": {
-            "link_mass_kg": [float(values[n]) for n in MASS_NAMES[0:3]],
-            "bracket_mass_kg": [float(values[n]) for n in MASS_NAMES[3:6]],
-        },
-        "kind": "canarm mechanical fit: segment masses, force law, dissipation "
-                "(digital_twin.mech_fit, CMA-ES)",
+        "mjcf": {k: (list(v) if isinstance(v, tuple) else v) for k, v in tunables.items()},
+        "kind": "canarm mechanical fit: physical mass model (shared link structure, "
+                "ring, spacer; sleeves fixed at the measured 30 g), force law, "
+                "dissipation, passive joint stiffness, masses regularised toward the "
+                "Koopman prior (digital_twin.mech_fit, CMA-ES)",
         "date": FIT_DATE,
         "status": status,
         "parameters": values,
         "rest_gain_n_per_psi": (gain * AM.PA_PER_PSI).tolist(),
         "bf_over_l0": shape.tolist(),
+        "link_mass_kg": list(link_masses_kg(values)),
+        "bracket_mass_kg": list(bracket_masses_kg(values)),
         "moving_mass_kg": moving_mass_kg(values),
+        "mass_prior": {
+            "values": dict(MASS_PRIOR),
+            "penalty_deg": prior_penalty_deg(values),
+            "weight_per_octave": PRIOR_WEIGHT_PER_OCTAVE,
+            "reference_loss_deg": PRIOR_REFERENCE_LOSS_DEG,
+            "why": ("Koopman ProMax MuJoCo prior (robot_config 'original'): link "
+                    "structure = mean rod_mass_kg less 8 sleeves; ring and spacer = "
+                    "its 0.20 kg ujoint_mass_kg in the generator's 0.12:0.24:0.12 "
+                    "proportions.  A prior, not a weighing")},
+        "sleeve_mass_kg": {"value": SLEEVE_MASS_KG, "per_link": SLEEVES_PER_LINK,
+                           "provenance": "operator, ~30 g per McKibben -- MEASURED; fixed"},
+        "shape_bounds_from": {"training_max_contraction_m": list(TRAINING_MAX_CONTRACTION_M),
+                              "l0_m": list(AM.L0_SEED_M), "bf_over_l0_hi": list(SHAPE_HI)},
         "bounds": {p.name: {"lo": p.lo, "hi": p.hi, "start": p.start,
                             "unit": p.unit, "evidence": p.evidence}
                    for p in PARAMS},
@@ -860,30 +1128,35 @@ def _make_pool(workers, windows, flow_path):
 def profile_candidates(best, *, factors=PROFILE_FACTORS) -> list:
     """``[(line, factor, values, extra), ...]`` around *best*.
 
-    Lines: each of the six masses alone; every mass and every rest gain together
-    (the direction the statics cannot see); those plus the three fitted
-    dissipation scalars and ``damp_b1`` (the direction only the joint armature
-    breaks); and the armature alone at 0.5x and 2x, which is not fitted and is
-    here to say how much of the answer it holds.
+    Lines: each of the three mass parameters alone; each segment's joint
+    stiffness alone; every mass, rest gain and stiffness together (the direction
+    the statics cannot see -- the sleeves, fixed at 30 g, are the one mass that
+    does not scale, so this line is not an exact symmetry); those plus the three
+    fitted dissipation scalars and ``damp_b1`` (the direction only the joint
+    armature breaks); and the armature alone at 0.5x and 2x, which is not fitted
+    and is here to say how much of the answer it holds.  A factor that pushes a
+    parameter past its search bound is evaluated anyway: a profile asks what the
+    data says, not what the search was allowed to try.
     """
     best = dict(zip(NAMES, as_vector(best).tolist()))
     out = [("best", 1.0, dict(best), {})]
     outer = [k for k in factors if k != 1.0]
-    for name in MASS_NAMES:
+    for name in MASS_NAMES + STIFFNESS_NAMES:
         for k in outer:
             v = dict(best)
             v[name] = best[name] * k
             out.append((name, k, v, {}))
     for k in outer:
         v = dict(best)
-        for name in MASS_NAMES + GAIN_NAMES:
+        for name in MASS_NAMES + GAIN_NAMES + STIFFNESS_NAMES:
             v[name] = best[name] * k
-        out.append(("mass_and_gain", k, v, {}))
+        out.append(("mass_gain_and_stiffness", k, v, {}))
     for k in outer:
         v = dict(best)
-        for name in MASS_NAMES + GAIN_NAMES + DISSIPATION_NAMES:
+        for name in MASS_NAMES + GAIN_NAMES + STIFFNESS_NAMES + DISSIPATION_NAMES:
             v[name] = best[name] * k
-        out.append(("mass_gain_and_all_dissipation", k, v, {"damp_b1_scale": k}))
+        out.append(("mass_gain_stiffness_and_all_dissipation", k, v,
+                    {"damp_b1_scale": k}))
     for k in (0.5, 2.0):
         out.append(("joint_armature", k, dict(best),
                     {"joint_armature": MG.JOINT_ARMATURE * k}))
@@ -963,22 +1236,56 @@ class _Log:
 
 def _fmt_values(values) -> str:
     v = dict(zip(NAMES, as_vector(values).tolist()))
-    return ("mass link " + "/".join(f"{v[n]:.3f}" for n in MASS_NAMES[0:3])
-            + " bracket " + "/".join(f"{v[n]:.3f}" for n in MASS_NAMES[3:6])
-            + f" kg (moving {moving_mass_kg(v):.3f}) | K "
+    return (f"structure {v['link_structure_kg']:.3f} ring {v['ring_mass_kg']:.3f} "
+            f"spacer {v['spacer_mass_kg']:.3f} kg -> link "
+            + "/".join(f"{m:.3f}" for m in link_masses_kg(v)) + " bracket "
+            + "/".join(f"{m:.3f}" for m in bracket_masses_kg(v))
+            + f" (moving {moving_mass_kg(v):.3f}, prior {prior_penalty_deg(v):.4f} deg) | K "
             + "/".join(f"{v[n] * AM.PA_PER_PSI:.3f}" for n in GAIN_NAMES)
             + " N/psi | bf/l0 " + "/".join(f"{v[n]:.3f}" for n in SHAPE_NAMES)
+            + " | k " + "/".join(f"{v[n]:.3g}" for n in STIFFNESS_NAMES) + " N m/rad"
             + f" | tendon {v['tendon_damping']:.4g} joint {v['joint_damping']:.4g}"
               f" fric {v['joint_frictionloss']:.4g}")
+
+
+def progress_path(out: str) -> str:
+    """Where a run writes its best-so-far checkpoint: beside *out*, never *out*.
+
+    ``canarm_mech.json`` is what ``twin_params`` loads for the GUI's SIM adapter
+    and ``deliverable.py``.  The first fit rewrote it every generation with status
+    ``running: generation N``, so a re-run with default arguments replaced the
+    twin those two load mid-fit, and an aborted run left a half-fitted twin in
+    its place.  Progress now goes to ``canarm_mech.running.json`` and
+    :func:`promote` moves it over *out* only once the run is complete.
+    """
+    root, ext = os.path.splitext(os.path.abspath(out))
+    return root + ".running" + (ext or ".json")
+
+
+def promote(progress: str, out: str) -> str:
+    """Atomically move a completed progress checkpoint over *out*."""
+    with open(progress, encoding="utf-8") as fh:
+        status = str(json.load(fh).get("status", ""))
+    if not status.startswith("complete"):
+        raise ValueError(f"{progress} has status {status!r}; only a complete fit "
+                         f"replaces {out}")
+    os.replace(progress, os.path.abspath(out))
+    return os.path.abspath(out)
 
 
 def run_fit(windows, *, flow, out, log, evals_path, workers=DEFAULT_WORKERS,
             popsize=DEFAULT_POPSIZE, generations=DEFAULT_GENERATIONS,
             max_hours=DEFAULT_MAX_HOURS, sigma0=DEFAULT_SIGMA0, seed=20260910,
             start=None, profile=True) -> dict:
-    """CMA-ES over :data:`PARAMS`; writes the best-so-far checkpoint every generation."""
+    """CMA-ES over :data:`PARAMS` on data loss + :func:`prior_penalty_deg`.
+
+    The best-so-far checkpoint is rewritten every generation at
+    :func:`progress_path`, and moved over *out* by :func:`promote` only when the
+    fit and its profiles are complete.
+    """
     import cma
 
+    progress = progress_path(out)
     t_start = time.perf_counter()
     seconds = float(sum(w.seconds for w in windows))
     budget = {
@@ -1011,45 +1318,62 @@ def run_fit(windows, *, flow, out, log, evals_path, workers=DEFAULT_WORKERS,
         "heldout_families_never_rolled": list(HELDOUT_KINDS),
         "objective": ("mean over five families (equal weight) of the mean over "
                       "windows of the twelve-joint mean joint deflection RMS, deg, "
-                      "open loop through twin_compare.twin_rollout"),
+                      "open loop through twin_compare.twin_rollout; plus "
+                      "prior_penalty_deg on the three mass parameters for every "
+                      "candidate with no invalid window"),
         "optimizer": {"name": "CMA-ES", "package": f"cma {cma.__version__}",
                       "space": "log, mapped onto [0, 1] between each bound pair",
                       "sigma0_unit": float(sigma0), "seed": int(seed),
                       "penalty_deg": PENALTY_DEG},
         "budget": budget,
-        "start": {"values": start, "why": "outer_fit's gains and damping, the "
-                  "Koopman ProMax prior masses, the RS485 shape and friction"},
+        "start": {"values": start, "why": "a --start file projected onto these "
+                  "parameters, or else outer_fit's gains and damping, the Koopman "
+                  "ProMax prior masses, the RS485 shape and friction, no stiffness"},
     }
 
     evals = open(evals_path, "a", encoding="utf-8")
     best = {"loss": math.inf}
     history = []
 
+    def with_prior(cand_values, totals, valid):
+        """Data totals plus the mass prior, for candidates with no invalid window."""
+        ok = np.all(np.atleast_2d(valid), axis=1)
+        pen = np.array([prior_penalty_deg(v) for v in cand_values])
+        return np.where(ok, totals + pen, totals), pen
+
     def record(tag, cand_values, totals, per, losses, valid, reasons):
+        objective, pen = with_prior(cand_values, totals, valid)
         for i, vals in enumerate(cand_values):
             evals.write(json.dumps({
-                "tag": tag, "loss_deg": float(totals[i]),
+                "tag": tag, "objective_deg": float(objective[i]),
+                "loss_deg": float(totals[i]), "prior_penalty_deg": float(pen[i]),
                 "per_family_deg": {f: float(v[i]) for f, v in per.items()},
                 "window_loss_deg": losses[i].tolist(),
                 "invalid": {windows[wi].name: reasons[(ci, wi)]
                             for (ci, wi) in reasons if ci == i},
                 "values": dict(zip(NAMES, as_vector(vals).tolist()))}) + "\n")
         evals.flush()
-        k = int(np.argmin(totals))
-        if totals[k] < best["loss"]:
-            best.update(loss=float(totals[k]), values=dict(zip(NAMES, as_vector(cand_values[k]).tolist())),
+        k = int(np.argmin(objective))
+        if objective[k] < best["loss"]:
+            best.update(loss=float(objective[k]), data_loss=float(totals[k]),
+                        prior_penalty=float(pen[k]),
+                        values=dict(zip(NAMES, as_vector(cand_values[k]).tolist())),
                         per_family={f: float(v[k]) for f, v in per.items()},
                         windows={windows[w].name: float(losses[k, w]) for w in range(len(windows))},
                         tag=tag)
+        return objective
 
     with _make_pool(workers, windows, flow) as pool:
         t0 = time.perf_counter()
         totals, per, losses, valid, reasons = evaluate_candidates(pool, [(start, {})], windows)
-        record("start", [start], totals, per, losses, valid, reasons)
-        log(f"start: {totals[0]:.3f} deg  " + "  ".join(f"{f} {v[0]:.3f}" for f, v in per.items())
+        objective = record("start", [start], totals, per, losses, valid, reasons)
+        log(f"start: {objective[0]:.3f} deg (data {totals[0]:.3f} + prior "
+            f"{objective[0] - totals[0]:.4f})  "
+            + "  ".join(f"{f} {v[0]:.3f}" for f, v in per.items())
             + f"  ({time.perf_counter() - t0:.0f} s)")
         log(f"       {_fmt_values(start)}")
-        start_loss = float(totals[0])
+        start_loss = float(objective[0])
+        start_data_loss = float(totals[0])
 
         gen = 0
         while not es.stop() and gen < generations:
@@ -1061,50 +1385,58 @@ def run_fit(windows, *, flow, out, log, evals_path, workers=DEFAULT_WORKERS,
             cands = [from_unit(z) for z in Z]
             totals, per, losses, valid, reasons = evaluate_candidates(
                 pool, [(c, {}) for c in cands], windows)
-            es.tell(Z, totals.tolist())
+            objective, _pen = with_prior(cands, totals, valid)
+            es.tell(Z, objective.tolist())
             gen += 1
             record(f"gen{gen}", cands, totals, per, losses, valid, reasons)
             n_bad = int((~valid).any(axis=1).sum())
-            history.append({"generation": gen, "best_deg": float(totals.min()),
-                            "median_deg": float(np.median(totals)),
+            history.append({"generation": gen, "best_deg": float(objective.min()),
+                            "median_deg": float(np.median(objective)),
+                            "best_data_deg": float(totals[int(np.argmin(objective))]),
                             "best_so_far_deg": best["loss"], "sigma": float(es.sigma),
                             "invalid_candidates": n_bad,
                             "wall_s": time.perf_counter() - tg})
             elapsed = time.perf_counter() - t_start
-            log(f"gen {gen:3d}/{generations}  best {totals.min():7.3f}  median "
-                f"{np.median(totals):7.3f}  so far {best['loss']:7.3f} deg  sigma "
-                f"{es.sigma:.4f}  invalid {n_bad:2d}  {time.perf_counter() - tg:5.0f} s  "
-                f"elapsed {elapsed / 3600:.2f} h")
+            log(f"gen {gen:3d}/{generations}  best {objective.min():7.3f}  median "
+                f"{np.median(objective):7.3f}  so far {best['loss']:7.3f} deg (data "
+                f"{best['data_loss']:.3f})  sigma {es.sigma:.4f}  invalid {n_bad:2d}  "
+                f"{time.perf_counter() - tg:5.0f} s  elapsed {elapsed / 3600:.2f} h")
             log(f"         best so far: {_fmt_values(best['values'])}")
-            write_json(out, mech_document(best["values"], status=(
+            write_json(progress, mech_document(best["values"], status=(
                 f"running: generation {gen} of {generations}"), provenance=dict(
                     provenance_base, fit={
-                        "loss_deg": best["loss"], "start_loss_deg": start_loss,
+                        "objective_deg": best["loss"], "loss_deg": best["data_loss"],
+                        "prior_penalty_deg": best["prior_penalty"],
+                        "start_objective_deg": start_loss, "start_loss_deg": start_data_loss,
                         "per_family_deg": best["per_family"], "window_loss_deg": best["windows"],
                         "generations_done": gen, "evaluations": 1 + gen * popsize,
                         "elapsed_h": elapsed / 3600.0, "history": history})))
 
         stop = {k: str(v) for k, v in es.stop().items()} if es.stop() else {}
         fit_block = {
-            "loss_deg": best["loss"], "start_loss_deg": start_loss,
+            "objective_deg": best["loss"], "loss_deg": best["data_loss"],
+            "prior_penalty_deg": best["prior_penalty"],
+            "start_objective_deg": start_loss, "start_loss_deg": start_data_loss,
             "per_family_deg": best["per_family"], "window_loss_deg": best["windows"],
             "generations_done": gen, "evaluations": 1 + gen * popsize,
             "seconds_of_arm_rolled": seconds * (1 + gen * popsize),
             "elapsed_h": (time.perf_counter() - t_start) / 3600.0,
             "cma_stop": stop, "history": history}
-        log(f"fit done: {best['loss']:.3f} deg against {start_loss:.3f} at the start, "
+        log(f"fit done: objective {best['loss']:.3f} deg (data {best['data_loss']:.3f} + "
+            f"prior {best['prior_penalty']:.4f}) against {start_loss:.3f} at the start, "
             f"{gen} generations, {1 + gen * popsize} evaluations")
         doc = mech_document(best["values"], status="complete (profiles pending)"
                             if profile else "complete",
                             provenance=dict(provenance_base, fit=fit_block))
-        write_json(out, doc)
+        write_json(progress, doc)
 
         if profile:
             doc["profiles"] = run_profiles(pool, windows, best["values"], log=log)
             doc["status"] = "complete"
-            write_json(out, doc)
+            write_json(progress, doc)
     evals.close()
-    log(f"wrote {out}")
+    promote(progress, out)
+    log(f"wrote {out} (promoted from {progress})")
     return doc
 
 
@@ -1158,6 +1490,13 @@ def main(argv=None) -> int:
     log(f"digital_twin.mech_fit {stamp}: {' '.join(sys.argv[1:] if argv is None else argv)}")
     windows = build_windows(args.data_dir, log=log)
     seconds = sum(w.seconds for w in windows)
+    envelope = excursion_envelope(windows)
+    log("training contraction envelope (mm): "
+        + " / ".join(f"{e * 1000:.2f}" for e in envelope)
+        + "  -> bf/l0 upper bounds " + " / ".join(f"{h:.2f}" for h in SHAPE_HI)
+        + " (sized for " + " / ".join(f"{e * 1000:.2f}" for e in TRAINING_MAX_CONTRACTION_M)
+        + " mm)")
+    check_excursion_envelope(envelope)
     if args.plan_only:
         for w in windows:
             log(f"  {w.family:<11s} {w.name:<40s} {w.seconds:6.2f} s  kinds {w.kinds}")
@@ -1177,8 +1516,7 @@ def main(argv=None) -> int:
     start = None
     if args.start:
         with open(args.start, encoding="utf-8") as fh:
-            start = values_from_mech(json.load(fh))
-        start = {k: float(np.clip(v, p.lo, p.hi)) for (k, v), p in zip(start.items(), PARAMS)}
+            start = clip_to_bounds(values_from_mech(json.load(fh)))
     run_fit(windows, flow=args.flow, out=args.out, log=log,
             evals_path=os.path.join(args.log_dir, f"mech_fit_{stamp}_evals.jsonl"),
             workers=args.workers, popsize=args.popsize, generations=args.generations,

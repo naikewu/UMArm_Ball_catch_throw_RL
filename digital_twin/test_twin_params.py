@@ -106,6 +106,28 @@ def test_the_committed_fit_is_applied_key_for_key():
     assert kw.provenance["flow"] and kw.provenance["mech"]
 
 
+def test_an_incomplete_fit_is_loaded_but_never_quietly(tmp_path):
+    """A best-so-far checkpoint says so in the log and in ``describe``.
+
+    ``mech_fit`` used to rewrite ``canarm_mech.json`` every generation with a
+    ``running`` status, and nothing here read the status, so the GUI's SIM
+    adapter could drive a half-fitted twin without a line saying so.
+    """
+    lines, log = _logger()
+    running = _write(tmp_path, _good_mech(status="running: generation 12 of 70"))
+    kw = TP.load_twin_kwargs(flow=None, mech=running, log=log)
+    assert any(line.startswith(TP.INCOMPLETE) and "generation 12" in line for line in lines)
+    assert kw.provenance["mech_status"] == "running: generation 12 of 70"
+    assert "INCOMPLETE" in TP.describe(kw)
+
+    for status in ("complete", "complete (profiles pending)", None):
+        lines, log = _logger()
+        data = _good_mech() if status is None else _good_mech(status=status)
+        kw = TP.load_twin_kwargs(flow=None, mech=_write(tmp_path, data, "done.json"), log=log)
+        assert not any(line.startswith(TP.INCOMPLETE) for line in lines), status
+        assert "mech_status" not in kw.provenance
+
+
 # ---------------------------------------------------------------------------
 # Missing parts: seeds, loudly
 # ---------------------------------------------------------------------------

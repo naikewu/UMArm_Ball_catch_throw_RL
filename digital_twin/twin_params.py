@@ -89,6 +89,14 @@ MECH_SCALARS = REQUIRED_MECH_SCALARS + OPTIONAL_MECH_SCALARS
 #: or an operator greps for this one string.
 UNFITTED = "[twin_params] UNFITTED"
 
+#: The prefix of the line that reports a mechanical file whose ``status`` is not
+#: ``complete`` -- a fit's best-so-far checkpoint, or one a run abandoned.  It is
+#: loaded (a best-so-far twin is a legitimate thing to look at), but never
+#: quietly: until 2026-09-10 ``mech_fit`` rewrote ``canarm_mech.json`` itself
+#: every generation, and the GUI's SIM adapter then drove a half-fitted twin
+#: with no line saying so.  ``mech_fit`` now writes progress beside it.
+INCOMPLETE = "[twin_params] INCOMPLETE"
+
 _AUTO = object()
 
 
@@ -162,6 +170,12 @@ def load_twin_kwargs(flow=DEFAULT_FLOW, mech=DEFAULT_MECH, *, log=print,
         prov["mech_mjcf_keys"] = sorted(dict(data.get("mjcf") or {}))
         if data.get("note"):
             prov["mech_note"] = str(data["note"])
+        status = data.get("status")
+        if status is not None and not str(status).startswith("complete"):
+            prov["mech_status"] = str(status)
+            say(f"{INCOMPLETE} mechanical fit: {path} has status {str(status)!r}. "
+                f"This is a fit's best-so-far or an abandoned run, not a finished "
+                f"fit; the twin below is built from it anyway")
     kwargs["actuator"] = model
 
     if validate:
@@ -186,7 +200,9 @@ def describe(kwargs) -> str:
     if "mech" in prov:
         mech = prov["mech"]
         parts.append("mech " + (Path(mech).name if mech
-                                else "UNFITTED generator defaults"))
+                                else "UNFITTED generator defaults")
+                     + (f" (INCOMPLETE: {prov['mech_status']})"
+                        if prov.get("mech_status") else ""))
     actuator = kwargs.get("actuator")
     if actuator is not None:
         parts.append("coeff " + "/".join(f"{float(c):.4g}"
@@ -346,5 +362,6 @@ def _same_path(a, b) -> bool:
 __all__ = [
     "CHECKPOINT_DIR", "DEFAULT_FLOW", "DEFAULT_MECH", "FALLBACK_MECH",
     "REQUIRED_MECH_SCALARS", "OPTIONAL_MECH_SCALARS", "MECH_SCALARS",
-    "UNFITTED", "TwinKwargs", "nominal_is_tle", "load_twin_kwargs", "describe",
+    "UNFITTED", "INCOMPLETE", "TwinKwargs", "nominal_is_tle", "load_twin_kwargs",
+    "describe",
 ]

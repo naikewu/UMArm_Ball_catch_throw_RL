@@ -160,6 +160,9 @@ WHAT THIS MODEL DOES NOT SHOW
 * **No mass on this arm has been weighed** except the operator's ~30 g per
   actuator.  The per-segment defaults are the Koopman ProMax MuJoCo model's
   prior (:data:`MASS_PROVENANCE`), which is a model, not a scale reading.
+* **No passive joint stiffness has been measured.**  ``joint_stiffness``
+  defaults to zero; a value a fit hands in stands for tubing and wiring
+  elasticity nobody has isolated on the metal.
 * **The ring radii and the bearing hub heights are CAD**, and the bearing is a
   point: a real tendon leaves a bearing wheel tangentially, so its effective
   routing point sits up to one wheel radius from the axle.  If ``AO``, ``AA`` or
@@ -207,7 +210,8 @@ __all__ = [
     "PROXIMAL_ORDER", "QPOS_FROM_Q", "N_ACTUATORS", "BASE_CAN_ID",
     "LOWER_SEAT_DEG", "UPPER_SEAT_DEG", "MASS_PROVENANCE",
     "DEFAULT_JOINT_DAMPING", "DEFAULT_JOINT_FRICTIONLOSS",
-    "DEFAULT_TENDON_DAMPING", "DEFAULT_LINK_DENSITY_KG_M",
+    "DEFAULT_TENDON_DAMPING", "DEFAULT_JOINT_STIFFNESS",
+    "DEFAULT_LINK_DENSITY_KG_M",
     "DEFAULT_PLATE_MASS_KG", "DEFAULT_SPACER_MASS_KG",
     "DEFAULT_ACTUATOR_MASS_KG", "DEFAULT_Y_MASS_KG", "DEFAULT_HUB_MASS_KG",
     "DEFAULT_LINK_MASS_KG", "DEFAULT_BRACKET_MASS_KG",
@@ -220,7 +224,8 @@ __all__ = [
     "Seat", "SegGeom", "SegmentMasses", "actuator_seats", "actuator_names",
     "tendon_names", "joint_names", "plate_site_names", "actuator_joint_map",
     "routing_site_names", "segment_geometry", "params_from_chain",
-    "bearing_moment_arm_m", "resolve_per_segment", "segment_masses",
+    "bearing_moment_arm_m", "resolve_per_segment",
+    "resolve_per_segment_nonnegative", "segment_masses",
     "fitted_params", "q_to_qpos", "qpos_to_q",
     "promax_base_elements", "promax_segment_elements",
     "build_arm_xml", "generate_xml", "generate_scene", "build_model",
@@ -349,6 +354,20 @@ DEFAULT_JOINT_FRICTIONLOSS = 0.025
 #: has no excitation of its own.
 DEFAULT_TENDON_DAMPING = 1.0
 
+#: N*m/rad per hinge, per segment ``(seg1, seg2, seg3)``, applied to all four
+#: hinges of that segment (its proximal and its distal u-joint), with the spring
+#: at rest at ``q = 0``, the arm hanging straight.  **Zero, and not measured**:
+#: it stands for the passive elastic restoring torque the pneumatic tubing and
+#: the busline wiring put across every u-joint, which no experiment on this arm
+#: has isolated.  Added 2026-09-10 because the first mechanical fit, which had no
+#: such term, leaned on its bounds exactly where the model is short of restoring
+#: torque (``bf/l0`` at its upper bound on all three segments, a 0.60 kg segment-2
+#: bracket, a 1.13 kg segment-3 link), and because joints 10 and 11 carry only
+#: 0.005 N*m/rad of gravity stiffness, so without it only antagonist
+#: co-contraction holds the tip.  Zero reproduces every model built before that
+#: date exactly; a fitted value arrives through the checkpoint.
+DEFAULT_JOINT_STIFFNESS = (0.0, 0.0, 0.0)
+
 # -- the per-segment mass model ---------------------------------------------
 
 #: kg per segment, ``(seg1, seg2, seg3)``: **the Koopman ProMax MuJoCo model's
@@ -368,9 +387,11 @@ KOOPMAN_PROMAX_UJOINT_MASS_KG = (0.20, 0.20, 0.001)
 
 #: kg, total **link-body** mass per segment (rod + two bearing hubs + four Ys +
 #: eight actuators), the ``link_mass_kg`` default.  The Koopman ProMax prior,
-#: as is.  When a total is given it is spread over the link's geoms in
-#: proportion to the component defaults below, so the component numbers set
-#: where the mass sits and this sets how much there is.
+#: as is.  When a total is given, the eight sleeves keep ``actuator_mass`` each
+#: -- the one mass measured on this arm -- and only the remainder, the
+#: *structure*, is spread over the rod, hubs and Ys in proportion to their
+#: component defaults below.  Until the 2026-09-10 refit the whole total was
+#: spread, so a 0.70 kg prior link carried 43 g sleeves against the measured 30 g.
 DEFAULT_LINK_MASS_KG = KOOPMAN_PROMAX_LINK_MASS_KG
 
 #: kg, total **bracket-body** mass per segment -- everything rigid with that
@@ -402,8 +423,8 @@ DEFAULT_Y_MASS_KG = 0.040
 #: operator's ~30 g each, valves and regulator PCB inside the sleeve, 24 of
 #: them.  All of it sits on the link body, because on the ProMax the sleeve hangs
 #: from a Y arm that is rigid with the centre rod; the tendon is what crosses the
-#: joint.  Honoured exactly only when ``link_mass_kg`` is ``None``; with a total
-#: given it is the actuators' proportion.
+#: joint.  Honoured exactly whether or not ``link_mass_kg`` is given; a link
+#: total below ``8 * actuator_mass`` is refused.
 DEFAULT_ACTUATOR_MASS_KG = 0.030
 
 #: kg per u-joint ring/plate disk.  Provenance: the RS485 twin's
@@ -489,7 +510,8 @@ MASS_PROVENANCE = {
     "y_mass_kg": "estimate from Fig. 1C: one V-struct support + carbon braces, NOT measured (a proportion)",
     "actuator_mass_kg": (
         "operator, 2026-08: ~30 g per McKibben -- MEASURED, this arm; full mass on the "
-        "link body (sleeve rigid with the rod); exact only when link_mass_kg is None"),
+        "link body (sleeve rigid with the rod); honoured exactly, a link_mass_kg total "
+        "only sets the structure (rod + hubs + Ys) beside it"),
     "plate_mass_kg": "RS485 twin PLATE3_MASS = 0.12 kg, carried over on radius (a proportion)",
     "spacer_mass_kg": "half RS485 twin BRACKET_MASS = 0.48 kg (a proportion)",
     "base_plate_mass_kg": "viz/mjcf_canarm.py base disc, static body",
@@ -807,6 +829,24 @@ def resolve_per_segment(value, name: str, n: int = 3):
     return out
 
 
+def resolve_per_segment_nonnegative(value, name: str, n: int = 3) -> tuple:
+    """A number or ``n`` numbers -> ``n`` floats, each finite and ``>= 0``.
+
+    The per-segment form of a tunable whose zero is meaningful -- a joint
+    stiffness of zero is the model without the term -- so, unlike
+    :func:`resolve_per_segment`, it accepts zero and has no ``None`` form.
+    """
+    if value is None:
+        raise ValueError(f"{name} takes a number or {n} numbers, not None")
+    out = ((float(value),) * n if np.ndim(value) == 0
+           else tuple(float(v) for v in value))
+    if len(out) != n:
+        raise ValueError(f"{name} must be a number or {n} numbers; got {value!r}")
+    if not all(math.isfinite(v) and v >= 0.0 for v in out):
+        raise ValueError(f"{name} entries must be finite and non-negative; got {out}")
+    return out
+
+
 def _ring_xy(radius: float, angle_deg: float) -> tuple:
     a = math.radians(angle_deg)
     return radius * math.cos(a), radius * math.sin(a)
@@ -1072,23 +1112,34 @@ def segment_masses(segs, *, link_mass_kg=None, bracket_mass_kg=None,
                    hub_mass=DEFAULT_HUB_MASS_KG) -> list:
     """Per-segment :class:`SegmentMasses`, with any totals spread proportionally.
 
-    A link total scales rod, hubs, Y arms and actuators by one factor, so the
-    component defaults decide where the mass sits and the total decides how
-    much.  A bracket total for segment ``i`` scales the geoms rigid with that
-    segment's distal ring -- its distal disk, and the next segment's spacer and
-    proximal disk, which are emitted into the same body -- and nothing else.
-    Segment 1's proximal disk rides the static base and is left at
-    ``plate_mass``.
+    A link total keeps the eight sleeves at ``actuator_mass`` each, the one mass
+    measured on this arm, and scales the *structure* -- rod, hubs and Y arms --
+    by one factor, so the component defaults decide where the structure's mass
+    sits and the total decides how much there is.  A total below the sleeves'
+    ``8 * actuator_mass`` is refused rather than given a negative structure.
+    A bracket total for segment ``i`` scales the geoms rigid with that segment's
+    distal ring -- its distal disk, and the next segment's spacer and proximal
+    disk, which are emitted into the same body -- and nothing else.  Segment 1's
+    proximal disk rides the static base and is left at ``plate_mass``.
+
+    CHANGED 2026-09-10 (the physical refit): a link total used to scale the
+    sleeves with the structure, which put 43 g sleeves on the 0.70 kg prior link
+    and let a fitted link total change the one number that was measured.
     """
     links = resolve_per_segment(link_mass_kg, "link_mass_kg", len(segs))
     brackets = resolve_per_segment(bracket_mass_kg, "bracket_mass_kg", len(segs))
+    sleeves = 8.0 * actuator_mass
     link_scale, bracket_scale = [], []
     for i, geo in enumerate(segs):
-        comp = (link_density * geo.span + 2.0 * hub_mass + 4.0 * y_mass
-                + 8.0 * actuator_mass)
-        if comp <= 0.0:
-            raise ValueError("the component link masses sum to zero")
-        link_scale.append(1.0 if links is None else links[i] / comp)
+        structure = link_density * geo.span + 2.0 * hub_mass + 4.0 * y_mass
+        if structure <= 0.0:
+            raise ValueError("the component link structure masses sum to zero")
+        if links is not None and links[i] <= sleeves:
+            raise ValueError(
+                f"link_mass_kg[{i}] = {links[i]:g} kg does not exceed the eight "
+                f"sleeves it carries ({sleeves:g} kg at actuator_mass "
+                f"{actuator_mass:g} kg, the measured mass)")
+        link_scale.append(1.0 if links is None else (links[i] - sleeves) / structure)
         body = plate_mass
         if i + 1 < len(segs):
             body += plate_mass + (spacer_mass if segs[i + 1].jd else 0.0)
@@ -1104,7 +1155,7 @@ def segment_masses(segs, *, link_mass_kg=None, bracket_mass_kg=None,
             rod=link_density * geo.span * ls,
             hub=hub_mass * ls,
             y_arm=0.5 * y_mass * ls,
-            actuator=actuator_mass * ls,
+            actuator=actuator_mass,
             prox_disk=plate_mass * up,
             spacer=spacer_mass * up,
             dist_disk=plate_mass * bracket_scale[i]))
@@ -1134,6 +1185,7 @@ def build_arm_xml(*,
                   hub_mass=DEFAULT_HUB_MASS_KG,
                   base_plate_mass=DEFAULT_BASE_PLATE_MASS_KG,
                   tip_mass=DEFAULT_TIP_MASS_KG,
+                  joint_stiffness=DEFAULT_JOINT_STIFFNESS,
                   y_tip_radius: float = DEFAULT_Y_TIP_RADIUS_M,
                   y_tip_z_offset: float = DEFAULT_Y_TIP_Z_OFFSET_M,
                   actuator_radius: float = DEFAULT_ACTUATOR_RADIUS_M,
@@ -1160,6 +1212,8 @@ def build_arm_xml(*,
     params = cp.require_measured() if params is None else params
     segs = segment_geometry(params)
     seats = actuator_seats() if seats is None else tuple(seats)
+    stiffness = resolve_per_segment_nonnegative(joint_stiffness, "joint_stiffness",
+                                                len(segs))
     masses = segment_masses(
         segs, link_mass_kg=link_mass_kg, bracket_mass_kg=bracket_mass_kg,
         link_density=link_density, plate_mass=plate_mass,
@@ -1190,6 +1244,12 @@ def build_arm_xml(*,
     emit(f'<site name="{prefix}plate0" pos="0 0 0"/>')
 
     for n, geo in enumerate(segs, start=1):
+        # Passive stiffness on this segment's four hinges, emitted only when it
+        # is non-zero so the default document is byte-identical to the models
+        # every earlier fit ran on.  springref stays MuJoCo's 0: at rest the
+        # arm hangs straight.
+        k_attr = (f' stiffness="{_g(stiffness[n - 1])}"'
+                  if stiffness[n - 1] > 0.0 else "")
         parts = promax_segment_elements(
             geo, [s for s in seats if s.segment == n], n=n, prefix=prefix,
             masses=masses[n - 1], y_tip_radius=y_tip_radius,
@@ -1214,8 +1274,8 @@ def build_arm_xml(*,
         # of q rather than q itself.
         emit(f'<body name="{prefix}seg{n}_link" pos="0 0 {_g(-geo.jd)}">')
         depth += 1
-        emit(f'<joint name="{prefix}uj{2 * n - 1}_y" axis="0 1 0"/>')
-        emit(f'<joint name="{prefix}uj{2 * n - 1}_x" axis="1 0 0"/>')
+        emit(f'<joint name="{prefix}uj{2 * n - 1}_y" axis="0 1 0"{k_attr}/>')
+        emit(f'<joint name="{prefix}uj{2 * n - 1}_x" axis="1 0 0"{k_attr}/>')
         for element in parts["link"]:
             emit(element)
 
@@ -1225,8 +1285,8 @@ def build_arm_xml(*,
         # and it was markedly worse, so xi3 is genuinely the link-fixed axis.
         emit(f'<body name="{prefix}seg{n}_plate2" pos="0 0 {_g(-geo.span)}">')
         depth += 1
-        emit(f'<joint name="{prefix}uj{2 * n}_x" axis="{_SQ2:.10g} {_SQ2:.10g} 0"/>')
-        emit(f'<joint name="{prefix}uj{2 * n}_y" axis="{-_SQ2:.10g} {_SQ2:.10g} 0"/>')
+        emit(f'<joint name="{prefix}uj{2 * n}_x" axis="{_SQ2:.10g} {_SQ2:.10g} 0"{k_attr}/>')
+        emit(f'<joint name="{prefix}uj{2 * n}_y" axis="{-_SQ2:.10g} {_SQ2:.10g} 0"{k_attr}/>')
         emit(f'<site name="{prefix}plate{2 * n - 1}" pos="0 0 0"/>')
         for element in parts["distal"]:
             emit(element)
@@ -1349,6 +1409,7 @@ def generate_xml(*,
                  hub_mass: float = DEFAULT_HUB_MASS_KG,
                  base_plate_mass: float = DEFAULT_BASE_PLATE_MASS_KG,
                  tip_mass: float = DEFAULT_TIP_MASS_KG,
+                 joint_stiffness=DEFAULT_JOINT_STIFFNESS,
                  y_tip_radius: float = DEFAULT_Y_TIP_RADIUS_M,
                  y_tip_z_offset: float = DEFAULT_Y_TIP_Z_OFFSET_M,
                  actuator_radius: float = DEFAULT_ACTUATOR_RADIUS_M,
@@ -1380,9 +1441,13 @@ def generate_xml(*,
     ``bracket_mass_kg`` (body ``seg{n}_plate2`` minus the tip stub).  Each takes
     ``None`` (the component model), one number for all three segments, or three
     numbers.  The component keywords (``link_density``, ``hub_mass``,
-    ``y_mass``, ``actuator_mass``, ``plate_mass``, ``spacer_mass``) set the
-    proportions within a body when its total is given, and the totals when it
-    is ``None``.
+    ``y_mass``, ``plate_mass``, ``spacer_mass``) set the proportions within a
+    body when its total is given, and the totals when it is ``None``;
+    ``actuator_mass`` is honoured exactly either way.
+
+    ``joint_stiffness`` (N*m/rad, one number or three per segment) is the
+    passive restoring stiffness on each segment's four hinges, zero by default
+    (:data:`DEFAULT_JOINT_STIFFNESS`).
 
     The argument list is echoed into the document's header comment, so a shipped
     XML always names the parameters it was built with -- the property that makes
@@ -1397,6 +1462,7 @@ def generate_xml(*,
         spacer_mass=spacer_mass, actuator_mass=actuator_mass,
         y_mass=y_mass, hub_mass=hub_mass,
         base_plate_mass=base_plate_mass, tip_mass=tip_mass,
+        joint_stiffness=joint_stiffness,
         y_tip_radius=y_tip_radius, y_tip_z_offset=y_tip_z_offset,
         actuator_radius=actuator_radius,
         force_range_n=force_range_n, class_name=class_name, **arm_kwargs)
@@ -1415,6 +1481,7 @@ def generate_xml(*,
         f"actuator_mass={actuator_mass:g}",
         f"y_mass={y_mass:g}",
         f"hub_mass={hub_mass:g}",
+        f"joint_stiffness={_fmt_seg(joint_stiffness)}",
         f"y_tip_radius={y_tip_radius:g}",
         f"y_tip_z_offset={y_tip_z_offset:g}",
         f"actuator_radius={actuator_radius:g}",

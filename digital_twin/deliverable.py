@@ -74,8 +74,9 @@ FRAME_AT_S = 35.0
 #: whole file is not copied: its per-generation history and its bound evidence
 #: belong to the checkpoint, and the report names the checkpoint's path.
 MECH_SUMMARY_KEYS = ("kind", "date", "status", "coeff", "bf", "tendon_damping",
-                     "joint_damping", "joint_frictionloss", "mjcf",
-                     "moving_mass_kg", "rest_gain_n_per_psi", "bf_over_l0",
+                     "joint_damping", "joint_frictionloss", "mjcf", "parameters",
+                     "link_mass_kg", "bracket_mass_kg", "moving_mass_kg",
+                     "mass_prior", "rest_gain_n_per_psi", "bf_over_l0",
                      "multipliers", "fit_kinds", "fit_joint_rms_deg", "note")
 
 
@@ -107,9 +108,10 @@ def mech_summary(doc):
     out = {k: doc[k] for k in MECH_SUMMARY_KEYS if k in doc}
     fit = doc.get("fit") or {}
     if fit:
-        out["fit"] = {k: fit[k] for k in ("loss_deg", "start_loss_deg", "generations_done",
-                                          "evaluations", "seconds_of_arm_rolled",
-                                          "elapsed_h") if k in fit}
+        out["fit"] = {k: fit[k] for k in ("objective_deg", "loss_deg", "prior_penalty_deg",
+                                          "start_objective_deg", "start_loss_deg",
+                                          "generations_done", "evaluations",
+                                          "seconds_of_arm_rolled", "elapsed_h") if k in fit}
     return out
 
 
