@@ -191,11 +191,35 @@ BASE_CAN_ID = 0x100
 # ---------------------------------------------------------------------------
 
 #: ``(axis_within_ujoint, sign) -> azimuth in degrees`` for a **lower** muscle,
-#: which spans a proximal universal joint (axis 0 = ``t1`` about +x, axis 1 =
-#: ``t2`` about +y).  Derived, not transcribed: see the module docstring's
-#: closed form.  At each of these four azimuths the *other* axis's moment arm is
-#: identically zero, so a muscle seated here drives one axis and only one.
-LOWER_SEAT_DEG = {(0, +1): 90.0, (0, -1): 270.0, (1, +1): 180.0, (1, -1): 0.0}
+#: which spans a proximal universal joint.  At each of these four azimuths the
+#: *other* axis's moment arm is identically zero, so a muscle seated here drives
+#: one axis and only one.
+#:
+#: **The pairing was measured, and it is not the one the closed form suggests.**
+#: A muscle at ring azimuth ``th`` pulling along -z has moment ``(-F r sin th,
+#: +F r cos th, 0)``, so 90 deg is pure about +x and 180 deg pure about +y, and
+#: the obvious assignment gives axis 0 (``t1``, about +x) the 90/270 pair.  That
+#: is what this table held until 2026-09-10, and rolling the fitted twin against
+#: the real arm showed it was wrong: the cross-correlation of the twin's twelve
+#: joints against the arm's came out as a **permutation matrix with three
+#: transpositions** -- the twin's ``j0`` tracked the arm's ``j1`` at +0.93 and
+#: its ``j1`` tracked the arm's ``j0`` at +0.97, the same for ``j4/j5`` (+0.94,
+#: +0.89) and ``j8/j9`` (+0.98, +0.97), while every distal joint sat on its own
+#: diagonal at +0.93 to +0.98.  Three swaps, all of them the **proximal**
+#: universal joint, none of them distal.
+#:
+#: That is the signature of a q-index against a qpos-index, and it is confined
+#: to the proximal joint because the proximal joint is the only one that is
+#: reordered: this arm's chain composes it y-then-x (:data:`PROXIMAL_ORDER`,
+#: measured 2026-08-21, which took `fkine`'s held-out error from 4.64 mm to
+#: 1.99 mm), so :data:`QPOS_FROM_Q` swaps 0/1, 4/5 and 8/9 -- and the seat table
+#: was assigning by ``q`` index while the hinge it reached was the first
+#: declared one.  Swapping the two azimuth pairs took the mean per-joint
+#: correlation from **0.402 to 0.882** with every joint positive.
+#:
+#: The distal table below needs no such correction, and that asymmetry is the
+#: evidence: a mistake in the shared derivation would have moved both.
+LOWER_SEAT_DEG = {(0, +1): 180.0, (0, -1): 0.0, (1, +1): 90.0, (1, -1): 270.0}
 
 #: The same for an **upper** muscle, which spans a distal universal joint whose
 #: axes are the 45-degree bracket vectors ``(x+y)/sqrt2`` (axis 2 = ``t3``) and

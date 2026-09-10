@@ -53,12 +53,38 @@ from digital_twin import twin_compare as TC  # noqa: E402
 PA_PER_PSI = 6894.757
 
 
-def score(rec, *, checkpoint=None, t_max_s=None, log=print) -> dict:
+def load_outer(path):
+    """The mechanical multipliers, or ``None``.
+
+    Kept as a separate file from the checkpoint because they are fitted by a
+    different procedure against a different objective: the checkpoint is the
+    flow net, fitted on pressure residuals, and these are the force law and the
+    dissipation, fitted on joint residuals. Merging them would make it possible
+    to load half of a fit without noticing.
+    """
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def score(rec, *, checkpoint=None, outer=None, t_max_s=None, log=print) -> dict:
     """Open-loop rollout and metrics.  Returns the result and the numbers."""
     kwargs = {}
     if checkpoint:
         from digital_twin.actuator_model import ActuatorModel
         model = ActuatorModel.load(checkpoint)
+        if outer:
+            model = ActuatorModel(
+                net=model.net, is_tle=model.is_tle,
+                fill_gain=model.fill_gain, vent_gain=model.vent_gain,
+                blend_width_pa=model.blend_width_pa, leak_pa_s=model.leak_pa_s,
+                coeff=np.asarray(outer["coeff"], dtype=float),
+                bf=model.bf, l0=model.l0, damp_b1=model.damp_b1)
+            kwargs["tendon_damping"] = float(outer["tendon_damping"])
+            kwargs["joint_damping"] = float(outer["joint_damping"])
+            log("outer fit applied: " + ", ".join(
+                f"{k} x{v:.3g}" for k, v in outer["multipliers"].items()))
         kwargs["actuator"] = model
         log(f"using {checkpoint}")
         m = getattr(model, "meta", None) or {}
@@ -105,6 +131,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--session", required=True)
     ap.add_argument("--checkpoint", default=None)
+    ap.add_argument("--outer", default=None,
+                    help="canarm_outer.json from digital_twin.outer_fit -- the "
+                         "force law and dissipation, which the flow fit does "
+                         "not reach")
     ap.add_argument("--out-dir", default="deliverable")
     ap.add_argument("--kind", default="validation",
                     help="excitation family to score and film")
@@ -120,12 +150,15 @@ def main(argv=None) -> int:
     print(f"held-out {args.kind}: {rec.n} cycles, {rec.duration_s:.1f} s, "
           f"{rec.rate_hz:.2f} Hz")
 
-    out, tw = score(rec, checkpoint=args.checkpoint, t_max_s=args.t_max_s)
+    outer = load_outer(args.outer)
+    out, tw = score(rec, checkpoint=args.checkpoint, outer=outer,
+                    t_max_s=args.t_max_s)
     summarise(out)
 
     report = {
         "session": os.path.abspath(args.session),
         "checkpoint": os.path.abspath(args.checkpoint) if args.checkpoint else None,
+        "outer": outer,
         "kind": args.kind,
         "cycles": int(rec.n),
         "seconds": float(rec.duration_s),

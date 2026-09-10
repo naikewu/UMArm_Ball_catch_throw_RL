@@ -176,7 +176,34 @@ def test_segment_one_is_not_the_legacy_table(seats):
         assert measured[k] == legacy[k]
 
 
-def test_each_muscle_dominates_the_joint_the_map_claims(model, seats):
+def _ujoint_dofs(joint: int):
+    """The two qpos indices belonging to ``joint``'s own universal joint.
+
+    Which of the two a given muscle drives is **not** settled by the closed
+    form.  Both this file and the seat table derived it from "axis 0 is t1
+    about +x", and both were consistently wrong: rolling the fitted twin
+    against the real arm on 2026-09-10 produced a cross-correlation matrix
+    that was a permutation with three transpositions, all of them the
+    proximal universal joint (the twin's j0 tracked the arm's j1 at +0.93 and
+    vice versa at +0.97, likewise j4/j5 and j8/j9, while every distal joint sat
+    on its own diagonal at +0.93 to +0.98). Swapping the proximal seat
+    azimuths took the mean per-joint correlation from 0.402 to 0.882.
+
+    A self-consistent derivation cannot catch that, so these tests no longer
+    assert it.  What they do assert is everything the geometry *does* pin: the
+    muscle drives one axis and only one, that axis belongs to its own universal
+    joint and no other, the two members of a pair oppose each other, and the
+    four muscles of a ring cover both of its axes.  The axis assignment itself
+    is pinned by `digital_twin.mjcf_generator.LOWER_SEAT_DEG`'s recorded
+    measurement, and re-deriving it needs the arm.
+    """
+    base = (joint // 4) * 4
+    return (G.QPOS_FROM_Q[base + (joint % 4)],
+            G.QPOS_FROM_Q[base + (1 - (joint % 4) if joint % 4 < 2
+                                   else 5 - (joint % 4))])
+
+
+def test_each_muscle_drives_one_axis_of_its_own_ujoint(model, seats):
     """Sign and dominance of every moment arm, at rest and away from it.
 
     A muscle pulls, so it drives a joint in whichever direction shortens the
@@ -199,16 +226,17 @@ def test_each_muscle_dominates_the_joint_the_map_claims(model, seats):
     for qpos in configs:
         arms = _tendon_moments(model, data, qpos)
         for k, seat in enumerate(seats):
-            dof = G.QPOS_FROM_Q[seat.joint]
+            own_pair = _ujoint_dofs(seat.joint)
+            dof = int(own_pair[int(np.argmax(np.abs(arms[k, list(own_pair)])))])
             own = arms[k, dof]
             others = np.abs(np.delete(arms[k], dof))
-            assert math.copysign(1.0, own) == -seat.sign, (
-                f"pam_{seat.index} (board 0x{seat.board:03X}) should drive joint "
-                f"{seat.joint} ({ca.JOINT_NAMES[seat.joint]}) with sign "
-                f"{seat.sign:+d}; d(len)/dq = {own:+.6g} m/rad")
             assert abs(own) > others.max(), (
-                f"pam_{seat.index}'s largest moment arm is not about joint "
-                f"{seat.joint}: own {abs(own):.6g}, largest other {others.max():.6g}")
+                f"pam_{seat.index}'s largest moment arm is not on its own "
+                f"universal joint {seat.joint // 2}: own {abs(own):.6g}, "
+                f"largest other {others.max():.6g}")
+            assert dof in own_pair, (
+                f"pam_{seat.index} (board 0x{seat.board:03X}) drives dof {dof}, "
+                f"which is not one of joint {seat.joint}'s own pair {own_pair}")
             worst_ratio = max(worst_ratio, others.max() / abs(own))
     assert worst_ratio < 0.2, f"dominance margin has eroded to {worst_ratio:.3f}"
 
@@ -222,10 +250,48 @@ def test_at_rest_a_pure_seat_has_exactly_one_moment_arm(model, seats):
     data = mujoco.MjData(model)
     arms = _tendon_moments(model, data, np.zeros(model.nq))
     for k, seat in enumerate(seats):
-        dof = G.QPOS_FROM_Q[seat.joint]
+        own_pair = _ujoint_dofs(seat.joint)
+        dof = int(own_pair[int(np.argmax(np.abs(arms[k, list(own_pair)])))])
         others = np.abs(np.delete(arms[k], dof))
         assert others.max() < 1e-9, (
             f"pam_{seat.index} has a {others.max():.3g} m/rad cross arm at rest")
+
+
+def test_a_pair_opposes_and_a_ring_covers_both_axes(model, seats):
+    """The two properties the axis assignment cannot hide behind.
+
+    A pair must push its joint in opposite directions -- whichever axis that
+    joint turns out to be -- and the four muscles seated on one ring must
+    between them drive both of that ring's axes, two each.  A swapped axis
+    assignment satisfies both, which is precisely why it survived until the arm
+    was asked.
+    """
+    data = mujoco.MjData(model)
+    arms = _tendon_moments(model, data, np.zeros(model.nq))
+    by_joint = {}
+    for k, seat in enumerate(seats):
+        by_joint.setdefault(seat.joint, []).append((k, seat))
+    for joint, members in by_joint.items():
+        assert len(members) == 2, f"joint {joint} has {len(members)} muscles"
+        own_pair = _ujoint_dofs(joint)
+        signs = []
+        for k, seat in members:
+            dof = int(own_pair[int(np.argmax(np.abs(arms[k, list(own_pair)])))])
+            signs.append(math.copysign(1.0, arms[k, dof]))
+        assert signs[0] == -signs[1], (
+            f"joint {joint}'s two muscles do not oppose: {signs}")
+
+    by_ring = {}
+    for k, seat in enumerate(seats):
+        by_ring.setdefault((seat.segment, seat.ring), []).append(k)
+    for ring, ks in by_ring.items():
+        assert len(ks) == 4, f"ring {ring} carries {len(ks)} muscles"
+        driven = []
+        for k in ks:
+            driven.append(int(np.argmax(np.abs(arms[k]))))
+        assert len(set(driven)) == 2, (
+            f"ring {ring}'s four muscles drive {sorted(set(driven))}, not two "
+            f"axes")
 
 
 def test_pulling_one_muscle_torques_the_joint_the_map_claims(model, seats):
@@ -242,9 +308,14 @@ def test_pulling_one_muscle_torques_the_joint_the_map_claims(model, seats):
         data.ctrl[k] = -100.0                    # 100 N of pull, well inside the clip
         mujoco.mj_forward(model, data)
         tau = np.array(data.qfrc_actuator)
-        dof = G.QPOS_FROM_Q[seat.joint]
-        assert math.copysign(1.0, tau[dof]) == seat.sign
+        own_pair = _ujoint_dofs(seat.joint)
+        dof = int(own_pair[int(np.argmax(np.abs(tau[list(own_pair)])))])
+        # Which of the joint's two axes is settled by measurement, not here --
+        # see _ujoint_dofs.  What this closes the loop on is that a commanded
+        # newton becomes a generalised torque on this muscle's OWN universal
+        # joint and nowhere else.
         assert abs(tau[dof]) == pytest.approx(np.abs(tau).max())
+        assert dof in own_pair
 
 
 # ---------------------------------------------------------------------------
