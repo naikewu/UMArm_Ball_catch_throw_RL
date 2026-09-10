@@ -187,6 +187,25 @@ class Backend:
             if node is not None:
                 node.target_psi = psi
 
+    def set_targets(self, mapping) -> None:
+        """Retarget many boards under **one** lock acquisition.
+
+        A whole-arm excitation rewrites all twenty-four setpoints every cycle,
+        and doing that through :meth:`set_target` takes the lock twenty-four
+        times per 6.67 ms against a cycle thread that needs it to publish.
+        Worse, the twenty-four writes would not land in the same cycle's table:
+        a table built halfway through the loop carries part of one command and
+        part of the next, which is a whole-arm state nobody asked for.
+
+        ``mapping`` is ``{base: psi}``; unknown bases are ignored, as in
+        :meth:`set_target`.
+        """
+        with self._lock:
+            for base, psi in mapping.items():
+                node = self.nodes.get(base)
+                if node is not None:
+                    node.target_psi = float(psi)
+
     def set_target_all(self, psi: float) -> None:
         with self._lock:
             for base in self.selected:

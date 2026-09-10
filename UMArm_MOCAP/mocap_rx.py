@@ -790,6 +790,31 @@ class MocapRx:
         with self._lock:
             return None if self._q is None else self._q.copy()
 
+    def latest_sample(self):
+        """``(t_mono, frame_no, q, homos, seq)`` of the newest valid frame.
+
+        One lock acquisition, no deque copy and no health arithmetic, because a
+        150 Hz recorder calls this on the CAN cycle thread and everything it
+        does there is subtracted from a 6.67 ms budget.  :meth:`get_q` paired
+        with :meth:`get_state` answers the same question and costs two
+        acquisitions plus a copy of the frame-time deque per call.
+
+        ``q`` and ``homos`` are the receiver's own arrays, **not copies** -- the
+        caller must treat them as read-only.  That is safe here and nowhere
+        else: the SDK thread replaces the reference rather than mutating the
+        array (see :meth:`_on_new_frame`), so a reader holding the old one keeps
+        a consistent frame.  ``seq`` advances once per valid frame, so a
+        recorder can tell a repeated sample from a fresh one without comparing
+        timestamps.
+
+        Returns ``(None, None, None, None, seq)`` before the first valid frame.
+        """
+        with self._lock:
+            if self._q is None:
+                return (None, None, None, None, self._seq)
+            return (self._last_q_mono, self._frame_number, self._q,
+                    self._homos, self._seq)
+
     def get_homos(self) -> np.ndarray | None:
         """Latest ``(9, 4, 4)`` plate poses in the spatial frame, or ``None``."""
         with self._lock:
