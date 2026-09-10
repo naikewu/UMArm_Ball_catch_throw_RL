@@ -17,15 +17,17 @@ random joints in +-0.3 rad: 3.9e-16 rad worst case.
 
 THE RULE THE RS485 ORIGINAL BROKE, AND WHY IT IS KEPT HERE.  The RS485
 ``SimMocap`` advanced the arm to the wall clock from its own producer thread
-(its design decision D7).  **This producer never steps physics.**  On this arm
-``SimMaster``'s link already advances the arm twice over -- inside every sync
-edge on the cycle thread, and every 5 ms on its delivery thread -- and a third
-advancer, while deterministic by invariant C5, is not free: every advance holds
-``arm.lock`` across ``mj_step``, and this thread would then take that lock at
-120 Hz against a cycle thread that needs it inside a 6.67 ms budget.  The budget
-is already short.  Measured headless on 2026-09-10 with the fitted twin and one
-board enabled, the 150 Hz cycle achieved about 124 Hz.  So the only work done
-under the lock here is one copy of twelve doubles.
+(its design decision D7).  **This producer never steps physics.**  With
+``SimMaster(physics="inline")`` the sync edges advance the arm on the cycle
+thread (and the link's delivery thread does once the bus has been quiet for
+50 ms), and a further advancer, while deterministic by invariant C5, is not
+free: every advance holds ``arm.lock`` across ``mj_step``, and this thread would
+then take that lock at 120 Hz against a cycle thread that needs it inside a
+6.67 ms budget.  With ``physics="process"`` -- what the operator GUI's SIM
+adapter builds -- the arm is a ``sim_process.RemoteArm`` whose ``data.qpos`` is
+a sequence-locked read of shared memory the plant child publishes, and there is
+nothing in this process to step.  Either way the only work done here per frame
+is one copy of twelve doubles.
 
 A SOURCE THAT HAS GONE AWAY PUBLISHES NOTHING.  *alive*, when given, is asked
 before every frame; when it answers False no frame is injected, and

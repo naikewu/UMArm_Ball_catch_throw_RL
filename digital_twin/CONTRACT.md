@@ -186,6 +186,39 @@ Requirements:
 * A `build_room_scene`-compatible seam: `sim_core` takes `xml=`, so the merged
   multi-robot scene is composed elsewhere and handed in.
 
+**Added 2026-09-10, and binding from then.**
+
+* **Routing is the ProMax bearing routing** of Fig. 1C of `2606.29731v1.pdf`.
+  Each `t_pam_k` is a three-site spatial tendon: actuator free end (on the link)
+  → routing bearing on the hub nearer the joint it drives (link; radius `AO` =
+  28 mm, `AA` = 43.7 mm from that joint's centre) → outer-ring bracket (radius
+  `JA` = 47 mm, in the joint plane, on the body across the joint). The first
+  span is rigid and cancels in `ten_length − tendon_length0`. A pure seat's
+  rest moment arm is `AA·JA/√((JA−AO)² + AA²)` = 43.104 mm, about one axis.
+  Seat azimuths are computed from `MEASURED_JOINT_PAIRS` (`actuator_seats`),
+  never typed. The far-ring routing it replaced (46.8 mm) must not return.
+* **Hinges:** proximal pair declared y-then-x, so `qpos` is a permutation of
+  `q`: `QPOS_FROM_Q = (1, 0, 2, 3, 5, 4, 6, 7, 9, 8, 10, 11)`, `q_to_qpos`,
+  `qpos_to_q`. Anything that writes or reads joint angles in a compiled model
+  goes by hinge name or through those two functions.
+* **Mass tunables:** `link_mass_kg` and `bracket_mass_kg` are per-segment body
+  totals (`None`, one number, or three). A link total keeps the eight sleeves at
+  `actuator_mass` exactly (0.030 kg, the only mass measured on this arm) and
+  spreads the remainder over rod, hubs and Ys by their component defaults; a
+  total at or below the sleeves raises. A bracket total spreads over the distal
+  disk, and for segments 1–2 the JD spacer and the next proximal disk, in
+  proportion to `plate_mass` and `spacer_mass`. Also keywords: `y_mass`,
+  `hub_mass`, `spacer_mass` (renamed from the old `bracket_mass`), `tip_mass`,
+  `base_plate_mass`. Every default's source is in `MASS_PROVENANCE`.
+* **`joint_stiffness`**, N·m/rad, one number or three per segment, on that
+  segment's four hinges with the spring at rest at `q = 0`. Default zero, and
+  then no `stiffness` attribute is emitted, so every model built before it is
+  reproduced.
+* **Drawing tunables** that enter no moment arm: `y_tip_radius` (0.085 m),
+  `y_tip_z_offset` (0), `actuator_radius` (0.0095 m), all estimated from Fig. 1C.
+* `viz/mjcf_canarm.py` draws the CAN arm through `promax_segment_elements` /
+  `promax_base_elements`, the functions the twin's model uses.
+
 ---
 
 ## 4. `digital_twin/sim_core.py`
@@ -227,6 +260,15 @@ and inside one node pass: integrate the plant, sample the ADC, check the
 failsafe, then regulate — in that order, because the regulator must act on the
 pressure the sensor reported, not on the true one.
 
+**`SimArm.q()` returns `q`, not `qpos`** (binding since 2026-09-10): the twelve
+hinges are resolved by name in `UMArm_KINEMATICS` order, and `SimArm.q_order`
+reads `"q"`. A scene without the CAN arm's hinge names (`placeholder_xml`)
+returns raw `qpos` and `q_order` reads `"qpos"`. `data.qpos` stays declaration
+order. Until that date `q()` returned `qpos`, and commit `a35f94a` hid it by
+rotating every proximal seat 90°; a caller that applied `qpos_to_q` to `q()`
+would now double-permute. `dataset.TendonKinematics.dlen` writes `q` by name
+for the same reason.
+
 ---
 
 ## 5. `digital_twin/sim_master.py`
@@ -238,6 +280,31 @@ same `snapshot_nodes()` shape, same `set_cycle_observer` semantics, and the same
 per-id reply-latency spread — 1.87 ms at `0x101` rising about 64 µs per id step
 to 3.35 ms at `0x118`, which is CAN arbitration and is what a flat column would
 give away.
+
+**Added 2026-09-10, and binding from then.** The property now includes timing:
+a controller reading `Backend.stats`, `missing_nodes()` or
+`NodeState.consecutive_misses` must not be able to tell the twin from the arm.
+
+* `SimMaster(..., physics="inline" | "process")`, keyword-only, default
+  `"inline"`. `"inline"`: the `SimArm` is `master.arm` in this process, and each
+  sync edge advances it on the caller's thread. `"process"`
+  (`digital_twin/sim_process.py`): the `SimArm` runs in a spawned child that
+  free-runs against `time.perf_counter()` (one clock for every process on the
+  machine); `master.arm` is a `RemoteArm` (compiled `model`, `data.qpos` and
+  `q()` from shared memory, `nodes` with variants, no `advance_to`), and
+  `snapshot_arm()` is a request to the child. `arm=` and `node_hook=` cannot
+  cross the boundary and raise. **The operator GUI's SIM adapter constructs
+  `physics="process"`.**
+* Every reply is stamped `t_batch0 + reply_latency_ms(id)` and delivered by the
+  thread that computed it, at that time and never before, when it is due
+  within `INLINE_HOLD_S` = 4 ms (capped at `Backend`'s receive window); a reply
+  due later goes to the delivery thread, so a reply due after the window is
+  still missed. The link's own delivery thread advances the plant only after
+  `QUIET_AFTER_S` = 50 ms without an edge, so a silent host still trips the
+  TLE failsafe and a driving host's edges are the only advancer.
+* `hw_tests/gui_sim_test.py` holds the window's achieved rate and replies heard
+  to the metal's same window (145.43 Hz, 98.81 % on 2026-08-20) within 5 % and
+  2 points.
 
 ---
 
@@ -260,6 +327,40 @@ float64 tolerance on the same weights, because the two paths are what make the
 trained model and the stepped model the same model.
 
 ---
+
+## 7a. `digital_twin/twin_params.py` — the fitted twin has one spelling
+
+Added 2026-09-10. Every place that builds the fitted twin (`SimArm`,
+`SimMaster`, `replay.rollout`, `twin_compare.twin_rollout`, the GUI's SIM
+adapter, `deliverable.py`) reads it from here.
+
+```python
+DEFAULT_FLOW = checkpoints/canarm_flow.npz
+DEFAULT_MECH = checkpoints/canarm_mech.json    # falls back to FALLBACK_MECH = canarm_outer.json
+load_twin_kwargs(flow=DEFAULT_FLOW, mech=DEFAULT_MECH, *, log=print) -> TwinKwargs(dict)
+describe(kwargs) -> str
+```
+
+The mapping holds `"actuator"` (the flow checkpoint's `ActuatorModel` with
+`coeff`, and `bf` when given, replaced), `"tendon_damping"`, `"joint_damping"`,
+optionally `"joint_frictionloss"`, and every key of the JSON's `"mjcf"` dict
+passed through untouched. JSON schema: `{"coeff": [3], "bf": [3]?,
+"tendon_damping", "joint_damping", "joint_frictionloss"?, "mjcf": {generate_xml
+keyword: value}?, ...provenance}`. A missing part falls back to its seed with a
+line starting `[twin_params] UNFITTED`; a malformed file or an unknown `mjcf`
+key raises; a file whose `status` does not start with `complete` is loaded with
+a line starting `[twin_params] INCOMPLETE`.
+
+## 7b. `digital_twin/mech_fit.py` — the mechanical fit
+
+Added 2026-09-10. CMA-ES over fifteen log-space parameters on thirteen
+contiguous training windows; `validation` rows are never rolled, and no bound
+may be sized from them. Masses are parameterised as the hardware is built
+(shared link structure + eight fixed 30 g sleeves; ring + spacer + ring per
+connector; one ring on segment 3) and regularised toward the Koopman ProMax
+prior at `PIN_FRACTION` of 1.444 deg per factor of two. A run writes
+`canarm_mech.running.json` and `promote()` replaces `canarm_mech.json` only when
+the status is complete.
 
 ## 8. The safety rule, which is not negotiable
 

@@ -21,6 +21,17 @@ private one, so the table's ``0x80`` marker byte, its slot mask and its
 12-bit-plus-flags packing are round-tripped on every cycle and a change to
 either side shows up as a decode failure rather than as a silent disagreement.
 
+WHERE THE PLANT RUNS (``physics=``, added 2026-09-10).  ``"inline"`` keeps the
+``SimArm`` in this process and advances it on each edge's caller -- the
+placement every test and script uses, with ``master.arm`` in reach.
+``"process"`` puts it in a spawned child (``digital_twin/sim_process.py``) and
+leaves this process only a link's host side.  The operator GUI's SIM adapter
+uses ``"process"``: inline, the fitted twin's 3.3 ms of physics per 6.67 ms
+period ran on the GUI's interpreter lock, and the window reached 97.6 Hz with
+about half the replies missed, against the metal window's 145.43 Hz and 98.81 %.
+Process-placed, the same window measured 143.6 Hz and 99.67 %
+(``hw_tests/gui_sim_test.py``).
+
 THE REPLY LATENCY SPREAD IS PART OF THE INTERFACE, NOT DECORATION.  On the real
 24-board bus a reply arrives 1.87 ms after the sync edge at ``0x101`` and rises
 about 64 us per id step to 3.35 ms at ``0x118``.  That gradient is CAN
@@ -103,6 +114,16 @@ SEVEN_MM_FIRMWARE_VERSION = "0.2.1"
 #: ``test_m2``, ``test_m3`` and the absent-board test.
 QUIET_AFTER_S = 0.05
 
+#: Where ``SimMaster`` runs the plant.  ``"inline"``: the ``SimArm`` lives in
+#: this process and each sync edge advances it on the caller's thread --
+#: deterministic enough for tests and scripts, and what ``master.arm`` gives
+#: direct access to.  ``"process"``: ``digital_twin.sim_process`` runs it in a
+#: spawned child that free-runs against the shared clock, so the host's
+#: interpreter lock carries only what a real link's host side carries.  The
+#: operator GUI's SIM adapter uses ``"process"``; its module docstring has the
+#: measured difference.
+PHYSICS_PLACEMENTS = ("inline", "process")
+
 #: s after the batch stamp.  A reply due within this horizon is delivered by the
 #: thread that computed it -- the edge's caller in-process, the plant receiver
 #: for ``physics="process"`` -- which waits for the reply's arbitration time and
@@ -169,11 +190,14 @@ class SimCanLink:
     Two threads meet here and the split matters.  The **caller's** thread --
     ``Backend``'s cycle thread in practice -- runs :meth:`send_batch`, which
     advances the arm's physics, applies the sync edge and computes each board's
-    reply payload from the pressure that edge latched.  A private **delivery**
-    thread then hands those payloads to the taps at their arbitration times.
-    That mirrors the real link, where the reader thread stamps a frame when it
-    parses it, and it is what lets ``Backend``'s receive window do real work:
-    a reply scheduled past the window is genuinely missed.
+    reply payload from the pressure that edge latched, and then delivers each
+    reply to the taps at its arbitration time (:meth:`_hand_over`).  A private
+    **delivery** thread takes only replies due beyond :data:`INLINE_HOLD_S`,
+    which is what lets ``Backend``'s receive window do real work: a reply due
+    past the window is genuinely missed.  It also keeps the plant's clock once
+    the bus has been quiet for :data:`QUIET_AFTER_S`.  Every reply is stamped
+    with its arbitration time, the way the real link's reader thread stamps a
+    frame when it parses it.
 
     The payload is built at the edge and not at delivery because that is what
     the firmware does.  ``tle_can_legacy.c::handle_sync`` latches
@@ -527,10 +551,30 @@ class SimMaster(Backend):
                  quiet_after_s: float = QUIET_AFTER_S,
                  inline_hold_s: float = INLINE_HOLD_S,
                  seed: int = 20260910,
+                 physics: str = "inline",
                  **simarm_kwargs) -> None:
         super().__init__(port=port, bitrate=bitrate, cycle_hz=cycle_hz, log=log)
+        if physics not in PHYSICS_PLACEMENTS:
+            raise ValueError(f"physics must be one of {PHYSICS_PLACEMENTS}; got {physics!r}")
+        #: Where the plant runs.  See :data:`PHYSICS_PLACEMENTS`.
+        self.physics = physics
         # Never hold a reply past the receive window this Backend will listen for.
         inline_hold_s = min(float(inline_hold_s), RX_WINDOW_FRAC / float(cycle_hz))
+        link_kwargs = dict(first_ms=first_ms, last_ms=last_ms,
+                           reply_jitter_sd_ms=reply_jitter_sd_ms, clock=clock,
+                           advance=advance, idle_advance_s=idle_advance_s,
+                           quiet_after_s=quiet_after_s, inline_hold_s=inline_hold_s)
+        if physics == "process":
+            if arm is not None:
+                raise ValueError("physics='process' builds its plant in a child process; "
+                                 "a SimArm handed in as arm= cannot cross a process "
+                                 "boundary")
+            from . import sim_process
+
+            self.arm, self.link = sim_process.build(
+                port, bitrate, seed=seed, link_kwargs=link_kwargs,
+                simarm_kwargs=simarm_kwargs)
+            return
         if arm is None:
             arm = sim_core.SimArm(seed=seed, **simarm_kwargs)
         elif simarm_kwargs:
@@ -543,13 +587,8 @@ class SimMaster(Backend):
         #: constructor opens nothing -- it only records the port name and the
         #: bitrate -- so the object it builds is discarded without ever having
         #: touched the hardware.
-        self.link = SimCanLink(arm, port=port, bitrate=bitrate,
-                               first_ms=first_ms, last_ms=last_ms,
-                               reply_jitter_sd_ms=reply_jitter_sd_ms,
-                               clock=clock, advance=advance,
-                               idle_advance_s=idle_advance_s,
-                               quiet_after_s=quiet_after_s,
-                               inline_hold_s=inline_hold_s, seed=seed)
+        self.link = SimCanLink(arm, port=port, bitrate=bitrate, seed=seed,
+                               **link_kwargs)
 
     def snapshot_arm(self) -> dict:
         """Plant truth beside the host's view, for a test or a plot.
@@ -557,8 +596,11 @@ class SimMaster(Backend):
         Named apart from :meth:`snapshot_nodes` on purpose.  ``snapshot_nodes``
         is the interface a controller shares with the real robot and must stay
         byte-comparable with it; this is the twin's privilege, and any code path
-        that reads it is a path that cannot run against the metal.
+        that reads it is a path that cannot run against the metal.  With
+        ``physics="process"`` it is a request to the plant child.
         """
+        if self.physics == "process":
+            return self.link.request_snapshot()
         with self.arm.lock:
             return {base: dict(p_pa=node.p_pa,
                                true_psi=node.true_psi,

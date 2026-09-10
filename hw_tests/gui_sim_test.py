@@ -28,9 +28,13 @@ Phases, each recorded as checks and into
 4. the poisoned COM connect fails and leaves no backend;
 5. SIM connect: 24 boards scanned before any cycle (TLE/DVP at 0x101-0x108,
    7mm at 0x109-0x118), the twin receiver chosen and started;
-6. the cycle: only 0x101 selected and enabled, its bar dragged to 12 psi; within
-   5 s its pressure approaches 12 psi and joint 2 (``s1.u2``, positive for
-   0x101 in the measured map) moves positive as the receiver reports it;
+6. the cycle: 0x101 selected and enabled, then every board selected (only 0x101
+   stays enabled), its bar dragged to 12 psi; within 5 s its pressure
+   approaches 12 psi and joint 2 (``s1.u2``, positive for 0x101 in the measured
+   map) moves positive as the receiver reports it; and **the timing a
+   controller reads matches the metal's**: the achieved cycle rate and the
+   fraction of the 24 boards' replies heard are within :data:`RATE_TOL_FRAC`
+   and :data:`REPLY_TOL_PCT` of the same window on the real bus;
 7. the kinematics line for the twin;
 8. the spawned viewer on the twin's shared-array feed for ~5 s, GUI and viewer
    screenshots to ``hw_tests/media/gui_sim_*.png``;
@@ -80,6 +84,27 @@ MIN_DQ_DEG = 2.0
 
 #: How long the viewer runs on the twin feed before the screenshots.
 VIEWER_S = 5.0
+
+#: The metal's numbers for the same window, the reference the twin's timing is
+#: held to.  ``hw_tests/integrated_gui_test.py --phase profile``, 2026-08-20,
+#: condition "full window: node table 10 Hz + 24-board plot 4 Hz", 20 s on the
+#: live 24-board bus with every board selected: 145.43 Hz achieved and 98.812 %
+#: of the boards' replies heard (its drift control, the same condition 2.5 min
+#: later: 144.43 Hz, 98.913 %).  Recorded in
+#: ``hw_tests/results/integrated_gui_profile_2026-08-20.json``, which is
+#: gitignored, so the numbers are carried here.  The collection stack's 148.60 Hz
+#: (``report_canarm_sysid_2026-09-10.md`` section 2) is a different program with
+#: a 0.5 ms switch interval, not this window.
+METAL_WINDOW_HZ = 145.43
+METAL_WINDOW_REPLY_PCT = 98.812
+
+#: How far the twin's timing may sit from the metal's before a controller could
+#: be said to tell them apart from ``Backend.stats``: 5 % of the rate (the two
+#: metal runs above differ by 0.7 %) and 2 percentage points of replies heard
+#: (they differ by 0.1).  Both are two-sided; a twin that is markedly better than
+#: the arm is as distinguishable as one that is worse.
+RATE_TOL_FRAC = 0.05
+REPLY_TOL_PCT = 2.0
 
 #: Screenshots are downscaled to at most this width, so the media folder stays
 #: small; the viewer at native size is several hundred kilobytes per frame.
@@ -213,6 +238,11 @@ def run(args) -> int:
     from digital_twin.sim_mocap import SimMocap
     from tlelib.backend import Backend as BareBackend
 
+    # The placement under test.  "process" is what the window ships; "inline"
+    # re-measures the placement it replaced, and is expected to fail the timing
+    # checks -- that failure is what makes them worth having.
+    GUI.SIM_PHYSICS = args.physics
+
     checks: list[tuple[str, bool, str]] = []
     record: dict = {"schema": "gui_sim_test/1",
                     "created_local": time.strftime("%Y-%m-%d %H:%M:%S")}
@@ -319,12 +349,16 @@ def run(args) -> int:
     record["q0_deg"] = None if q0 is None else np.degrees(q0).tolist()
 
     # ---- 6. the cycle, one board -------------------------------------------
-    print("6. the cycle: 0x101 to 12 psi")
+    print("6. the cycle: 0x101 to 12 psi, all 24 boards selected")
     app.select_all(False)
     app.selected[DRIVE_BASE].set(True)
     app._selection_changed()
     app.toggle_cycle()
     app.enable_selected(True)
+    # Then select every board, as the metal's profile window had them, so the
+    # reply and miss counts cover 24 boards and the plot draws 24 traces.
+    # Selecting does not enable: only 0x101 was enabled.
+    app.select_all(True)
     # The operator's path: the channel's own bar, which calls _channel_moved.
     app.node_bars[DRIVE_BASE]._commit(DRIVE_PSI)
     targets = backend._build_targets()
@@ -334,6 +368,7 @@ def run(args) -> int:
     trace = []
     t_start = time.monotonic()
     c_start = backend.stats.cycles
+    r_start, m_start = backend.stats.replies, backend.stats.misses
     reached_s = None
     while time.monotonic() - t_start < DEADLINE_S:
         pump(root, 0.1)
@@ -347,6 +382,9 @@ def run(args) -> int:
     elapsed = time.monotonic() - t_start
     stats = backend.stats
     rate_hz = (stats.cycles - c_start) / elapsed
+    replies_w = stats.replies - r_start
+    misses_w = stats.misses - m_start
+    reply_pct = 100.0 * replies_w / max(1, replies_w + misses_w)
     snap = backend.snapshot_nodes()[DRIVE_BASE]
     q1 = rx.get_q()
     dq = np.degrees(q1 - q0)
@@ -359,17 +397,35 @@ def run(args) -> int:
           f"dq[{DRIVE_JOINT}] = {dq[DRIVE_JOINT]:+.2f} deg")
     check("the receiver stayed fresh while the cycle ran",
           not rx.get_state().q_stale, f"{rx.get_state().fps:.1f} fps")
-    print(f"     cycle {rate_hz:.1f} Hz achieved (asked 150), "
-          f"replies {stats.replies}, misses {stats.misses}, late {stats.late_cycles}")
+    print(f"     cycle {rate_hz:.1f} Hz achieved (asked 150), replies {replies_w}, "
+          f"misses {misses_w} ({reply_pct:.2f} % heard over 24 boards), "
+          f"late {stats.late_cycles}; the metal's window: {METAL_WINDOW_HZ} Hz, "
+          f"{METAL_WINDOW_REPLY_PCT} %")
+    check(f"the cycle rate is the metal window's within {RATE_TOL_FRAC:.0%}",
+          abs(rate_hz - METAL_WINDOW_HZ) <= RATE_TOL_FRAC * METAL_WINDOW_HZ,
+          f"{rate_hz:.1f} Hz against {METAL_WINDOW_HZ} Hz")
+    check(f"the replies heard are the metal window's within {REPLY_TOL_PCT} points",
+          abs(reply_pct - METAL_WINDOW_REPLY_PCT) <= REPLY_TOL_PCT,
+          f"{reply_pct:.2f} % against {METAL_WINDOW_REPLY_PCT} %")
+    plant = getattr(backend.link, "plant_pid", None)
+    check("the twin's physics runs outside this process",
+          getattr(backend, "physics", None) == "process" and plant is not None
+          and plant != os.getpid(), f"physics={getattr(backend, 'physics', None)!r}, "
+          f"plant pid {plant}, GUI pid {os.getpid()}")
     record.update({
         "drive": {"base": hex(DRIVE_BASE), "psi": DRIVE_PSI,
                   "final_psi": snap.pressure_psi, "reached_s": reached_s,
                   "dq_deg": dq.tolist(), "trace_t_psi_dq2": trace},
-        "cycle": {"achieved_hz": rate_hz, "cycles": stats.cycles,
-                  "replies": stats.replies, "misses": stats.misses,
+        "cycle": {"achieved_hz": rate_hz, "window_s": elapsed,
+                  "replies": replies_w, "misses": misses_w,
+                  "reply_pct": reply_pct, "boards_selected": 24,
                   "late_cycles": stats.late_cycles,
                   "jitter_ms_p95": stats.jitter_ms_p95,
-                  "jitter_ms_max": stats.jitter_ms_max},
+                  "jitter_ms_max": stats.jitter_ms_max,
+                  "metal_window_hz": METAL_WINDOW_HZ,
+                  "metal_window_reply_pct": METAL_WINDOW_REPLY_PCT,
+                  "physics": getattr(backend, "physics", None),
+                  "plant_pid": plant},
         "mocap_fps": rx.get_state().fps,
         "status_line": app.status_var.get(),
     })
@@ -471,7 +527,8 @@ def run(args) -> int:
     record["checks"] = [{"name": n, "ok": ok, "detail": d} for n, ok, d in checks]
     record["attempts"] = {k: [str(v) for v in vals] for k, vals in ATTEMPTS.items()}
     RESULTS.mkdir(parents=True, exist_ok=True)
-    out = RESULTS / f"gui_sim_{time.strftime('%Y-%m-%d')}.json"
+    suffix = "" if args.physics == "process" else f"_{args.physics}"
+    out = RESULTS / f"gui_sim_{time.strftime('%Y-%m-%d')}{suffix}.json"
     out.write_text(json.dumps(record, indent=1, default=str), encoding="utf-8")
     print(f"wrote {out}")
     return 0 if passed == len(checks) else 1
@@ -481,7 +538,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--no-viewer", action="store_true",
                     help="skip the spawned viewer and the screenshots")
-    return run(ap.parse_args())
+    ap.add_argument("--physics", choices=("process", "inline"), default="process",
+                    help="where the SIM adapter's plant runs; 'inline' re-measures the "
+                         "placement the window no longer uses and should fail the "
+                         "timing checks")
+    args = ap.parse_args()
+    if args.physics != "process" and not args.no_viewer:
+        # Keep the committed screenshots the shipped placement's.
+        args.no_viewer = True
+    return run(args)
 
 
 if __name__ == "__main__":

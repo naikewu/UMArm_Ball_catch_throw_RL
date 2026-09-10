@@ -75,19 +75,34 @@ cycle, the boards keep their targets, and the only thing that stops is drawing.
 The reverse also holds: the viewer is not on the STOP path, so ``STOP ALL``
 still reaches the boards with the window open, closed or wedged.
 
-WHAT THE SIM ADAPTER DOES NOT MATCH: THE CYCLE RATE.  The interface a
-controller calls is the metal's, method for method; its timing is not.  The
-twin's physics (about 0.4-0.5 s of CPU per simulated second, measured headless)
-runs in this process, on the interpreter lock, largely on ``Backend``'s own
-cycle thread inside ``SimCanLink.send_batch``, where it competes with the Tk
-loop, the plot and the twin mocap producer.  Measured 2026-09-10 in this window
-with one board enabled at 12 psi: 87 Hz achieved and 59 % of that board's
-replies missed, against 148.6 Hz and essentially none missed on the real bus.
-Shortening the interpreter's switch interval to 0.5 ms cut the misses to 1 %
-and the rate to 62 Hz, and it would change thread scheduling for the real bus
-too, so it is not applied.  A controller that watches ``stats`` or
-``missing_nodes`` can tell the two apart until the physics leaves this
-process's lock.
+THE SIM ADAPTER'S TIMING IS THE METAL'S, BECAUSE ITS PHYSICS IS NOT IN THIS
+PROCESS.  The twin's plant costs about 0.5 s of CPU per simulated second -- 3.3 ms
+of every 6.67 ms period.  Stepped in this process it sat on the interpreter lock
+the Tk loop, the 24-board plot and the twin mocap producer need, and a
+controller watching ``stats``, ``missing_nodes`` or ``consecutive_misses`` could
+tell the twin from the arm.  The adapter therefore builds
+``SimMaster(physics="process")`` (:data:`SIM_PHYSICS`): the ``SimArm`` runs in a
+spawned child (``digital_twin/sim_process.py``) and this process keeps only a
+link's host side.  Measured in this window by ``hw_tests/gui_sim_test.py``, one
+board enabled at 12 psi, the mechanical fit's workers suspended for the
+measurement:
+
+==========================================  =========  =====================
+placement                                   achieved   replies heard
+==========================================  =========  =====================
+metal, same window (2026-08-20, 24 boards)  145.43 Hz  98.81 %
+inline, before 2026-09-10 (1 board)         97.6 Hz    about 52 %
+inline, same-thread reply delivery (24)     64.7 Hz    100.00 %
+**process (24 boards)**                     143.6 Hz   99.67 %
+==========================================  =========  =====================
+
+The inline rows are the two faces of one cost.  Either the replies wait for a
+thread the physics has starved, or, once the thread holding them delivers them,
+the cycle waits for the physics.  ``gui_sim_test`` now fails when the rate or the
+replies heard sit more than 5 % or 2 points from the metal's window, and the
+inline placement fails it.  Shortening the interpreter's switch interval to
+0.5 ms is still not applied, because it would change thread scheduling for the
+real bus too.
 
 NO SIM-ONLY GUARD.  The operator's 30 psi envelope (``digital_twin/CONTRACT.md``
 section 8: each line <= 30 psi, each antagonistic pair's sum <= 30 psi) is
@@ -167,6 +182,12 @@ MOCAP_SOURCES = ("off", "sim", "live", "twin")
 #: overwritten before it is drawn.
 VIZ_PUBLISH_HZ = 60.0
 
+#: Where the SIM adapter's plant runs: ``"process"``, a spawned child with its
+#: own interpreter lock (``digital_twin.sim_process``).  A module constant so
+#: ``hw_tests/gui_sim_test.py --physics inline`` can measure the placement it
+#: replaced; nothing in this window changes it.
+SIM_PHYSICS = "process"
+
 
 def make_backend(port: str, bitrate: int, log=None):
     """The one construction seam: a SIM twin for :data:`SIM_PORT`, the bus otherwise.
@@ -178,14 +199,14 @@ def make_backend(port: str, bitrate: int, log=None):
     ``UNFITTED`` line per missing part; a malformed fit raises, and the inherited
     connect handler prints it as an ``[ERROR]``.
 
+    ``physics=SIM_PHYSICS`` (``"process"``) puts the plant in a spawned child,
+    so ``open()`` also starts that child and waits for it to build the arm
+    (about 2-3 s); the module docstring has the timing this buys.
     ``batched_actuator=True`` is a speed choice, not a physics choice:
     ``test_sim_core.test_batched_and_scalar_flow_paths_agree`` pins the two flow
     paths together, and over 2 s of the fitted twin they agreed to 3.6e-15 deg
-    and 1.5e-11 Pa.  It is set here because the twin's physics runs on this
-    process's interpreter lock, on the cycle thread.  Measured 2026-09-10 in
-    this window, one board at 12 psi: 68 Hz achieved with 74 % of that board's
-    replies missed on the scalar path, 87 Hz with 59 % missed batched.  See the
-    module docstring for what that leaves unmatched.
+    and 1.5e-11 Pa.  It keeps the child's plant well inside real time on a
+    loaded machine.
     """
     if str(port) == SIM_PORT:
         from digital_twin import twin_params as TP
@@ -193,7 +214,7 @@ def make_backend(port: str, bitrate: int, log=None):
 
         kwargs = TP.load_twin_kwargs(log=log if log is not None else print)
         return SimMaster(SIM_PORT, bitrate, log=log, batched_actuator=True,
-                         **kwargs)
+                         physics=SIM_PHYSICS, **kwargs)
     return REAL_BACKEND(port, bitrate, log=log)
 
 
