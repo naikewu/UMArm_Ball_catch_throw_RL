@@ -14,6 +14,23 @@ inventing:
   age, so the two halves of a sample are known to be the same instant rather
   than assumed to be.
 
+Two mocap records, deliberately.  The per-cycle block holds the **newest frame
+that had arrived by the sync edge**, with its age — that is what a controller
+running on this bus would actually have seen, and a twin that a controller
+cannot discriminate from the real arm has to reproduce exactly that staleness.
+It is not, however, what a *fit* should be given: Motive currently streams at
+120 Hz against a 150 Hz cycle, so four cycles in five carry a fresh frame and
+the fifth repeats one, and a `q` series built from those repeats differentiates
+into a staircase that has nothing to do with the arm.
+
+So the raw stream is recorded too, in `mocap_stream.jsonl`, at whatever rate it
+arrives, with its own timestamps.  `collection/resample.py` puts it onto the
+sync edges afterwards.  Recording the stream rather than a resampled `q` is
+what makes the recording survive a change of mocap rate — the operator intends
+to raise Motive past 150 Hz, at which point the same file is *down*sampled by
+the same reader, and a recording that had stored only the ZOH view could not be
+re-resampled at all.
+
 Threading.  The whole point of :meth:`Recorder.on_cycle` is that it runs on the
 CAN cycle thread, inside a 6.67 ms budget, and therefore does nothing but read
 two already-held references and append one tuple to a deque.  All the
@@ -102,12 +119,21 @@ class Recorder:
 
         self._meta = dict(metadata or {})
         self._last_mocap_seq = -1
+        self._stream_fh = None
+        self._stream_rows = 0
+        self._stream_upto = None
+        self._stream_frames = set()
+        self._last_stream_drain = 0.0
 
     # -- lifecycle ---------------------------------------------------------- #
 
     def start(self) -> None:
         self.t0_perf = time.perf_counter()
+        self.t0_mono = time.monotonic()
         self.t0_wall = time.time()
+        if self.mocap is not None:
+            self._stream_fh = open(os.path.join(self.dir, "mocap_stream.jsonl"),
+                                   "w", encoding="utf-8", buffering=1 << 20)
         self._write_metadata()
         self._stop.clear()
         self._writer = threading.Thread(target=self._write_loop,
@@ -120,6 +146,10 @@ class Recorder:
         self._stop.set()
         self._writer.join(timeout=60.0)
         self._writer = None
+        self._drain_mocap_stream(final=True)
+        if self._stream_fh is not None:
+            self._stream_fh.close()
+            self._stream_fh = None
         self._close_chunk("stop")
         self._write_manifest(active=False)
 
@@ -185,6 +215,14 @@ class Recorder:
                 return
             else:
                 time.sleep(0.01)
+            # The receiver's ring is finite -- 8000 samples is 66 s at 120 Hz
+            # and 53 s at 150 -- so the stream has to be drained faster than it
+            # wraps.  Every 5 s leaves an order of magnitude of margin at any
+            # rate the cameras are likely to run at.
+            now = time.monotonic()
+            if now - self._last_stream_drain > 5.0:
+                self._last_stream_drain = now
+                self._drain_mocap_stream()
 
     def _emit(self, row) -> None:
         (t_sync, t_wall, counts, flags, lat, tgt, ena, n_replied, mc,
@@ -239,6 +277,44 @@ class Recorder:
         if self._chunk_rows >= self.chunk_cycles:
             self._close_chunk("checkpoint")
             self._write_manifest(active=True)
+
+    def _drain_mocap_stream(self, *, final: bool = False) -> None:
+        """Copy new mocap samples out of the receiver's ring into the session.
+
+        Deduplicated on Motive's own frame number rather than on the receive
+        timestamp, because consecutive drains overlap by design: the window is
+        asked for from the last sample already written, and asking from just
+        *after* it would drop any sample that shared its timestamp.
+        """
+        if self._stream_fh is None or self.mocap is None:
+            return
+        try:
+            win = self.mocap.snapshot_window(self._stream_upto, None)
+        except Exception:
+            return
+        if len(win) == 0:
+            return
+        for i in range(len(win)):
+            fno = int(win.frame_no[i])
+            if fno in self._stream_frames:
+                continue
+            self._stream_frames.add(fno)
+            self._stream_fh.write(json.dumps({
+                "t_mono_s": round(float(win.t[i]) - self.t0_mono, 6),
+                "frame": fno,
+                "q": [round(float(v), 7) for v in win.q[i]],
+                "u": [round(float(v), 6) for v in win.u[i].ravel()],
+            }, separators=(",", ":")))
+            self._stream_fh.write("\n")
+            self._stream_rows += 1
+        self._stream_upto = float(win.t[-1])
+        # The dedup set would otherwise grow without bound over a session; only
+        # frames near the boundary can repeat, so the tail is all that matters.
+        if len(self._stream_frames) > 20000:
+            keep = set(int(v) for v in win.frame_no[-2000:])
+            self._stream_frames = keep
+        if final:
+            self._stream_fh.flush()
 
     # -- chunk files -------------------------------------------------------- #
 
@@ -305,6 +381,20 @@ class Recorder:
                 "perf_minus_monotonic_s below is their offset, measured once "
                 "at session start."),
             "perf_minus_monotonic_s": time.perf_counter() - time.monotonic(),
+            "t0_perf_s": self.t0_perf,
+            "t0_monotonic_s": self.t0_mono,
+            "mocap_note": (
+                "Two records. The per-cycle 'mocap' block is the newest frame "
+                "that had ARRIVED by that sync edge, with its age -- the view a "
+                "real-time controller would have had, repeats and all. "
+                "mocap_stream.jsonl is the raw stream at its own rate, stamped "
+                "on the same clock (t_mono_s is seconds since t0_monotonic_s, "
+                "and can_sync_time_s is seconds since t0_perf_s; both clocks "
+                "are QueryPerformanceCounter on this host, so the two series "
+                "share a timebase to the resolution recorded above). Use "
+                "collection.resample to put the stream onto the sync edges; do "
+                "not fit to the per-cycle block, whose repeats differentiate "
+                "into a staircase."),
         }
         meta.update(self._meta)
         with open(os.path.join(self.dir, "metadata.json"), "w",
@@ -318,6 +408,7 @@ class Recorder:
             "active": bool(active),
             "cycles_observed": self.cycles,
             "rows_dropped": self.dropped,
+            "mocap_stream_rows": self._stream_rows,
             "chunks": self._chunks,
         }
         with open(os.path.join(self.dir, "manifest.json"), "w",
