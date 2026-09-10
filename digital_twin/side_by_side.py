@@ -71,8 +71,8 @@ OUT_FPS = 15.0
 #: pose fitted to an unknown focal length would be precise about the wrong
 #: thing.  This is why the quantitative claim rests on the middle-versus-right
 #: comparison, which shares this camera exactly, rather than on left-versus-right.
-DEFAULT_CAM = {"azimuth": 90.0, "elevation": -8.0, "distance": 2.1,
-               "lookat": (0.0, 0.0, 0.72)}
+DEFAULT_CAM = {"azimuth": 90.0, "elevation": -6.0, "distance": 1.45,
+               "lookat": (0.0, 0.0, 0.80)}
 
 #: The FourCC.  This bench has no H.264 encoder (see UMArm_CAMERA.camera).
 FOURCC = "mp4v"
@@ -334,11 +334,16 @@ def compose(out_path: str, *, t, q_real, q_sim, clip=None, clip_meta=None,
 
             err = np.degrees(np.abs(q_real[k] - q_sim[k]))
             _label(cv2, canvas,
-                   f"t {tt - t0:6.2f} s    mean |q err| {err.mean():5.2f} deg"
-                   f"    worst {err.max():5.2f} deg",
-                   (12, PANEL_H - 14), scale=0.52)
-            if title:
-                _label(cv2, canvas, title, (12, PANEL_H - 38), scale=0.5)
+                   f"t {tt - t0:6.2f} s   mean |q err| {err.mean():5.2f} deg"
+                   f"   worst {err.max():5.2f} deg",
+                   (12, PANEL_H - 14), scale=0.5)
+            # The title is wrapped rather than trusted to fit: at 0.42 scale a
+            # glyph is about 9 px, so a 60-character line needs 540 px and the
+            # panels are 460 -- an unwrapped caption runs into its neighbour and
+            # both become unreadable.
+            for i_line, line in enumerate(_wrap(title, 62)):
+                _label(cv2, canvas, line,
+                       (12, 24 + 18 * i_line + 34), scale=0.42)
             writer.write(canvas)
             written += 1
     finally:
@@ -350,6 +355,22 @@ def compose(out_path: str, *, t, q_real, q_sim, clip=None, clip_meta=None,
             "size": [W, H], "seconds": written / fps,
             "bytes": os.path.getsize(out_path) if os.path.exists(out_path) else 0,
             "metrics": metrics or {}}
+
+
+def _wrap(text: str, width: int):
+    """Greedy word wrap; empty text yields no lines rather than one blank."""
+    words = (text or "").split()
+    lines, cur = [], ""
+    for w in words:
+        cand = (cur + " " + w).strip()
+        if len(cand) > width and cur:
+            lines.append(cur)
+            cur = w
+        else:
+            cur = cand
+    if cur:
+        lines.append(cur)
+    return lines
 
 
 def _fit(img, w, h):

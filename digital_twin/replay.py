@@ -230,6 +230,55 @@ def _chunk_paths(session_dir: str) -> "list[str]":
     return sorted(glob.glob(os.path.join(session_dir, "samples_chunk_*.jsonl")))
 
 
+def recording_from_session(path: str, *, rest_offset_psi=KNOWN_REST_OFFSET_PSI,
+                           episode_field: str = "segment_index",
+                           kinds=None, max_rows: "int | None" = None) -> Recording:
+    """Read a session through :func:`digital_twin.dataset.load_session`.
+
+    One path from file to arrays.  This module and ``dataset`` were written in
+    parallel against the same schema document and each grew its own reader, and
+    two subtly different readers is exactly how the training inputs and the
+    evaluation inputs drift apart -- the fit would then be scored against a
+    slightly different recording than it was fitted on, and nothing would say so.
+
+    Delegating also means this side inherits the two corrections that only
+    showed up when a reader met a real recording: missed replies carried forward
+    instead of being fitted as zero counts, and ``q`` taken from the resampled
+    mocap stream instead of the per-cycle held value.
+
+    ``kinds`` selects excitation families by ``segment_kind`` -- the deliverable
+    scores the held-out ``validation`` sequence and nothing else.
+    """
+    from digital_twin import dataset as _ds
+
+    rec = _ds.load_session(path, episode_field=episode_field,
+                           rest_offset_psi=rest_offset_psi)
+    keep = np.ones(rec.n_cycles, dtype=bool)
+    if kinds is not None:
+        want = set(kinds)
+        keep &= np.array([str(v) in want for v in rec.phase], dtype=bool)
+    if max_rows is not None:
+        idx = np.nonzero(keep)[0][:int(max_rows)]
+        keep = np.zeros_like(keep)
+        keep[idx] = True
+    if not keep.any():
+        raise ValueError(f"no cycles left in {path!r} after selecting "
+                         f"kinds={kinds!r}")
+
+    t = rec.can_sync_time_s[keep]
+    meta = dict(rec.meta)
+    meta["selected_kinds"] = list(kinds) if kinds else None
+    meta["selected_cycles"] = int(keep.sum())
+    return Recording(
+        t_sync_s=t, t_rel_s=t - t[0], cycle=rec.cycle[keep],
+        ids=np.asarray(rec.ids), board_type=np.asarray(rec.board_type),
+        is_tle=np.asarray(rec.board_type) == VARIANT_TLE_DVP,
+        q_rad=rec.q[keep], qdot_rad_s=rec.qdot[keep],
+        p_adc=rec.pressure_adc[keep], target_adc=rec.target_adc[keep],
+        p_pa=rec.pressure_pa[keep], target_pa=rec.target_pa[keep],
+        q_valid=rec.q_valid[keep], meta=meta, path=os.path.abspath(path))
+
+
 def load_recording(path: str, *, ids=DEFAULT_IDS,
                    rest_offset_psi=KNOWN_REST_OFFSET_PSI,
                    require_increasing_sync: bool = True,
