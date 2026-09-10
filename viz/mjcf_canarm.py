@@ -1,40 +1,68 @@
 """The CAN arm's **display** model, and the room scene it sits in.
 
-WHAT THIS IS NOT.  It is not a twin.  ``C:\\RUNZE_SRC\\RS485_VEMA\\UMArm_SIM\\
-mjcf_generator.py`` — the file this one is modelled on — emits 24 muscle tendons,
-24 motors, fitted masses, a pressure-scheduled damping surface and three
-carefully-fitted MuJoCo tunables, because a controller has to be unable to tell
-its output from the metal's.  Everything in that list is absent here, on purpose:
+WHAT THIS IS NOT.  It is not a twin.  ``digital_twin/mjcf_generator.py`` emits
+24 muscle tendons, 24 motors, per-segment masses and the fitted dissipation
+tunables, because a controller has to be unable to tell its output from the
+metal's.  Everything in that list is absent here, on purpose:
 
 * **no actuators and no tendons**, so nothing can be commanded through this
   model by accident;
 * **no contacts** — every geom is ``contype="0" conaffinity="0"``, including the
   floor — so two arms drawn overlapping is a drawing, not a collision;
-* **no fitted dynamics**, because there is nothing to fit yet.  The masses,
-  damping and armature exist only so MuJoCo will compile the model and
-  ``mj_forward`` will place it.
+* **no fitted dynamics**.  The masses, damping and armature exist only so MuJoCo
+  will compile the model and ``mj_forward`` will place it.
 
 The consequence worth stating plainly: this model answers "where are the links,
-given ``q``" and nothing else.  When the digital twin exists (see
-``digital_twin/``), it gets its own generator, and this one keeps being the
-cheap, dependency-light thing a viewer compiles in a spawned process.
+given ``q``" and nothing else, and it stays the cheap thing a viewer compiles in
+a spawned process.
+
+THE CAN ARM IS DRAWN AS THE PROMAX IT IS, FROM THE TWIN'S OWN DRAWING.  Since
+2026-09-10 each CAN-arm segment is the structure of Fig. 1C of the arm's paper
+(``2606.29731v1.pdf``): a centre rod carrying two bearing hubs, two upright and
+two upside-down Y supports 45 deg apart, eight McKibben sleeves hanging from the
+Y tips, and flat u-joint disks on the bracket side of each joint.  The parts are
+not re-authored here: :func:`build_arm_xml` asks
+``digital_twin.mjcf_generator.promax_segment_elements`` for them, the same call
+the physics model makes, so the room viewer and the twin cannot drift apart
+about where a sleeve or a bearing is.  What the display leaves out is the part
+that cannot be drawn with fixed geoms: a tendon's bearing-to-bracket span
+crosses a joint, so only the sleeve-to-bearing stub is drawn.  If that import
+fails the arm falls back to the old rod-and-disk drawing and
+:data:`LAST_ARM_STYLE_NOTE` says why — a picture of the right joints is still
+worth more than an exception.  The RS485 arm keeps the rod-and-disk drawing,
+because nothing here describes its hardware.
+
+THE CAN ARM'S PROXIMAL HINGES ARE DECLARED Y-THEN-X.  MuJoCo composes same-body
+hinges in declaration order, so the old x-then-y declaration drew fkine's
+legacy ``order="xy"``.  The CAN arm's measured assembly is ``order="yx"``
+(``UMArm_MOCAP.canarm_frames.PROXIMAL_ORDER``, 2026-08-21), and
+``CanArmMarkerMocap`` — the receiver the room viewer builds for a live session —
+publishes ``q`` under that order.  So until this change the viewer drew every
+live pose of this arm with the wrong composition: checked with ``fkine`` on
+2026-09-10, the two orders put the drawn u-joint centres up to 161.4 mm apart
+(RMS 20.2 mm over all six centres) across 2000 random poses inside +-30 deg,
+and up to 19.9 mm apart on the measured poses of the 90 s held-out validation
+recording (95th percentile of each frame's worst centre 11.5 mm, RMS 3.0 mm).
+That recording spans 19-28 deg per joint, so the second set is the error an
+operator actually watched, and the first is what a larger pose would show.  The mapping from
+``q`` to ``qpos`` is by joint NAME (``multi_arm_viewer._address_book``), and
+:func:`joint_names` lists names in ``q`` order, so the reordered declaration
+needed no index table anywhere.  The RS485 arm keeps ``"xy"``: nobody has
+measured its assembly the same way.
 
 CHAIN LENGTHS ARE ARGUMENTS, NOT MODULE CONSTANTS.  The RS485 generator pins
 ``FITTED_CHAIN_M`` as a module-level tuple and exposes only base pose and three
 damping scalars, so a different-sized arm cannot be built without editing the
-file.  That is the single structural change made here: :func:`build_arm_xml`
-takes ``chain_m``, which is why one function draws both arms — the CAN arm from
-:data:`DEFAULT_CANARM_CHAIN_M` and the RS485 arm from
-:data:`DEFAULT_RS485_CHAIN_M`, same topology, different five numbers.
+file.  :func:`build_arm_xml` takes ``chain_m`` instead, which is why one
+function draws both arms — the CAN arm from :data:`DEFAULT_CANARM_CHAIN_M` and
+the RS485 arm from :data:`DEFAULT_RS485_CHAIN_M`.
 
 THE CAN ARM'S FIVE NUMBERS ARE MEASURED, since 2026-08-21.  They come from
-``UMArm_KINEMATICS.canarm_params``, whose ``MEASURED`` flag is now ``True``:
-the five consecutive u-joint centre distances read off the marker-inferred
-plate frames over 68 arm poses, standard deviation 0.03-0.47 mm.  They used to
-be the RS485 arm's chain wearing this arm's name, which drew the tip 182 mm
-from where the cameras see it.  This module still refuses to invent a length —
-if the flag ever goes back to ``False`` the picture is a shape again, and
-:func:`_default_chains` says so rather than scaling a guess.
+``UMArm_KINEMATICS.canarm_params``, whose ``MEASURED`` flag is ``True``: the
+five consecutive u-joint centre distances read off the marker-inferred plate
+frames over 68 arm poses, standard deviation 0.03-0.47 mm.  The ProMax parts
+take their CAD dimensions (hub heights, ring and bearing radii) from the same
+table, with the actuator length following the chain.
 
 EVERY ROBOT HANGS OFF A MOCAP BODY.  ``canarm_mount``, ``rs485_mount``,
 ``kinova_mount``.  A mocap body is what MuJoCo provides for "a pose an external
@@ -49,6 +77,10 @@ room falls back to a small triad on a ``kinova_mount`` and records why in
 :data:`LAST_KINOVA_NOTE`.  The CAN arm's XML is byte-identical across all four
 flag combinations, which is the property that makes "drop the Gen3" a safe thing
 to do mid-session.
+
+WHAT THIS DOES NOT SHOW.  The Y tip radius is estimated from Fig. 1C, not
+measured, and the drawing carries the twin's *component* masses, not its fitted
+totals; neither changes a single site position ``q`` produces.
 
 Run:  python -m viz.mjcf_canarm --rs485 --kinova --out room.xml
 """
@@ -69,7 +101,9 @@ except ImportError:                     # pragma: no cover
 __all__ = [
     "DEFAULT_CANARM_CHAIN_M", "DEFAULT_RS485_CHAIN_M",
     "DEFAULT_CANARM_MOUNT", "DEFAULT_RS485_MOUNT", "DEFAULT_KINOVA_MOUNT",
-    "KINOVA_JOINT_NAMES", "LAST_KINOVA_NOTE",
+    "KINOVA_JOINT_NAMES", "LAST_KINOVA_NOTE", "LAST_ARM_STYLE_NOTE",
+    "ARM_STYLES", "PROXIMAL_ORDERS", "CANARM_PROXIMAL_ORDER",
+    "RS485_PROXIMAL_ORDER",
     "joint_names", "plate_site_names", "robot_joint_names",
     "build_arm_xml", "build_room_scene", "write_room_scene",
 ]
@@ -113,11 +147,25 @@ DEFAULT_CANARM_MOUNT = ((0.0, 0.0, 1.25), (0.0, 0.0, 0.0))
 DEFAULT_RS485_MOUNT = ((0.9, 0.0, 1.25), (0.0, 0.0, 0.0))
 DEFAULT_KINOVA_MOUNT = ((0.45, 0.75, 0.35), (0.0, 0.0, 0.0))
 
-#: Plate disc radii, metres: ``(base/proximal, distal)``.  Cosmetic — they size
-#: the drawn discs and nothing else — and taken from the RS485 parameter table's
-#: ``JA1``/``JA2`` columns so the drawing has the proportions of the mechanism.
+#: Plate disc radii, metres: ``(base/proximal, distal)``, for the rod-and-disk
+#: drawing only.  Cosmetic — they size the drawn discs and nothing else.  The
+#: ProMax drawing takes its ring radii from the parameter table instead.
 DEFAULT_PLATE_RADII = (0.055, 0.055)
 BASE_PLATE_RADIUS = 0.105
+
+#: The two drawings :func:`build_arm_xml` knows.
+ARM_STYLES = ("promax", "simple")
+
+#: fkine's two proximal compositions (``UMArm_KINEMATICS.fkine.PROXIMAL_ORDERS``).
+PROXIMAL_ORDERS = ("xy", "yx")
+
+#: The CAN arm's measured proximal composition.  Restated rather than imported
+#: from ``UMArm_MOCAP.canarm_frames`` so a spawned viewer does not pay for the
+#: marker stack's import; ``viz/self_check.py`` asserts the two agree.
+CANARM_PROXIMAL_ORDER = "yx"
+
+#: The RS485 arm's: the legacy default, never re-measured.
+RS485_PROXIMAL_ORDER = "xy"
 
 #: Gen3 joint names, as ``mujoco_menagerie`` ships them and as
 #: ``UMArm_COLLAB.kinova_kinematics.JOINT_NAMES:36`` re-declares them.  Used only
@@ -131,6 +179,10 @@ KINOVA_JOINT_NAMES = tuple(f"joint_{i}" for i in range(1, 8))
 #: for", "UMArm_KINOVA.kinova_scene is not importable yet" and "it is importable
 #: and what it returned would not compile".
 LAST_KINOVA_NOTE = "not attempted"
+
+#: ``{prefix: note}`` — which drawing the last :func:`build_arm_xml` call per arm
+#: actually produced, and why when it is not the one asked for.
+LAST_ARM_STYLE_NOTE: dict = {}
 
 _SQ2 = math.sqrt(2.0) / 2.0
 
@@ -152,12 +204,15 @@ _SEG_COLOURS = {
 # ---------------------------------------------------------------------------
 
 def joint_names(prefix: str) -> tuple:
-    """The twelve hinge names of one arm, in **qpos order**.
+    """The twelve hinge names of one arm, in **q order**.
 
-    Declaration order is the qpos order — MuJoCo composes same-body hinges in
-    the order they are written — and it is ``uj1_x, uj1_y, uj2_x, uj2_y, ...``,
-    which is exactly the pairing ``mocap_to_q`` produces: ``q[2k]`` and
-    ``q[2k+1]`` are joint ``k``'s two angles.
+    ``uj1_x, uj1_y, uj2_x, uj2_y, ...``, which is exactly the pairing
+    ``mocap_to_q`` and ``fkine`` use: ``q[2k]`` and ``q[2k+1]`` are joint
+    ``k``'s two angles.  It is *not* necessarily the qpos order: the CAN arm
+    declares its proximal ``y`` hinge first (``order="yx"``), so its ``uj1_x``
+    lives at the second qpos address.  A consumer that writes ``q[i]`` to the
+    address of ``joint_names(prefix)[i]`` — which is what
+    ``multi_arm_viewer._address_book`` does — is right under either order.
     """
     return tuple(f"{prefix}uj{k}_{axis}"
                  for k in range(1, 7) for axis in ("x", "y"))
@@ -175,13 +230,13 @@ def plate_site_names(prefix: str) -> tuple:
 
 
 def robot_joint_names(model, robot: str) -> tuple:
-    """The joint names *model* actually carries for *robot*, or ``()``.
+    """The joint names *model* actually carries for *robot*, in q order, or ``()``.
 
     Name lookup rather than index arithmetic, and it is not fussiness: which
     qpos address a robot's block starts at depends on which optional robots were
-    included, so a viewer that assumed "the Kinova's seven follow the arm's
-    twelve" would silently drive the RS485 arm with Gen3 angles in a room with
-    no RS485 arm.
+    included, and — for the CAN arm — the order of the two proximal hinges within
+    a joint is not the order of ``q``.  A viewer that assumed either would
+    silently draw the wrong pose.
     """
     import mujoco
 
@@ -216,6 +271,41 @@ def _seg_geometry(chain_m) -> list:
     return [(c[0], 0.0), (c[2], c[1]), (c[4], c[3])]
 
 
+def _promax_parts(chain_m, prefix: str, cols, rod_radius: float,
+                  base_plate_radius: float):
+    """``((base_elements, [segment_parts x3]), note)``, or ``(None, why)``.
+
+    Lazy, and forgiving in the same way the Kinova merge is: the parts come from
+    ``digital_twin.mjcf_generator``, and a checkout in which that package cannot
+    be imported must still get a room with an arm in it.
+    """
+    try:
+        from digital_twin import mjcf_generator as MG
+        params = MG.params_from_chain(chain_m)
+        geos = MG.segment_geometry(params)
+        seats = MG.actuator_seats()
+        masses = MG.segment_masses(geos)
+        base = MG.promax_base_elements(
+            prefix=prefix, ring_radius=geos[0].ja1,
+            base_plate_radius=base_plate_radius, base_plate_mass=0.5)
+        segs = [MG.promax_segment_elements(
+                    geo, [s for s in seats if s.segment == n], n=n,
+                    prefix=prefix, masses=masses[n - 1], rod_radius=rod_radius,
+                    rod_rgba=cols[(n - 1) % len(cols)],
+                    routing_sites=False, tendon_stubs=True)
+                for n, geo in enumerate(geos, start=1)]
+        return (base, segs), "promax (digital_twin.mjcf_generator)"
+    except Exception as exc:
+        return None, (f"simple: the ProMax drawing is unavailable "
+                      f"({type(exc).__name__}: {exc})")
+
+
+def _proximal_hinges(prefix: str, n: int, order: str) -> tuple:
+    x = f'<joint name="{prefix}uj{2 * n - 1}_x" axis="1 0 0"/>'
+    y = f'<joint name="{prefix}uj{2 * n - 1}_y" axis="0 1 0"/>'
+    return (y, x) if order == "yx" else (x, y)
+
+
 def build_arm_xml(*, prefix: str = "canarm_",
                   mount_body: str = "canarm_mount",
                   chain_m=None,
@@ -224,22 +314,31 @@ def build_arm_xml(*, prefix: str = "canarm_",
                   base_plate_radius: float = BASE_PLATE_RADIUS,
                   rod_radius: float = 0.009,
                   colours=None,
+                  style: str = "promax",
+                  proximal_order: str = CANARM_PROXIMAL_ORDER,
                   indent: str = "    ") -> str:
     """One arm's ``<worldbody>`` subtree: a mocap mount with a chain under it.
 
-    Topology, identical to the RS485 mk5 and to
-    ``UMArm_KINEMATICS.fkine``'s product-of-exponentials chain: three segments,
-    each a **link** body carrying the proximal universal joint as two stacked
-    hinges about x and y, and a **distal plate** body carrying the second
+    Topology, identical to ``UMArm_KINEMATICS.fkine``'s product-of-exponentials
+    chain: three segments, each a **link** body carrying the proximal universal
+    joint as two stacked hinges, and a **distal plate** body carrying the second
     universal joint as two hinges about the 45-degree bracket axes
     ``(+-1, 1, 0)/sqrt(2)``.  Segments 2 and 3 hang a rigid ``JD`` spacer below
     the previous distal plate.  Twelve hinges, six universal joints, six plates.
 
-    Every geom is non-colliding and the whole subtree is drawing.  What carries
-    meaning is the **sites**: ``{prefix}plate0..5`` are the six u-joint centres
-    the cameras report, so the measured overlay and the rendered model are
-    comparable point for point.
+    *proximal_order* is the declaration order of each proximal pair and must be
+    the arm's own: ``"yx"`` for the CAN arm (measured), ``"xy"`` for the RS485
+    arm.  *style* ``"promax"`` draws Fig. 1C's segment through the twin's
+    drawing helper; ``"simple"`` draws a rod and two disks.  Neither moves a
+    site: ``{prefix}plate0..5`` are the six u-joint centres the cameras report,
+    so the measured overlay and the rendered model are comparable point for
+    point under either drawing.
     """
+    if style not in ARM_STYLES:
+        raise ValueError(f"style must be one of {ARM_STYLES}; got {style!r}")
+    if proximal_order not in PROXIMAL_ORDERS:
+        raise ValueError(f"proximal_order must be one of {PROXIMAL_ORDERS}; "
+                         f"got {proximal_order!r}")
     chain_m = DEFAULT_CANARM_CHAIN_M if chain_m is None else chain_m
     segs = _seg_geometry(chain_m)
     bx, by, bz = (float(v) for v in
@@ -248,6 +347,14 @@ def build_arm_xml(*, prefix: str = "canarm_",
     cols = tuple(colours or _SEG_COLOURS.get(prefix.rstrip("_"),
                                              _SEG_COLOURS["canarm"]))
     ja1, ja2 = (float(v) for v in plate_radii)
+
+    promax = None
+    if style == "promax":
+        promax, note = _promax_parts(chain_m, prefix, cols, rod_radius,
+                                     base_plate_radius)
+    else:
+        note = "simple (asked for)"
+    LAST_ARM_STYLE_NOTE[prefix] = note
 
     lines: list[str] = []
     depth = 0
@@ -260,9 +367,13 @@ def build_arm_xml(*, prefix: str = "canarm_",
     depth += 1
     emit(f'<body name="{prefix}base" pos="0 0 0" childclass="umarm_display">')
     depth += 1
-    emit(f'<geom name="{prefix}base_geom" type="cylinder" '
-         f'fromto="0 0 0.008 0 0 -0.008" size="{base_plate_radius:.10g}" '
-         f'rgba="0.30 0.35 0.45 1" mass="0.5"/>')
+    if promax is not None:
+        for element in promax[0]:
+            emit(element)
+    else:
+        emit(f'<geom name="{prefix}base_geom" type="cylinder" '
+             f'fromto="0 0 0.008 0 0 -0.008" size="{base_plate_radius:.10g}" '
+             f'rgba="0.30 0.35 0.45 1" mass="0.5"/>')
     # Plate 0 is the base plate, and it sits on the STATIC body rather than on
     # segment 1's link: it is the frame the arm's kinematics de-rotates by, and
     # it does not turn with the first universal joint.
@@ -270,7 +381,12 @@ def build_arm_xml(*, prefix: str = "canarm_",
 
     for n, (span, jd) in enumerate(segs, start=1):
         col = cols[(n - 1) % len(cols)]
-        if jd:
+        parts = None if promax is None else promax[1][n - 1]
+        if parts is not None:
+            # Spacer, proximal u-joint disk and its brackets, on the PARENT.
+            for element in parts["parent"]:
+                emit(element)
+        elif jd:
             # The rigid JD spacer ahead of segments 2 and 3, and the proximal
             # plate at its foot.  Both belong to the PARENT body: the spacer is
             # rigid to the plate above it, so plate 2 and plate 4 turn with the
@@ -281,18 +397,21 @@ def build_arm_xml(*, prefix: str = "canarm_",
             emit(f'<geom name="{prefix}seg{n}_plate1_geom" type="cylinder" '
                  f'fromto="0 0 {-jd - 0.004:.10g} 0 0 {-jd + 0.004:.10g}" '
                  f'size="{ja1:.10g}" rgba="0.55 0.58 0.65 1" mass="0.0001"/>')
+        if jd:
             emit(f'<site name="{prefix}plate{2 * (n - 1)}" pos="0 0 {-jd:.10g}"/>')
-        # Link body: the proximal universal joint, as two stacked hinges about
-        # x then y.  Hinge order IS the twist order, which is what makes this
-        # model's qpos agree with fkine's exp(xi1 t1) exp(xi2 t2) and with the
-        # (theta1, theta2) pair mocap_to_q reads, without a remapping table.
+        # Link body: the proximal universal joint, as two stacked hinges in the
+        # arm's own composition order.  Hinge order IS the twist order.
         emit(f'<body name="{prefix}seg{n}_link" pos="0 0 {-jd:.10g}">')
         depth += 1
-        emit(f'<joint name="{prefix}uj{2 * n - 1}_x" axis="1 0 0"/>')
-        emit(f'<joint name="{prefix}uj{2 * n - 1}_y" axis="0 1 0"/>')
-        emit(f'<geom name="{prefix}seg{n}_rod" type="cylinder" '
-             f'fromto="0 0 0 0 0 {-span:.10g}" size="{rod_radius:.10g}" '
-             f'rgba="{col}" mass="0.02"/>')
+        for hinge in _proximal_hinges(prefix, n, proximal_order):
+            emit(hinge)
+        if parts is not None:
+            for element in parts["link"]:
+                emit(element)
+        else:
+            emit(f'<geom name="{prefix}seg{n}_rod" type="cylinder" '
+                 f'fromto="0 0 0 0 0 {-span:.10g}" size="{rod_radius:.10g}" '
+                 f'rgba="{col}" mass="0.02"/>')
         # Distal plate body: the second universal joint, on the 45-degree
         # bracket axes.
         emit(f'<body name="{prefix}seg{n}_plate2" pos="0 0 {-span:.10g}">')
@@ -301,9 +420,14 @@ def build_arm_xml(*, prefix: str = "canarm_",
              f'axis="{_SQ2:.10g} {_SQ2:.10g} 0"/>')
         emit(f'<joint name="{prefix}uj{2 * n}_y" '
              f'axis="{-_SQ2:.10g} {_SQ2:.10g} 0"/>')
-        emit(f'<geom name="{prefix}seg{n}_plate2_geom" type="cylinder" '
-             f'fromto="0 0 -0.004 0 0 0.004" size="{ja2:.10g}" '
-             f'rgba="0.55 0.58 0.65 1" mass="{0.12 if n == 3 else 0.0001}"/>')
+        if parts is not None:
+            for element in parts["distal"]:
+                emit(element)
+        else:
+            emit(f'<geom name="{prefix}seg{n}_plate2_geom" type="cylinder" '
+                 f'fromto="0 0 -0.004 0 0 0.004" size="{ja2:.10g}" '
+                 f'rgba="0.55 0.58 0.65 1" '
+                 f'mass="{0.12 if n == 3 else 0.0001}"/>')
         emit(f'<site name="{prefix}plate{2 * n - 1}" pos="0 0 0"/>')
 
     # A short stub past the last plate, so the tip is visible and has a name.
@@ -524,6 +648,9 @@ def build_room_scene(include_rs485: bool = False, include_kinova: bool = False,
     way; a viewer addressing it by index is unaffected too, which is one fewer
     way for a dropped robot to move an arm.
 
+    The CAN arm is the ProMax drawing under its measured ``"yx"`` composition;
+    the RS485 arm is the rod-and-disk drawing under the legacy ``"xy"``.
+
     *validate* compiles the result once with ``mujoco`` before returning it, and
     on failure rebuilds with the Gen3 replaced by its placeholder.  It is on by
     default for the reason the whole composer exists: a scene module from
@@ -536,12 +663,16 @@ def build_room_scene(include_rs485: bool = False, include_kinova: bool = False,
     bodies = [build_arm_xml(prefix="canarm_", mount_body="canarm_mount",
                             chain_m=canarm_chain_m or DEFAULT_CANARM_CHAIN_M,
                             base_pos=canarm_mount[0],
-                            base_rpy_deg=canarm_mount[1])]
+                            base_rpy_deg=canarm_mount[1],
+                            style="promax",
+                            proximal_order=CANARM_PROXIMAL_ORDER)]
     if include_rs485:
         bodies.append(build_arm_xml(prefix="rs485_", mount_body="rs485_mount",
                                     chain_m=rs485_chain_m or DEFAULT_RS485_CHAIN_M,
                                     base_pos=rs485_mount[0],
-                                    base_rpy_deg=rs485_mount[1]))
+                                    base_rpy_deg=rs485_mount[1],
+                                    style="simple",
+                                    proximal_order=RS485_PROXIMAL_ORDER))
     arms_xml = _compose(bodies, include_rs485, include_kinova)
 
     if not include_kinova:
@@ -566,7 +697,8 @@ def build_room_scene(include_rs485: bool = False, include_kinova: bool = False,
 def _compose(bodies, include_rs485: bool, include_kinova: bool) -> str:
     return _ROOM_TEMPLATE.format(
         genparams=(f"include_rs485={bool(include_rs485)}, "
-                   f"include_kinova={bool(include_kinova)}"),
+                   f"include_kinova={bool(include_kinova)}, "
+                   f"canarm_proximal_order={CANARM_PROXIMAL_ORDER}"),
         armature=f"{JOINT_ARMATURE:.10g}",
         joint_range=f"{JOINT_RANGE_RAD:.17g}",
         bodies="\n".join(bodies))

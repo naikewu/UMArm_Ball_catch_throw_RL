@@ -68,19 +68,62 @@ print("(a2) the display model against UMArm_KINEMATICS.fkine")
 import importlib
 K = importlib.import_module("UMArm_KINEMATICS.fkine")
 from UMArm_KINEMATICS import canarm_params as cp
+from UMArm_MOCAP import canarm_frames as CF
 m = mujoco.MjModel.from_xml_string(MJ.build_room_scene(canarm_mount=((0, 0, 0), (0, 0, 0))))
 d = mujoco.MjData(m)
 sids = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, n) for n in MJ.plate_site_names("canarm_")]
+# q is written by joint NAME, which is what the viewer does: the CAN arm declares
+# its proximal y hinge first, so q order and qpos order differ.
+qadr_c = [int(m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)])
+          for n in MJ.joint_names("canarm_")]
+check("the display's CAN-arm order is the measured one",
+      MJ.CANARM_PROXIMAL_ORDER == CF.PROXIMAL_ORDER == "yx",
+      "display %s, canarm_frames %s" % (MJ.CANARM_PROXIMAL_ORDER, CF.PROXIMAL_ORDER))
+check("  and qpos is therefore not q for the CAN arm", qadr_c[:2] == [1, 0], "qposadr %s" % qadr_c)
 rng = np.random.default_rng(7)
-worst = 0.0
+worst = wrong = 0.0
 for _ in range(200):
     q = rng.uniform(-0.6, 0.6, 12)
-    d.qpos[:12] = q
+    d.qpos[qadr_c] = q
     mujoco.mj_forward(m, d)
     P = np.array([d.site_xpos[i] for i in sids])
-    worst = max(worst, float(np.abs(P - np.asarray(K.ujoint_centres(q, params=cp.CANARM_PARAMS))).max()))
-check("plate sites reproduce fkine.ujoint_centres over 200 random q", worst < 1e-12,
+    worst = max(worst, float(np.abs(P - np.asarray(
+        K.ujoint_centres(q, params=cp.CANARM_PARAMS, order=MJ.CANARM_PROXIMAL_ORDER))).max()))
+    wrong = max(wrong, float(np.abs(P - np.asarray(
+        K.ujoint_centres(q, params=cp.CANARM_PARAMS, order="xy"))).max()))
+check("plate sites reproduce fkine.ujoint_centres(order='yx') over 200 random q", worst < 1e-12,
       "max |err| = %.3e m" % worst)
+check("  and the check has teeth: order='xy' is off by millimetres", wrong > 1e-3,
+      "max |err| under 'xy' = %.1f mm" % (1e3 * wrong))
+gnames = [mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, i) or "" for i in range(m.ngeom)]
+count = {s: sum(1 for g in gnames if g.startswith("canarm_") and g.endswith("_" + s))
+         for s in ("sleeve", "yarm", "bearing", "bracket", "tendon")}
+check("the CAN arm is drawn as the ProMax: 24 sleeves, Y arms, bearings, brackets, tendon stubs",
+      all(v == 24 for v in count.values()) and m.ntendon == 0 and m.nu == 0,
+      "%s ntendon=%d nu=%d style: %s" % (count, m.ntendon, m.nu, MJ.LAST_ARM_STYLE_NOTE.get("canarm_")))
+link1 = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "canarm_seg1_link")
+check("  every segment-1 sleeve and Y arm rides the link body, not a u-joint plate",
+      all(int(m.geom_bodyid[i]) == link1 for i, g in enumerate(gnames)
+          if g.startswith("canarm_s1_") and (g.endswith("_sleeve") or g.endswith("_yarm"))))
+mr = mujoco.MjModel.from_xml_string(MJ.build_room_scene(
+    include_rs485=True, canarm_mount=((0, 0, 1.0), (0, 0, 0)), rs485_mount=((0, 0, 0), (0, 0, 0))))
+dr = mujoco.MjData(mr)
+qadr_r = [int(mr.jnt_qposadr[mujoco.mj_name2id(mr, mujoco.mjtObj.mjOBJ_JOINT, n)])
+          for n in MJ.joint_names("rs485_")]
+sr = [mujoco.mj_name2id(mr, mujoco.mjtObj.mjOBJ_SITE, n) for n in MJ.plate_site_names("rs485_")]
+worst_r = 0.0
+for _ in range(50):
+    q = rng.uniform(-0.6, 0.6, 12)
+    dr.qpos[qadr_r] = q
+    mujoco.mj_forward(mr, dr)
+    P = np.array([dr.site_xpos[i] for i in sr])
+    worst_r = max(worst_r, float(np.abs(P - np.asarray(K.ujoint_centres(q))).max()))
+rs_names = [mujoco.mj_id2name(mr, mujoco.mjtObj.mjOBJ_GEOM, i) or "" for i in range(mr.ngeom)]
+rs_sleeves = sum(1 for g in rs_names if g.startswith("rs485_")
+                 and (g.endswith("_sleeve") or g.endswith("_yarm") or g.endswith("_bearing")))
+check("the RS485 arm keeps the legacy order 'xy' and its rod-and-disk drawing",
+      worst_r < 1e-12 and rs_sleeves == 0,
+      "max |err| = %.3e m, rs485 ProMax geoms = %d" % (worst_r, rs_sleeves))
 gaps = None
 d.qpos[:12] = 0
 mujoco.mj_forward(m, d)
@@ -127,7 +170,7 @@ try:
     qadr, writer = MAV._address_book(mujoco, mm)
     scn = mujoco.MjvScene(mm, maxgeom=500)
     MAV.render_once(mujoco, np, mm, dd, qadr, writer, feed.read(), scn=scn)
-    got = np.array(dd.qpos[:12])
+    got = np.array([dd.qpos[a] for a in qadr["canarm"]])       # q order, by name
     want = np.asarray(feed.read()["canarm"].q)
     check("q reaches data.qpos through render_once", np.allclose(got, want, atol=0.2),
           "|dq| max %.4f (the stream moves between the two reads)" % float(np.abs(got - want).max()))
@@ -157,7 +200,8 @@ sfeed = MAV.SharedArrayFeed(arr)
 mm = mujoco.MjModel.from_xml_string(MJ.build_room_scene()); dd = mujoco.MjData(mm)
 qadr, writer = MAV._address_book(mujoco, mm)
 MAV.render_once(mujoco, np, mm, dd, qadr, writer, sfeed.read())
-check("shared-array q reaches qpos", np.allclose(np.array(dd.qpos[:12]), np.linspace(0.01, 0.12, 12)))
+check("shared-array q reaches qpos, joint by joint by name",
+      np.allclose(np.array([dd.qpos[a] for a in qadr["canarm"]]), np.linspace(0.01, 0.12, 12)))
 check("shared-array mount reaches mocap_pos", np.allclose(np.asarray(dd.mocap_pos)[0], (0.1, 0.2, 1.3)))
 arr[VZ.GENERATION] = 7.0
 check("generation is readable through the feed", sfeed.generation() == 7.0)
