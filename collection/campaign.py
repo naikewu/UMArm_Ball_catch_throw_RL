@@ -320,6 +320,13 @@ class Campaign:
         and left; waiting longer would not help, and refusing to disable would
         leave the whole arm regulating instead.
         """
+        if self.be._on_cycle is None:          # noqa: SLF001 - see below
+            # Without the observer nothing updates _meas_psi and the wait below
+            # is a loop over a constant.  Refuse rather than report a vent that
+            # was never observed.
+            raise RuntimeError(
+                "_vent_and_disable needs the cycle observer installed; without "
+                "it the pressures it waits on never change")
         self.be.set_targets({b: 0.0 for b in ALL_BASES})
         self.be.set_enabled_all(True)
         deadline = time.perf_counter() + timeout_s
@@ -548,8 +555,13 @@ class Campaign:
             rc = 130
         finally:
             self._stop.set()
-            self.be.set_cycle_observer(None)
+            # The observer stays installed through the vent.  It is what
+            # fills _meas_psi, so uninstalling it first leaves the wait loop
+            # reading an array frozen at the last commanded pose -- a check
+            # that can only ever time out and report the pose it started from,
+            # which is exactly what the 2026-09-10 session reported.
             self.vent_report = self._vent_and_disable()
+            self.be.set_cycle_observer(None)
             if self.rec is not None:
                 self.rec.close()
             self._write_session_report(t_session)
@@ -581,6 +593,71 @@ class Campaign:
         self._set_enable_all(True)
         return True
 
+    #: How many times a dead cycle may be revived before the session gives up.
+    #: The fault this exists for is the USB-CAN dongle's, not the arm's: on
+    #: 2026-09-10 a 33-minute campaign was cut off at 14.2 min by
+    #: ``WriteFile failed (OSError(22, 'The operation completed successfully.'))``
+    #: from the CDC driver -- a write that both failed and reported success,
+    #: which is a driver hiccup and not a bus problem.  Every board answered
+    #: normally up to that cycle and again afterwards.  Three attempts, because
+    #: a fault that survives three reopens is not a hiccup.
+    MAX_BUS_REVIVALS = 3
+
+    def _revive_bus(self) -> bool:
+        """Reopen the adapter and restart the cycle, mid-session.
+
+        Returns whether the cycle is running again.  The recording is *not*
+        restarted: it keeps the same files and the same ``t0``, so the gap
+        appears in ``can_sync_time_s`` as the gap it was rather than being
+        papered over -- a reader can see exactly which cycles are missing.
+
+        While the cycle is down the arm is not being commanded.  The 7 mm
+        boards go on regulating their last target indefinitely (no link-loss
+        timeout) and the TLE boards drop their outputs after 500 ms, so the arm
+        holds part of a pose; the first thing this does after the cycle is back
+        is command idle, before the excitation resumes.
+        """
+        self.stats["bus_revivals"] = self.stats.get("bus_revivals", 0) + 1
+        n = self.stats["bus_revivals"]
+        print(f"campaign: reviving the bus, attempt {n}/{self.MAX_BUS_REVIVALS}")
+        try:
+            self.be.set_cycle_observer(None)
+        except Exception:
+            pass
+        try:
+            self.be.close()
+        except Exception:
+            pass
+        time.sleep(1.5)
+        try:
+            port = bench_env.resolve_can_port(self.args.port)
+            self.be = Backend(port=port, bitrate=bench_env.BITRATE,
+                              log=lambda m: print("   backend: " + m, flush=True))
+            self.be.open()
+            found = self.be.scan()
+            present = sorted(b for b, nd in found.items() if nd.present)
+            if len(present) != 24:
+                print(f"campaign: only {len(present)} boards after the reopen")
+                return False
+            self.be.select(list(ALL_BASES))
+            for b in ALL_BASES:
+                self.be.set_target(b, self.env.idle_psi)
+                self.be.set_enabled(b, False)
+            self.be.start_cycle()
+            time.sleep(0.4)
+            self._set_enable_all(True)
+            self.be.set_targets({b: self.env.idle_psi for b in ALL_BASES})
+            time.sleep(0.6)
+            self.rec.observer_error = ""
+            self.be.set_cycle_observer(self._on_cycle)
+            self.notes.append(f"bus revived (attempt {n}) after a transmit "
+                              f"failure; the recording carries the gap")
+            print("campaign: bus back, cycle running, excitation resumed")
+            return True
+        except Exception:
+            print("campaign: revival failed: " + traceback.format_exc())
+            return False
+
     def _watchdog(self, idx: int) -> str:
         """Why the session must stop, or ``""`` if it may continue.
 
@@ -599,9 +676,15 @@ class Campaign:
         18 s, because the cost of finding out late is the whole session.
         """
         if not self.be.running:
-            return ("the 150 Hz cycle thread has exited; nothing is reaching "
-                    "the bus. Backend log tail: "
-                    + " | ".join(list(self.be.log_lines)[-4:]))
+            tail = " | ".join(list(self.be.log_lines)[-4:])
+            if self.stats.get("bus_revivals", 0) < self.MAX_BUS_REVIVALS:
+                print("campaign: the cycle thread exited -- " + tail)
+                if self._revive_bus():
+                    self._last_rows = self.rec.rows_written
+                    return ""
+            return ("the 150 Hz cycle thread has exited and could not be "
+                    "revived; nothing is reaching the bus. Backend log tail: "
+                    + tail)
         if self.rec.writer_error:
             return "the recorder's writer thread died:\n" + self.rec.writer_error
         if self.rec.observer_error:
@@ -642,6 +725,7 @@ class Campaign:
             "rows_dropped": self.rec.dropped if self.rec else 0,
             "drive_ticks": self.stats["drive_ticks"],
             "drive_late": self.stats["drive_late"],
+            "bus_revivals": self.stats.get("bus_revivals", 0),
             "envelope_clamped_single": self.env.clamped_single,
             "envelope_clamped_pair": self.env.clamped_pair,
             "anomalies": self.watcher.events,
