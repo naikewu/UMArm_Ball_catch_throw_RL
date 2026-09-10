@@ -388,8 +388,26 @@ def _fit(img, w, h):
     return out
 
 
+#: px.  How far the dark halo behind a caption reaches past each glyph stroke.
+LABEL_HALO_PX = 1
+
+
 def _label(cv2, canvas, text, org, scale: float = 0.6):
-    cv2.putText(canvas, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale,
-                (0, 0, 0), 3, cv2.LINE_AA)
-    cv2.putText(canvas, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale,
+    """A light caption with a dark halo, legible over any panel.
+
+    The halo is the same one-pixel-stroke text drawn at the eight neighbouring
+    offsets, not the text redrawn with a thicker stroke.  Under OpenCV 5.0 a
+    thicker stroke also advances each glyph further -- at scale 0.42 a caption
+    drawn with thickness 3 is 289 px wide against 270 px at thickness 1 -- so
+    the old black thickness-3 pass ran past the end of the white text and the
+    2026-09-10 frames read "the the recorded pressure targetsts" and "worst
+    13.43 degeg".  Offsets of one stroke keep both passes on one advance.
+    """
+    x, y = int(org[0]), int(org[1])
+    for dx in range(-LABEL_HALO_PX, LABEL_HALO_PX + 1):
+        for dy in range(-LABEL_HALO_PX, LABEL_HALO_PX + 1):
+            if dx or dy:
+                cv2.putText(canvas, text, (x + dx, y + dy), cv2.FONT_HERSHEY_SIMPLEX,
+                            scale, (0, 0, 0), 1, cv2.LINE_AA)
+    cv2.putText(canvas, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, scale,
                 _FG, 1, cv2.LINE_AA)
