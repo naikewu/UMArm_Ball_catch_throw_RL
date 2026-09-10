@@ -538,6 +538,14 @@ def viewer_main(viz_arr, stop_evt, opts: dict) -> None:
 
     ``{"feed": "shared"}``
         read *viz_arr*, which the parent published.
+    ``{"feed": "shared", "robots": ("canarm",)}``
+        read only the named robots' blocks.  This is what the control GUI asks
+        for when its mocap source is the digital twin: the twin lives in the
+        GUI process, so a publisher thread there writes the twin receiver's
+        ``q`` into *viz_arr*.  The restriction matters because an unwritten
+        block is all zeros, and a zero mount would move that robot to the world
+        origin; a robot left out keeps the scene's compiled mount and zero
+        joints instead.
     ``{"feed": "mocap", "mocap": {"kind": "sim"}}``
         build a ``CanArmSimStream`` here — a real receiver fed by a synthetic
         producer thread, opening no socket.
@@ -551,7 +559,7 @@ def viewer_main(viz_arr, stop_evt, opts: dict) -> None:
     try:
         spec = dict(opts.get("mocap") or {})
         if str(opts.get("feed", "shared")) == "shared" and viz_arr is not None:
-            feed = SharedArrayFeed(viz_arr)
+            feed = SharedArrayFeed(viz_arr, robots=opts.get("robots"))
         else:
             feed = MocapFeed(_build_adapters(spec),
                              fallback=_manual_fallback(opts))

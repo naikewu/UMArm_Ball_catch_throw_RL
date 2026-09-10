@@ -24,7 +24,7 @@ WHAT IT ADDS, and why each one is here rather than in the TLE GUI:
   from each other: no bodies means the wrong rigid-body id block, ``q_stale``
   with frames arriving means a plate Motive lost, and a rate that is not ~120
   means the transport.
-* **A source selector**: off, sim, live.  ``sim`` is
+* **A source selector**: off, sim, live, twin.  ``sim`` is
   ``UMArm_MOCAP.sim_stream.CanArmSimStream``, a real receiver fed by a producer
   thread, which **opens no socket** — the whole viewer path can therefore be
   exercised, and this file self-tested, with no cameras and no network.
@@ -39,6 +39,28 @@ WHAT IT ADDS, and why each one is here rather than in the TLE GUI:
   u-joint centre and the one fkine predicts from the same frame's ``q``** —
   because an operator watching the arm move is exactly who can tell a
   kinematics error from a stream problem.
+* **A SIM adapter**, added 2026-09-10: ``SIM - digital twin (no hardware)`` is
+  always in the adapter list.  The operator's requirement was that this window
+  can start a simulated arm through the same interface, and that the controller
+  cannot tell which one it is driving.  That property is made true by where the
+  difference lives rather than by care: **exactly one call differs**, the
+  construction in :func:`make_backend`, which returns
+  ``digital_twin.sim_master.SimMaster`` for the SIM label and ``tlelib``'s
+  ``Backend`` for anything else.  ``SimMaster`` subclasses ``Backend`` and
+  replaces only its link, so scan, select, the 150 Hz cycle, set_target,
+  set_enabled, apply_tuning, stop_all, snapshot_nodes, history, stats,
+  missing_nodes, disconnect and on_close are the same inherited code in both
+  cases, down to the method bodies.  The twin is the fitted one,
+  ``digital_twin.twin_params.load_twin_kwargs()``, and the log line it prints on
+  connect names both checkpoint files.  The SIM adapter is never selected on
+  its own in place of the resolved CAN dongle; ``--sim`` preselects it.
+* **A ``twin`` mocap source**, the twin's counterpart of ``live``.  It is
+  ``digital_twin.sim_mocap.SimMocap``, a ``CanArmMocap`` fed from the live
+  twin's joints, so ``q`` reaches anything reading the strip through the same
+  receiver interface as on the real arm.  It is chosen and started on its own
+  when the SIM adapter connects, and stopped when that adapter disconnects.
+  The room viewer, a separate process that cannot hold the twin, is fed
+  through ``viz.viz_layout``'s shared array by a publisher thread here.
 
 THREE ABSENCES THE ARM MUST SURVIVE, and they are guarded rather than assumed:
 no mocap, no RS485 arm, no Kinova.  Each optional import is inside a try, each
@@ -53,12 +75,36 @@ cycle, the boards keep their targets, and the only thing that stops is drawing.
 The reverse also holds: the viewer is not on the STOP path, so ``STOP ALL``
 still reaches the boards with the window open, closed or wedged.
 
+WHAT THE SIM ADAPTER DOES NOT MATCH: THE CYCLE RATE.  The interface a
+controller calls is the metal's, method for method; its timing is not.  The
+twin's physics (about 0.4-0.5 s of CPU per simulated second, measured headless)
+runs in this process, on the interpreter lock, largely on ``Backend``'s own
+cycle thread inside ``SimCanLink.send_batch``, where it competes with the Tk
+loop, the plot and the twin mocap producer.  Measured 2026-09-10 in this window
+with one board enabled at 12 psi: 87 Hz achieved and 59 % of that board's
+replies missed, against 148.6 Hz and essentially none missed on the real bus.
+Shortening the interpreter's switch interval to 0.5 ms cut the misses to 1 %
+and the rate to 62 Hz, and it would change thread scheduling for the real bus
+too, so it is not applied.  A controller that watches ``stats`` or
+``missing_nodes`` can tell the two apart until the physics leaves this
+process's lock.
+
+NO SIM-ONLY GUARD.  The operator's 30 psi envelope (``digital_twin/CONTRACT.md``
+section 8: each line <= 30 psi, each antagonistic pair's sum <= 30 psi) is
+enforced by ``collection/safety.py`` for campaigns, and **not** by this window
+or by the inherited TLE window, whose bars and group slider reach
+``VEMA_TLE_controller.TARGET_MAX_PSI`` = 40 psi with no pair check.  Adding the
+check for the SIM adapter alone would make the twin behave differently from
+the metal, which is the one thing the SIM adapter must not do, so the gap is
+left identical on both and reported instead.
+
 THE GUI DISCIPLINE, from ``vema_control_gui.py``: the service thread owns the
 I/O (that is ``Backend``'s cycle thread), there is exactly one ``after()`` pump
 per periodic job, and no Tk callback blocks.  Connect / Scan / Disconnect are the
 inherited exceptions and block for a second or two, as they always did.
 
     python canarm_control_gui.py
+    python canarm_control_gui.py --sim              # preselect the digital twin
     python canarm_control_gui.py --sim-mocap        # synthetic stream, no cameras
     python canarm_control_gui.py --self-test        # no window, no port, no socket
 """
@@ -67,6 +113,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
@@ -82,6 +129,12 @@ for _p in (WS_ROOT / "TLE_PCB", WS_ROOT):
 
 import VEMA_TLE_controller as VTC                            # noqa: E402
 
+#: The real ``Backend`` class, captured once at import.  :meth:`CanArmControllerApp.
+#: toggle_connect` rebinds ``VTC.Backend`` for the duration of one call, and
+#: :func:`make_backend` must construct the class itself rather than whatever the
+#: name points at during that call, or the SIM branch would recurse into itself.
+REAL_BACKEND = VTC.Backend
+
 #: How often the mocap strip is repainted.  Slower than the node refresh on
 #: purpose: it is three numbers describing a 120 Hz stream, and there is a
 #: matplotlib redraw in this process already competing for the interpreter lock
@@ -96,25 +149,92 @@ VIEWER_JOIN_S = 3.0
 #: is a real sample rather than three frames of luck.
 LOCK_CAPTURE_S = 3.0
 
+#: The port name the SIM adapter hands the factory.  ``toggle_connect`` takes the
+#: first space-separated token of the adapter label as the port, so the label
+#: below must begin with exactly this.  No Windows serial device is named
+#: ``SIM``; they are all ``COMn``.
+SIM_PORT = "SIM"
+
+#: The SIM adapter's entry in the adapter list.  32 characters, which is the
+#: inherited combobox's width.
+SIM_LABEL = f"{SIM_PORT} - digital twin (no hardware)"
+
+#: The mocap source selector's choices.  ``twin`` needs the SIM adapter.
+MOCAP_SOURCES = ("off", "sim", "live", "twin")
+
+#: Rate the twin publisher writes the viewer's shared array at.  The viewer's
+#: own redraw rate (``multi_arm_viewer.DEFAULT_FPS``); anything faster is
+#: overwritten before it is drawn.
+VIZ_PUBLISH_HZ = 60.0
+
+
+def make_backend(port: str, bitrate: int, log=None):
+    """The one construction seam: a SIM twin for :data:`SIM_PORT`, the bus otherwise.
+
+    Returns an **unopened** backend, exactly as ``Backend(...)`` does — the
+    caller's ``open()`` is what touches anything, and for the SIM branch that is
+    a delivery thread rather than a port.  The SIM branch loads the fitted twin
+    through ``digital_twin.twin_params`` and logs which files it used, or an
+    ``UNFITTED`` line per missing part; a malformed fit raises, and the inherited
+    connect handler prints it as an ``[ERROR]``.
+
+    ``batched_actuator=True`` is a speed choice, not a physics choice:
+    ``test_sim_core.test_batched_and_scalar_flow_paths_agree`` pins the two flow
+    paths together, and over 2 s of the fitted twin they agreed to 3.6e-15 deg
+    and 1.5e-11 Pa.  It is set here because the twin's physics runs on this
+    process's interpreter lock, on the cycle thread.  Measured 2026-09-10 in
+    this window, one board at 12 psi: 68 Hz achieved with 74 % of that board's
+    replies missed on the scalar path, 87 Hz with 59 % missed batched.  See the
+    module docstring for what that leaves unmatched.
+    """
+    if str(port) == SIM_PORT:
+        from digital_twin import twin_params as TP
+        from digital_twin.sim_master import SimMaster
+
+        kwargs = TP.load_twin_kwargs(log=log if log is not None else print)
+        return SimMaster(SIM_PORT, bitrate, log=log, batched_actuator=True,
+                         **kwargs)
+    return REAL_BACKEND(port, bitrate, log=log)
+
+
+def twin_arm(backend):
+    """The ``SimArm`` behind a SIM backend, or None for anything else.
+
+    The only place this window asks which kind of backend it holds, and it asks
+    for the mocap side's benefit alone: the ``twin`` receiver reads the arm's
+    joints, and nothing on the bus path consults this.
+    """
+    if backend is None:
+        return None
+    try:
+        from digital_twin.sim_master import SimMaster
+    except Exception:                                        # pragma: no cover
+        return None
+    return backend.arm if isinstance(backend, SimMaster) else None
+
 
 class CanArmControllerApp(VTC.ControllerApp):
     """``VEMA_TLE_controller.ControllerApp`` plus the room.
 
     Subclassed rather than forked.  The base class owns the bus, the channel
     bars, the group slider, the plot and the cycle statistics; this class adds a
-    strip at the bottom of the same window and two pieces of process
-    lifecycle.  When the TLE GUI gains a widget, this window gains it too.
+    strip at the bottom of the same window, two pieces of process lifecycle, and
+    the SIM adapter's construction.  When the TLE GUI gains a widget, this
+    window gains it too.
     """
 
     def __init__(self, root: tk.Tk, *, mocap_source: str = "off",
-                 include_rs485: bool = False, include_kinova: bool = False):
-        # Set BEFORE super().__init__, which calls _build().
+                 include_rs485: bool = False, include_kinova: bool = False,
+                 prefer_sim: bool = False):
+        # Set BEFORE super().__init__, which calls _build() and refresh_ports().
         self._mocap_source = str(mocap_source)
         self._mocap = None
         self._viewer_proc = None
         self._viewer_stop = None
+        self._viz_publisher = None
         self._include_rs485 = bool(include_rs485)
         self._include_kinova = bool(include_kinova)
+        self._prefer_sim = bool(prefer_sim)
         super().__init__(root)
         root.title("CAN UMArm - controller and room view")
         fit_to_work_area(root)
@@ -159,7 +279,7 @@ class CanArmControllerApp(VTC.ControllerApp):
 
         ttk.Label(row, text="Mocap").pack(side="left")
         self.mocap_source = ttk.Combobox(row, width=6, state="readonly",
-                                         values=("off", "sim", "live"))
+                                         values=MOCAP_SOURCES)
         self.mocap_source.set(self._mocap_source)
         self.mocap_source.pack(side="left", padx=(4, 8))
         self.mocap_button = ttk.Button(row, text="Start mocap",
@@ -189,24 +309,93 @@ class CanArmControllerApp(VTC.ControllerApp):
         ttk.Label(frame, textvariable=self.kin_status,
                   font=("Consolas", 9)).pack(anchor="w")
 
+    # ---- the adapter list and the construction seam --------------------
+    def refresh_ports(self) -> None:
+        """The inherited enumeration, plus the SIM adapter at the end of the list.
+
+        Two things in the inherited method would otherwise defeat the SIM entry.
+        It rebuilds ``values`` from the serial ports alone, which drops the
+        entry on every Refresh; and it re-selects the resolved CAN dongle on
+        every Refresh, which would silently move an operator who had chosen SIM
+        onto the real bus.  So a SIM selection survives a Refresh, and nothing
+        else about the inherited choice changes: SIM is appended last, and is
+        selected on its own only once, when ``prefer_sim`` (the ``--sim`` flag)
+        asked for it.
+        """
+        keep_sim = self.port.get() == SIM_LABEL
+        super().refresh_ports()
+        values = [v for v in self.root.tk.splitlist(self.port.cget("values"))
+                  if v != SIM_LABEL]
+        values.append(SIM_LABEL)
+        self.port["values"] = values
+        if keep_sim or self._prefer_sim:
+            self.port.set(SIM_LABEL)
+            self._prefer_sim = False
+
+    def toggle_connect(self) -> None:
+        """The inherited connect handler, with :func:`make_backend` constructing.
+
+        ``ControllerApp.toggle_connect`` builds its backend with a bare
+        ``Backend(port, bitrate, log=...)`` looked up in ``VEMA_TLE_controller``'s
+        module namespace.  That name is rebound to :func:`make_backend` for the
+        duration of this one call and restored in ``finally``, so the handler's
+        own body -- the label split, the open, the button states, the scan that
+        follows -- runs unchanged for both the bus and the twin, and the TLE
+        file needs no seam of its own.  Tk runs this on its one thread, and no
+        other code in the process constructs through that name, so nothing else
+        can observe the rebinding.
+        """
+        was_connected = self.backend is not None
+        saved = VTC.Backend
+        VTC.Backend = make_backend
+        try:
+            super().toggle_connect()
+        finally:
+            VTC.Backend = saved
+        if not was_connected and self.backend is not None:
+            self._on_connected()
+
+    def _on_connected(self) -> None:
+        """Choose and start the twin receiver when the adapter is the twin.
+
+        Mocap-side only: the bus path is already running identical code.  A
+        receiver the operator started by hand is not replaced, because swapping
+        a live receiver out from under the strip without being asked is a
+        surprise, and the log says how to switch.
+        """
+        if twin_arm(self.backend) is None:
+            return
+        if self._mocap is not None:
+            self.log("SIM adapter connected; a mocap receiver is already running, "
+                     "so choose 'twin' and restart mocap to read the simulated arm")
+            return
+        self.mocap_source.set("twin")
+        self.toggle_mocap()
+
     # ---- mocap ---------------------------------------------------------
     def toggle_mocap(self) -> None:
         """Start or stop THIS process's receiver — the one behind the strip.
 
-        The viewer process builds its own; a ``MocapRx`` owns SDK threads and a
-        socket and cannot cross a process boundary.  Two receivers on one
-        multicast stream is the arrangement the lab already runs, but it is also
-        why this one is opt-in: nothing here starts a receiver on its own.
+        The viewer process builds its own for ``sim`` and ``live``; a
+        ``MocapRx`` owns SDK threads and a socket and cannot cross a process
+        boundary.  Two receivers on one multicast stream is the arrangement the
+        lab already runs, but it is also why ``live`` is opt-in: nothing here
+        starts a network receiver on its own.  ``twin`` opens nothing and is
+        started automatically when the SIM adapter connects.
         """
         if self._mocap is not None:
             self._stop_mocap()
             return
         kind = self.mocap_source.get()
         if kind == "off":
-            self.log("pick sim or live first")
+            self.log("pick sim, live or twin first")
+            return
+        if kind == "twin" and twin_arm(self.backend) is None:
+            self.log(f"twin mocap reads the simulated arm's joints: connect the "
+                     f"'{SIM_LABEL}' adapter first")
             return
         try:
-            self._mocap = _build_mocap(kind)
+            self._mocap = _build_mocap(kind, backend=self.backend)
         except Exception as exc:
             self.log(f"[ERROR] mocap: {type(exc).__name__}: {exc}")
             self._mocap = None
@@ -245,7 +434,8 @@ class CanArmControllerApp(VTC.ControllerApp):
             return
         if self.mocap_source.get() != "live":
             self.log("locks need labeled markers, which only the live stream "
-                     "carries; the sim stream injects rigid-body poses only")
+                     "carries; the sim and twin streams inject rigid-body poses "
+                     "only")
             return
         self.log(f"hold the arm still: capturing {LOCK_CAPTURE_S:.0f} s ...")
         self.root.update_idletasks()
@@ -286,9 +476,32 @@ class CanArmControllerApp(VTC.ControllerApp):
         except tk.TclError:                    # the window is already gone
             pass
 
+    def _reap_twin_mocap(self) -> None:
+        """Stop a twin receiver whose SIM backend is no longer this window's.
+
+        The receiver stops publishing the moment the SIM link closes and would
+        read stale within 0.25 s on its own, but a stale receiver bound to a
+        twin that no longer exists is not worth keeping: reconnecting builds a
+        new twin, and the old receiver can never see it.
+        """
+        rx = self._mocap
+        bound = getattr(rx, "bound_backend", None)
+        if rx is None or bound is None or bound is self.backend:
+            return
+        self._stop_mocap()
+        self.log("twin mocap stopped: the SIM backend it read was disconnected")
+
+    def _twin_q(self):
+        """The twin receiver's newest ``q``, or None.  Any thread."""
+        rx = self._mocap
+        if rx is None or getattr(rx, "bound_backend", None) is None:
+            return None
+        return rx.get_q()
+
     def _refresh_mocap(self) -> None:
         """Repaint the strip.  Reads snapshots only; never blocks."""
         self._reap_viewer()
+        self._reap_twin_mocap()
         try:
             self.mocap_status.set(_mocap_line(self._mocap, self._viewer_proc))
             self.kin_status.set(_kin_line(self._mocap))
@@ -312,6 +525,7 @@ class CanArmControllerApp(VTC.ControllerApp):
         proc.join(timeout=0.1)
         self._viewer_proc = None
         self._viewer_stop = None
+        self._stop_viz_publisher()
         try:
             self.viewer_button.configure(text="Viewer")
         except tk.TclError:                                  # pragma: no cover
@@ -328,6 +542,14 @@ class CanArmControllerApp(VTC.ControllerApp):
         stale model, a camera pose, a mount frozen at a pose from an hour ago —
         and impossible to get wrong this way: a process that has exited has no
         state.
+
+        THE FEED IS CHOSEN WHEN THE WINDOW OPENS.  For ``sim`` and ``live`` the
+        child builds its own receiver, as before.  For ``twin`` it cannot: the
+        twin is a ``SimArm`` in this process, so the child reads
+        ``viz.viz_layout``'s shared array and a :class:`_VizPublisher` thread
+        here writes the twin receiver's ``q`` into it.  Changing the mocap
+        source while the window is open does not change its feed; close and
+        reopen it.
         """
         if self._viewer_alive():
             self._stop_viewer()
@@ -339,25 +561,42 @@ class CanArmControllerApp(VTC.ControllerApp):
 
             ctx = mp.get_context("spawn")
             self._viewer_stop = ctx.Event()
+            kind = self.mocap_source.get()
             opts = {
                 "feed": "mocap",
-                "mocap": {"kind": self.mocap_source.get()},
+                "mocap": {"kind": kind},
                 "include_rs485": bool(self.rs485_var.get()),
                 "include_kinova": bool(self.kinova_var.get()),
             }
+            arr = None
+            if kind == "twin":
+                from viz import viz_layout as VZ
+
+                arr = VZ.make_array()
+                opts.update({"feed": "shared", "robots": ("canarm",),
+                             "mocap": {"kind": "off"}})
+                self._viz_publisher = _VizPublisher(arr, self._twin_q).start()
             self._viewer_proc = ctx.Process(
-                target=MAV.viewer_main, args=(None, self._viewer_stop, opts),
+                target=MAV.viewer_main, args=(arr, self._viewer_stop, opts),
                 name="canarm-viewer", daemon=True)
             self._viewer_proc.start()
         except Exception as exc:
             self.log(f"[ERROR] viewer: {type(exc).__name__}: {exc}")
             self._viewer_proc = None
+            self._stop_viz_publisher()
             return
         self.viewer_button.configure(text="Close viewer")
-        self.log("viewer opened (display only; closing it stops nothing)")
+        self.log("viewer opened (display only; closing it stops nothing)"
+                 + ("; fed from the twin through the shared array"
+                    if self._viz_publisher is not None else ""))
 
     def _viewer_alive(self) -> bool:
         return self._viewer_proc is not None and self._viewer_proc.is_alive()
+
+    def _stop_viz_publisher(self) -> None:
+        pub, self._viz_publisher = self._viz_publisher, None
+        if pub is not None:
+            pub.stop()
 
     def _stop_viewer(self) -> None:
         """Ask, then wait, then insist.  None of it reaches the CAN backend."""
@@ -373,6 +612,7 @@ class CanArmControllerApp(VTC.ControllerApp):
                 # exactly why terminating here is safe and why terminating the
                 # RS485 plant process mid-vent was not.
                 proc.terminate()
+        self._stop_viz_publisher()
         try:
             self.viewer_button.configure(text="Viewer")
         except tk.TclError:
@@ -391,6 +631,66 @@ class CanArmControllerApp(VTC.ControllerApp):
         self._stop_viewer()
         self._stop_mocap()
         super().on_close()
+
+
+class _VizPublisher:
+    """Writes a ``q`` source into ``viz.viz_layout``'s shared array, at 60 Hz.
+
+    The viewer is a spawned process and the twin lives in this one, so this is
+    the bridge.  It writes the CAN arm's block only: the receiver's ``q``, in
+    the order ``MocapFeed`` would hand the same receiver's ``q`` to the viewer,
+    so the two feeds draw one ``q`` identically; the default mount
+    (``viz.mjcf_canarm.DEFAULT_CANARM_MOUNT``, where the twin's own MJCF puts its
+    base); and ``fresh=False``, because that mount is a configured pose rather
+    than a measured one.  ``plates_ok`` stays False, since the twin has no
+    measurement to overlay.  ``SEQ`` is bumped per write, so a stalled
+    publisher is distinguishable from a still arm by anything that reads it.
+
+    No lock, per ``viz_layout.make_array``: a torn frame costs one frame drawn
+    from two instants.
+    """
+
+    def __init__(self, arr, source, rate_hz: float = VIZ_PUBLISH_HZ):
+        self.arr = arr
+        self.source = source
+        self.period = 1.0 / float(rate_hz)
+        self.writes = 0
+        self._stop = threading.Event()
+        self._thread = None
+
+    def start(self) -> "_VizPublisher":
+        from viz import mjcf_canarm as MJ
+        from viz import transforms as TF
+        from viz import viz_layout as VZ
+
+        xyz, rpy = MJ.DEFAULT_CANARM_MOUNT
+        VZ.write_robot(self.arr, "canarm", mount_pos=xyz,
+                       mount_quat=TF.rpy_to_quat(rpy), fresh=False,
+                       plates_ok=False)
+        self._thread = threading.Thread(target=self._run, daemon=True,
+                                        name="canarm-viz-publisher")
+        self._thread.start()
+        return self
+
+    def stop(self) -> None:
+        self._stop.set()
+        thread, self._thread = self._thread, None
+        if thread is not None:
+            thread.join(timeout=1.0)
+
+    def _run(self) -> None:
+        from viz import viz_layout as VZ
+
+        while not self._stop.is_set():
+            try:
+                q = self.source()
+            except Exception:
+                q = None
+            if q is not None:
+                VZ.write_robot(self.arr, "canarm", q=q)
+                self.arr[VZ.SEQ] = float(self.arr[VZ.SEQ]) + 1.0
+                self.writes += 1
+            self._stop.wait(self.period)
 
 
 # ---------------------------------------------------------------------------
@@ -456,16 +756,19 @@ def fit_to_work_area(root) -> None:
         pass
 
 
-def _build_mocap(kind: str):
+def _build_mocap(kind: str, backend=None):
     """A started receiver of the requested kind.
 
     ``sim`` opens nothing — it is the real ``CanArmMocap`` class with a producer
     thread pushing synthetic frames through its own listeners, so the id
     routing, the quaternion conversion, ``mocap_to_q``, the publish-under-lock
-    and the ring buffer are all the shipped code.  ``live`` opens a NatNet
-    socket and is the only path here that touches the network.
+    and the ring buffer are all the shipped code.  ``twin`` is the same class
+    fed from the SIM *backend*'s arm, publishing only while that backend's link
+    is open, and it carries ``bound_backend`` so the window can tell when the
+    backend it read has gone.  ``live`` opens a NatNet socket and is the only
+    path here that touches the network.
 
-    BOTH BRANCHES RETURN THE RECEIVER, never whatever ``start()`` handed back.
+    ALL BRANCHES RETURN THE RECEIVER, never whatever ``start()`` handed back.
     The two ``start()`` methods disagree about that: ``CanArmSimStream.start``
     returns ``self``, while ``MocapRx.start`` returns the ``NatNetClient`` it
     just built.  Returning the client cost this window both of the things it
@@ -478,6 +781,15 @@ def _build_mocap(kind: str):
     if kind == "sim":
         from UMArm_MOCAP.sim_stream import CanArmSimStream
         rx = CanArmSimStream()
+    elif kind == "twin":
+        arm = twin_arm(backend)
+        if arm is None:
+            raise RuntimeError(f"the twin source needs the '{SIM_LABEL}' "
+                               f"adapter connected")
+        from digital_twin.sim_mocap import SimMocap
+        link = backend.link
+        rx = SimMocap(arm, alive=lambda: link.is_open)
+        rx.bound_backend = backend
     elif kind == "live":
         from UMArm_MOCAP.canarm_mocap import (CanArmMarkerMocap, CanArmMocap,
                                               load_canarm_locks)
@@ -511,10 +823,34 @@ def _kin_line(rx) -> str:
     of magnitude larger means the locks are stale, a plate has lost a marker, or
     the azimuth calibration does not belong to this Motive session.
 
+    FOR THE TWIN there are no cameras, so the same five numbers mean something
+    narrower and the line says so: the twin model's own u-joint centres against
+    fkine from the receiver's ``q`` (``SimMocap.fk_residual_m``).  That checks
+    the twin's geometry against the kinematics, not the kinematics against the
+    arm.  Built from the same parameter table, it read 0.00 mm on 2026-09-10.
+
     Never raises: this is a status line, and a status line is not worth a crash.
     """
     if rx is None:
         return "kinematics: mocap off"
+    twin_residual = getattr(rx, "fk_residual_m", None)
+    if callable(twin_residual):
+        try:
+            import numpy as np
+
+            res = twin_residual()
+            if res is None:
+                return "kinematics: twin -- no q published yet"
+            q = rx.get_q()
+            mm = np.asarray(res) * 1000.0
+            return ("fkine vs twin model (mm) "
+                    + " ".join(f"u{p+1}{mm[p]:6.2f}" for p in range(1, len(mm)))
+                    + f"   rms {float(np.sqrt((mm[1:] ** 2).mean())):5.2f}"
+                    + (f"   |q| max {float(np.degrees(np.abs(q)).max()):5.1f} deg"
+                       if q is not None else "")
+                    + "   [twin geometry, not a measurement]")
+        except Exception as exc:
+            return f"kinematics unavailable: {type(exc).__name__}: {exc}"
     getter = getattr(rx, "get_marker_poses", None)
     if not callable(getter):
         note = getattr(rx, "lock_note", "") or "streamed frames"
@@ -593,15 +929,29 @@ def _mocap_line(rx, viewer_proc) -> str:
 # Entry points
 # ---------------------------------------------------------------------------
 
+def _pump(root, seconds: float) -> None:
+    import time
+
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        root.update_idletasks()
+        root.update()
+        time.sleep(0.02)
+
+
 def self_test(sim_mocap: bool = True, frames: int = 6) -> int:
     """Build the whole window and the viewer's render path, offline.
 
     Opens NO serial port, NO socket and NO GL window.  What it does exercise:
     every widget the window builds, several Tk update cycles so the periodic
     pumps actually run, a real ``CanArmSimStream`` producing frames through the
-    real receiver, and the viewer's render loop against a mock viewer holding a
-    real ``MjvScene``.  What it cannot exercise is ``sync()`` and the window
-    itself, which is where a display becomes necessary.
+    real receiver, the viewer's render loop against a mock viewer holding a
+    real ``MjvScene``, and the SIM adapter: connect, the inherited scan of the
+    twin's 24 boards, the twin receiver that starts on its own, and disconnect.
+    No cycle is started.  What it cannot exercise is ``sync()`` and the window
+    itself, which is where a display becomes necessary;
+    ``hw_tests/gui_sim_test.py`` drives the cycle and the viewer against the
+    twin.
     """
     root = None
     rx = None
@@ -639,6 +989,25 @@ def self_test(sim_mocap: bool = True, frames: int = 6) -> int:
         if out["frames"] != frames:
             raise AssertionError(f"render loop ran {out['frames']}/{frames} frames")
 
+        app.port.set(SIM_LABEL)
+        app.toggle_connect()
+        _pump(root, 0.6)
+        nodes = app.backend.snapshot_nodes() if app.backend is not None else {}
+        present = sum(1 for n in nodes.values() if n.present)
+        twin_q = app._twin_q()
+        print(f"[self-test] SIM adapter: {type(app.backend).__name__}, "
+              f"{present} boards, mocap source {app.mocap_source.get()!r}, "
+              f"twin q {'None' if twin_q is None else len(twin_q)}")
+        print(f"[self-test] {app.kin_status.get()}")
+        if present != 24 or twin_q is None:
+            raise AssertionError("the SIM adapter did not scan 24 boards and "
+                                 "publish a twin q")
+        app.toggle_connect()                    # disconnect
+        _pump(root, 0.4)
+        if app.backend is not None or app._mocap is not None:
+            raise AssertionError("disconnecting SIM left a backend or a twin "
+                                 "receiver behind")
+
         for _ in range(4):
             root.update_idletasks()
             root.update()
@@ -666,6 +1035,9 @@ def self_test(sim_mocap: bool = True, frames: int = 6) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--sim", action="store_true",
+                    help="preselect the SIM adapter: the fitted digital twin, "
+                         "no hardware")
     ap.add_argument("--sim-mocap", action="store_true",
                     help="preselect the synthetic mocap stream (opens no socket)")
     ap.add_argument("--rs485", action="store_true",
@@ -687,7 +1059,8 @@ def main(argv=None) -> int:
     CanArmControllerApp(root,
                         mocap_source="sim" if args.sim_mocap else "off",
                         include_rs485=args.rs485,
-                        include_kinova=args.kinova)
+                        include_kinova=args.kinova,
+                        prefer_sim=args.sim)
     root.mainloop()
     return 0
 
