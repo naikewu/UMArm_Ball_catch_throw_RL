@@ -13,18 +13,25 @@ The tests are ordered by what they protect, not by module layout:
    with the sign that campaign read off the motion, is a routing claim that has
    been checked against metal.  A test that only counted tendons would pass on a
    model that pulls the arm sideways;
-4. the forward kinematics agrees with ``fkine(..., order="yx")``, and the test
+4. **the routing is the ProMax's** (Fig. 1C of ``2606.29731v1.pdf``): every
+   tendon runs actuator end -> hub bearing ``AA`` from the joint it drives ->
+   outer-ring bracket across that joint, its moment arm at rest is the closed
+   form ``AA*JA/sqrt((JA-AO)^2+AA^2)``, and the sleeves and Ys ride the link
+   body.  The far-ring routing this replaced on 2026-09-10 fails section 4 by
+   centimetres, not by tolerances;
+5. the forward kinematics agrees with ``fkine(..., order="yx")``, and the test
    has teeth -- it is shown to fail under ``order="xy"``;
-5. the masses are what the module says they are, and the dissipation tunables
+6. the per-segment mass model does what it says, and the dissipation tunables
    are arguments rather than constants.
 
 WHAT THESE TESTS DO NOT SHOW.  Nothing here says the model is *right about the
-arm*.  The moment-arm test proves the muscles are seated where the map says,
-given the parameter table's ring radii; if ``JA1`` is wrong on the metal, every
-test still passes and every predicted torque is wrong by the same factor.  The
-mass test proves the mass model is self-consistent and lands in a plausible
-range; no mass on this arm has been weighed.  Frequency, damping ratio and
-predicted force are all outside what an offline test can reach.
+arm*.  The moment-arm tests prove the muscles are routed where the map and the
+figure say, given the parameter table's ring radii and hub heights; if ``JA``,
+``AO`` or ``AA`` is wrong on the metal, every test still passes and every
+predicted torque is wrong by the same factor.  The Y tip radius is estimated from
+the figure, and the tests pin only that it is honoured.  The mass tests prove the
+mass model is self-consistent; no mass on this arm has been weighed.  Frequency,
+damping ratio and predicted force are all outside what an offline test can reach.
 """
 
 from __future__ import annotations
@@ -54,6 +61,12 @@ from UMArm_KINEMATICS.fkine import ujoint_centres       # noqa: E402
 #: error in either.
 _KW = dict(base_pos=(0.0, 0.0, 0.0), base_rpy_deg=(0.0, 0.0, 0.0))
 
+#: m.  The generator writes coordinates with 10 significant digits, so a site
+#: placed by ``cos``/``sin`` at a 47 mm radius is exact to about 1e-11 m.  Chain
+#: positions are short decimals and stay at float noise (the FK tests hold them
+#: to 1e-12); trig-placed routing sites are held to this.
+_XML_TOL_M = 1e-9
+
 
 @pytest.fixture(scope="module")
 def model():
@@ -71,8 +84,8 @@ def _tendon_moments(model, data, qpos, h: float = 1e-6) -> np.ndarray:
     Finite differences rather than ``data.ten_J`` on purpose: MuJoCo stores that
     Jacobian sparsely, so reading it means reproducing a layout, and this test
     exists to check a physical claim rather than an array convention.  ``h`` is
-    1e-6 rad against tendon lengths of order 0.2 m, which puts the truncation
-    error near 1e-13 m -- eleven orders below the ~1e-2 m/rad arms measured.
+    1e-6 rad against tendon lengths of order 0.1 m, which puts the truncation
+    error near 1e-13 m -- eleven orders below the ~4e-2 m/rad arms measured.
     """
     out = np.zeros((model.ntendon, model.nv))
     for dof in range(model.nv):
@@ -84,6 +97,50 @@ def _tendon_moments(model, data, qpos, h: float = 1e-6) -> np.ndarray:
             lengths.append(np.array(data.ten_length))
         out[:, dof] = (lengths[0] - lengths[1]) / (2.0 * h)
     return out
+
+
+def _id(model, kind, name: str) -> int:
+    i = mujoco.mj_name2id(model, kind, name)
+    assert i >= 0, f"{name} is not in the model"
+    return int(i)
+
+
+def _body(model, name: str) -> int:
+    return _id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+
+
+def _across_body(seat) -> str:
+    """The body on the far side of the joint this muscle drives."""
+    if seat.ring == "upper":
+        return f"canarm_seg{seat.segment}_plate2"
+    return "canarm_base" if seat.segment == 1 else f"canarm_seg{seat.segment - 1}_plate2"
+
+
+def _driven_plate(seat) -> str:
+    """The plate site at the centre of the u-joint this muscle drives."""
+    n = seat.segment
+    return f"canarm_plate{2 * (n - 1) if seat.ring == 'lower' else 2 * n - 1}"
+
+
+def _ring_numbers(seat):
+    g = G.segment_geometry()[seat.segment - 1]
+    if seat.ring == "lower":
+        return g, g.aa1, g.ja1, g.ao1
+    return g, g.aa2, g.ja2, g.ao2
+
+
+def _geom_mass(xml: str, name: str) -> float:
+    """One geom's ``mass`` attribute, read from the document.
+
+    From the XML because a compiled ``MjModel`` keeps only body masses: the
+    compiler folds each geom's mass into its body's inertia and discards it.
+    """
+    import xml.etree.ElementTree as ET
+
+    for geom in ET.fromstring(xml).iter("geom"):
+        if geom.get("name") == name:
+            return float(geom.get("mass"))
+    raise AssertionError(f"{name} is not in the document")
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +272,8 @@ def test_each_muscle_drives_one_axis_of_its_own_ujoint(model, seats):
     Checked at ``q = 0``, where the cross-axis arm of a pure seat is identically
     zero, and over twenty random configurations inside +-0.3 rad, which brackets
     the ~30 deg of joint travel the 2026-08-21 campaign spanned.  The largest
-    cross-axis-to-own ratio seen there is ~0.09, so dominance is not marginal.
+    cross-axis-to-own ratio seen there is 0.095 under the bearing routing (0.082
+    under the far-ring routing it replaced), so dominance is not marginal.
     """
     data = mujoco.MjData(model)
     rng = np.random.default_rng(20260910)
@@ -319,7 +377,221 @@ def test_pulling_one_muscle_torques_the_joint_the_map_claims(model, seats):
 
 
 # ---------------------------------------------------------------------------
-# 4. Forward kinematics, under the measured composition order
+# 4. The ProMax routing and drawing (Fig. 1C)
+# ---------------------------------------------------------------------------
+
+def test_every_link_side_routing_site_lies_AA_from_the_joint_it_drives(model, seats):
+    """The far-ring regression guard.
+
+    A proximal muscle's bearing is on the TOP hub, ``AA1`` below the proximal
+    centre it drives; a distal muscle's is on the BOTTOM hub, ``AA2`` above the
+    distal centre.  Until 2026-09-10 each proximal tendon ran to a ring
+    ``AA1 + LL`` below its joint (222 mm on segment 1) and each distal tendon to
+    a ring ``AA1`` below the proximal centre, i.e. ``LL + AA2`` above its joint;
+    both are more than 140 mm from where this test demands the bearing, so no
+    tolerance can let that routing back in.  Checked in world coordinates at
+    ``q = 0`` against the plate site at the driven joint's centre, which is the
+    distance the claim is about, and in the link body's own frame.
+    """
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    for s in seats:
+        g, aa, _ja, ao = _ring_numbers(s)
+        names = G.routing_site_names(s)
+        sid = _id(model, mujoco.mjtObj.mjOBJ_SITE, names["brg"])
+        assert model.site_bodyid[sid] == _body(model, f"canarm_seg{s.segment}_link")
+        centre = data.site(_driven_plate(s)).xpos
+        brg = data.site_xpos[sid]
+        # below the proximal joint (-AA1) or above the distal joint (+AA2)
+        want_dz = -aa if s.ring == "lower" else +aa
+        assert brg[2] - centre[2] == pytest.approx(want_dz, abs=_XML_TOL_M), (
+            f"pam_{s.index}'s bearing is {1e3 * (brg[2] - centre[2]):.2f} mm from "
+            f"the joint it drives, not {1e3 * want_dz:.2f} mm")
+        assert math.hypot(brg[0] - centre[0], brg[1] - centre[1]) == \
+            pytest.approx(ao, abs=_XML_TOL_M)
+        az = math.degrees(math.atan2(brg[1] - centre[1], brg[0] - centre[0]))
+        assert abs((az - s.azimuth_deg + 180.0) % 360.0 - 180.0) < 1e-6
+        far_dz = -(g.aa1 + g.ll) if s.ring == "lower" else +(g.ll + g.aa2)
+        assert abs((brg[2] - centre[2]) - far_dz) > 0.14
+
+
+def test_each_tendon_runs_actuator_end_then_bearing_then_bracket(model, seats):
+    """Three sites, in that order, on the bodies the ProMax puts them on.
+
+    The actuator end and the bearing are rigid with the link, so the first span
+    is a constant; the bracket sits on the outer ring across the driven joint --
+    the PARENT for a proximal muscle, the distal plate body for a distal one --
+    in that joint's plane at the ring radius.
+    """
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    for s in seats:
+        _g, _aa, ja, _ao = _ring_numbers(s)
+        tid = _id(model, mujoco.mjtObj.mjOBJ_TENDON, f"t_pam_{s.index}")
+        adr, num = int(model.tendon_adr[tid]), int(model.tendon_num[tid])
+        assert num == 3
+        assert all(int(t) == int(mujoco.mjtWrap.mjWRAP_SITE)
+                   for t in model.wrap_type[adr:adr + 3])
+        got = [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_SITE, int(i))
+               for i in model.wrap_objid[adr:adr + 3]]
+        names = G.routing_site_names(s)
+        assert got == [names["end"], names["brg"], names["brk"]]
+        link = _body(model, f"canarm_seg{s.segment}_link")
+        ids = [int(i) for i in model.wrap_objid[adr:adr + 3]]
+        assert [int(model.site_bodyid[i]) for i in ids] == \
+            [link, link, _body(model, _across_body(s))]
+        centre = data.site(_driven_plate(s)).xpos
+        brk = data.site_xpos[ids[2]]
+        assert brk[2] == pytest.approx(centre[2], abs=_XML_TOL_M)
+        assert math.hypot(*(brk[:2] - centre[:2])) == pytest.approx(ja, abs=_XML_TOL_M)
+
+
+def test_at_rest_each_moment_arm_is_the_bearing_closed_form(model, seats):
+    """One axis only, the measured sign, and ``AA*JA/sqrt((JA-AO)^2+AA^2)`` to 1e-6.
+
+    The sign is the map's: the positive board's tendon shortens as the joint it
+    drives turns positive.  The magnitude is 43.105 mm on this arm; the far-ring
+    routing gave 46.8 mm, 3.7 mm outside the tolerance.
+    """
+    data = mujoco.MjData(model)
+    arms = _tendon_moments(model, data, np.zeros(model.nq))
+    for k, s in enumerate(seats):
+        _g, aa, ja, ao = _ring_numbers(s)
+        want = G.bearing_moment_arm_m(aa, ja, ao)
+        nonzero = np.flatnonzero(np.abs(arms[k]) > 1e-9)
+        assert len(nonzero) == 1, f"pam_{s.index} moves dofs {nonzero.tolist()}"
+        dof = int(nonzero[0])
+        assert dof in _ujoint_dofs(s.joint)
+        assert arms[k, dof] == pytest.approx(-s.sign * want, abs=1e-6), (
+            f"pam_{s.index}: {1e3 * arms[k, dof]:+.4f} mm/rad, want "
+            f"{-1e3 * s.sign * want:+.4f}")
+    assert G.bearing_moment_arm_m(0.0437125, 0.047, 0.028) == \
+        pytest.approx(0.043105, abs=5e-6)
+
+
+def test_the_q_dependent_length_is_the_bearing_to_bracket_span(model, seats):
+    """``ten_length`` = the rigid sleeve-to-bearing span + |bearing - bracket|.
+
+    The first term must not move with ``q`` -- it is what cancels in
+    ``ten_length - tendon_length0``, which every consumer of tendon length uses.
+    """
+    data = mujoco.MjData(model)
+    rng = np.random.default_rng(11)
+    rigid0 = None
+    for trial in range(8):
+        q = np.zeros(12) if trial == 0 else rng.uniform(-0.4, 0.4, 12)
+        data.qpos[:] = G.q_to_qpos(q)
+        mujoco.mj_forward(model, data)
+        rigid = []
+        for k, s in enumerate(seats):
+            n = G.routing_site_names(s)
+            end, brg, brk = (data.site(n[key]).xpos for key in ("end", "brg", "brk"))
+            rigid.append(float(np.linalg.norm(brg - end)))
+            span = float(np.linalg.norm(brk - brg))
+            assert data.ten_length[k] == pytest.approx(rigid[-1] + span, abs=1e-12)
+        if rigid0 is None:
+            rigid0 = np.array(rigid)
+        assert np.allclose(rigid, rigid0, atol=1e-12)
+
+
+def test_sleeves_ys_hubs_and_rod_ride_the_link_body(model, seats):
+    """On the ProMax everything but the u-joint outer rings is rigid with the rod.
+
+    The model this replaced split each muscle in half between a u-joint plate and
+    the link, which is what the 2026-09-10 video showed as Y arms connected to
+    the u-joint.
+    """
+    xml = G.generate_xml(**_KW)
+    for s in seats:
+        link = _body(model, f"canarm_seg{s.segment}_link")
+        for part in ("sleeve", "yarm", "ytip", "ybrace", "bearing"):
+            gid = _id(model, mujoco.mjtObj.mjOBJ_GEOM,
+                      f"canarm_s{s.segment}_a{s.index}_{part}")
+            assert model.geom_bodyid[gid] == link, (s.index, part)
+        gid = _id(model, mujoco.mjtObj.mjOBJ_GEOM,
+                  f"canarm_s{s.segment}_a{s.index}_bracket")
+        assert model.geom_bodyid[gid] == _body(model, _across_body(s))
+        assert _geom_mass(xml, f"canarm_s{s.segment}_a{s.index}_sleeve") > 0.0
+    for n in (1, 2, 3):
+        link = _body(model, f"canarm_seg{n}_link")
+        for part in ("rod", "hub_top", "hub_bot"):
+            gid = _id(model, mujoco.mjtObj.mjOBJ_GEOM, f"canarm_seg{n}_{part}")
+            assert model.geom_bodyid[gid] == link
+        parent = "canarm_base" if n == 1 else f"canarm_seg{n - 1}_plate2"
+        assert model.geom_bodyid[_id(model, mujoco.mjtObj.mjOBJ_GEOM,
+                                     f"canarm_seg{n}_plate1_geom")] == _body(model, parent)
+        assert model.geom_bodyid[_id(model, mujoco.mjtObj.mjOBJ_GEOM,
+                                     f"canarm_seg{n}_plate2_geom")] == \
+            _body(model, f"canarm_seg{n}_plate2")
+    sleeve_bodies = {int(model.geom_bodyid[i]) for i in range(model.ngeom)
+                     if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i) or "")
+                     .endswith("_sleeve")}
+    assert sleeve_bodies == {_body(model, f"canarm_seg{n}_link") for n in (1, 2, 3)}
+
+
+def test_the_two_y_tip_azimuth_sets_sit_45_deg_apart(model, seats):
+    """Upright Ys at 45/135/225/315, upside-down at 0/90/180/270, tips outside the disks.
+
+    Also that the upright tips surround the proximal u-joint and the upside-down
+    tips the distal one, at the tip radius asked for -- the geometry that puts
+    each u-joint inside a Y cone.
+    """
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    for n in (1, 2, 3):
+        up, down = [], []
+        for s in (s for s in seats if s.segment == n):
+            tip = data.site(G.routing_site_names(s)["tip"]).xpos
+            centre = data.site(_driven_plate(s)).xpos
+            # the tip sits in the plane of the joint at the OTHER end of the
+            # segment from the joint the muscle drives
+            other = (f"canarm_plate{2 * n - 1}" if s.ring == "lower"
+                     else f"canarm_plate{2 * (n - 1)}")
+            plane = data.site(other).xpos
+            assert tip[2] == pytest.approx(plane[2] - (G.DEFAULT_Y_TIP_Z_OFFSET_M
+                                                       if s.ring == "lower"
+                                                       else -G.DEFAULT_Y_TIP_Z_OFFSET_M),
+                                           abs=_XML_TOL_M)
+            r = math.hypot(tip[0] - centre[0], tip[1] - centre[1])
+            assert r == pytest.approx(G.DEFAULT_Y_TIP_RADIUS_M, abs=_XML_TOL_M)
+            assert r > G.segment_geometry()[n - 1].ja1 + G.DEFAULT_ACTUATOR_RADIUS_M
+            az = round(math.degrees(math.atan2(tip[1], tip[0])), 6) % 360.0
+            (down if s.ring == "lower" else up).append(az)
+        assert sorted(up) == [45.0, 135.0, 225.0, 315.0]
+        assert sorted(down) == [0.0, 90.0, 180.0, 270.0]
+        gap = min(min(abs(a - b) % 360.0, 360.0 - abs(a - b) % 360.0)
+                  for a in up for b in down)
+        assert gap == pytest.approx(45.0)
+
+
+def test_sleeves_hang_clear_of_the_ujoint_disks(model):
+    """No sleeve capsule reaches a u-joint disk, with 1 mm to spare, at rest."""
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    names = [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i) or ""
+             for i in range(model.ngeom)]
+    sleeves = [i for i, n in enumerate(names) if n.endswith("_sleeve")]
+    disks = [i for i, n in enumerate(names)
+             if n.endswith("_plate1_geom") or n.endswith("_plate2_geom")]
+    assert len(sleeves) == 24 and len(disks) == 6
+    worst = np.inf
+    for i in sleeves:
+        c, axis = data.geom_xpos[i], data.geom_xmat[i].reshape(3, 3)[:, 2]
+        radius, half = model.geom_size[i, 0], model.geom_size[i, 1]
+        pts = c[None, :] + np.linspace(-half, half, 101)[:, None] * axis[None, :]
+        for j in disks:
+            dc, dax = data.geom_xpos[j], data.geom_xmat[j].reshape(3, 3)[:, 2]
+            big_r, h = model.geom_size[j, 0], model.geom_size[j, 1]
+            rel = pts - dc[None, :]
+            dz = np.abs(rel @ dax)
+            rho = np.linalg.norm(rel - np.outer(rel @ dax, dax), axis=1)
+            gap = np.hypot(np.maximum(rho - big_r, 0.0), np.maximum(dz - h, 0.0))
+            worst = min(worst, float(gap.min()) - radius)
+    assert worst > 1e-3, f"a sleeve comes within {1e3 * worst:.2f} mm of a disk"
+
+
+# ---------------------------------------------------------------------------
+# 5. Forward kinematics, under the measured composition order
 # ---------------------------------------------------------------------------
 
 def test_rest_pose_reproduces_fkine_ujoint_centres(model):
@@ -395,23 +667,32 @@ def test_joint_names_match_the_compiled_model(model):
 
 
 # ---------------------------------------------------------------------------
-# 5. Masses and tunables
+# 6. Masses and tunables
 # ---------------------------------------------------------------------------
 
+def _body_mass(model, name: str) -> float:
+    return float(model.body_mass[_body(model, name)])
+
+
 def test_masses_are_plausible_and_sourced(model):
-    """Total moving mass in the range the mass model claims, and no free lunch.
+    """Total moving mass is the default mass model's, and no body is massless.
 
     The static base is excluded because it hangs off a mount and enters no
-    equation of motion.  The bounds are wide on purpose: they reject a model
-    that reverted to the display file's 0.32 kg or that gained a decimal place,
-    and they assert nothing finer, because nothing on this arm has been weighed.
+    equation of motion.  CHANGED 2026-09-10, with the routing: the default used
+    to be the RS485 carry-over component model at 1.833 kg, with half of every
+    muscle anchored to a u-joint plate.  On the ProMax the sleeve hangs from a Y
+    that is rigid with the rod, so that split was wrong, and the default is now
+    the Koopman ProMax model's per-segment prior -- links 0.70/0.50/0.50 kg,
+    brackets 0.20/0.20/0.10 kg -- plus the 20 g tip stub, 2.22 kg in all.  The
+    number asserts the model is what the module says; nothing has been weighed.
     """
     base_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "canarm_base")
     moving = float(model.body_mass.sum() - model.body_mass[base_id])
     assert 1.0 < moving < 3.0, f"moving mass {moving:.3f} kg"
-    # 24 muscles at the operator's 30 g are 0.72 kg of the total, of which the
-    # four half-muscles anchored to the static base do not move.
-    assert moving == pytest.approx(1.833, abs=0.02)
+    want = (sum(G.DEFAULT_LINK_MASS_KG) + sum(G.DEFAULT_BRACKET_MASS_KG)
+            + G.DEFAULT_TIP_MASS_KG)
+    assert moving == pytest.approx(want, abs=1e-9)
+    assert moving == pytest.approx(2.22, abs=0.005)
     for body in range(1, model.nbody):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body)
         if name.endswith("_mount"):
@@ -423,7 +704,10 @@ def test_mass_provenance_covers_every_mass_argument():
     """Every mass keyword must have a line saying where its default came from."""
     sig = inspect.signature(G.generate_xml).parameters
     mass_args = [n for n in sig
-                 if n.endswith("_mass") or n.endswith("density")]
+                 if n.endswith("_mass") or n.endswith("_mass_kg")
+                 or n.endswith("density")]
+    assert {"link_mass_kg", "bracket_mass_kg", "y_mass", "hub_mass",
+            "spacer_mass"} <= set(mass_args)
     for name in mass_args:
         key = name if name in G.MASS_PROVENANCE else f"{name}_kg"
         key = key if key in G.MASS_PROVENANCE else f"{name}_kg_m"
@@ -431,15 +715,92 @@ def test_mass_provenance_covers_every_mass_argument():
     assert "MEASURED" in G.MASS_PROVENANCE["actuator_mass_kg"], (
         "the operator's 30 g per actuator is the only measured mass here and "
         "must stay labelled as such")
+    for key in ("link_mass_kg", "bracket_mass_kg"):
+        assert "Koopman" in G.MASS_PROVENANCE[key]
+        assert "NOT measured" in G.MASS_PROVENANCE[key]
 
 
 def test_masses_follow_their_arguments():
-    """Doubling a mass argument must move the model, which proves it is read."""
-    heavy = G.build_model(actuator_mass=0.060, **_KW)
-    light = G.build_model(actuator_mass=0.030, **_KW)
+    """Doubling a component mass must move the component model, which proves it is read.
+
+    Run with both totals set to ``None``, because with a total given a component
+    argument sets a proportion and not a mass -- which the second half pins.
+    """
+    free = dict(link_mass_kg=None, bracket_mass_kg=None, **_KW)
+    heavy = G.build_model(actuator_mass=0.060, **free)
+    light = G.build_model(actuator_mass=0.030, **free)
+    # all 24 sleeves ride link bodies now, so every one of them counts
     assert heavy.body_mass.sum() == pytest.approx(light.body_mass.sum() + 0.72)
-    stiff = G.build_model(link_density=1.0, **_KW)
+    stiff = G.build_model(link_density=1.0, **free)
     assert stiff.body_mass.sum() > light.body_mass.sum() + 0.6
+
+    pinned = G.build_model(**_KW)
+    pinned_heavy = G.build_model(actuator_mass=0.060, **_KW)
+    assert pinned_heavy.body_mass.sum() == pytest.approx(pinned.body_mass.sum())
+    # The sleeve's share of the pinned 0.70 kg rises, but cannot double: the
+    # component link grows from 0.487 to 0.727 kg with it, so the sleeve goes
+    # from 0.030*0.70/0.487 to 0.060*0.70/0.727 kg, a factor of 1.34.
+    span1 = G.segment_geometry()[0].span
+    comp = lambda act: (G.DEFAULT_LINK_DENSITY_KG_M * span1 + 2 * G.DEFAULT_HUB_MASS_KG
+                        + 4 * G.DEFAULT_Y_MASS_KG + 8 * act)
+    for act in (0.030, 0.060):
+        assert _geom_mass(G.generate_xml(actuator_mass=act, **_KW), "canarm_s1_a1_sleeve") \
+            == pytest.approx(act * G.DEFAULT_LINK_MASS_KG[0] / comp(act), rel=1e-9)
+
+
+def test_per_segment_mass_totals_are_honoured():
+    """``link_mass_kg`` and ``bracket_mass_kg`` land on the bodies they name.
+
+    Three forms (tuple, one number, ``None``), the default, the proportional
+    spread, and a refusal of a malformed total.
+    """
+    links, brackets = (0.9, 0.6, 0.4), (0.3, 0.25, 0.15)
+    m = G.build_model(link_mass_kg=links, bracket_mass_kg=brackets, **_KW)
+    for n in (1, 2, 3):
+        assert _body_mass(m, f"canarm_seg{n}_link") == pytest.approx(links[n - 1], abs=1e-9)
+        tip = G.DEFAULT_TIP_MASS_KG if n == 3 else 0.0
+        assert _body_mass(m, f"canarm_seg{n}_plate2") == \
+            pytest.approx(brackets[n - 1] + tip, abs=1e-9)
+
+    one = G.build_model(link_mass_kg=0.55, bracket_mass_kg=0.2, **_KW)
+    for n in (1, 2, 3):
+        assert _body_mass(one, f"canarm_seg{n}_link") == pytest.approx(0.55, abs=1e-9)
+
+    default = G.build_model(**_KW)
+    for n in (1, 2, 3):
+        assert _body_mass(default, f"canarm_seg{n}_link") == \
+            pytest.approx(G.DEFAULT_LINK_MASS_KG[n - 1], abs=1e-9)
+
+    geo = G.segment_geometry()
+    comp = [G.DEFAULT_LINK_DENSITY_KG_M * g.span + 2 * G.DEFAULT_HUB_MASS_KG
+            + 4 * G.DEFAULT_Y_MASS_KG + 8 * G.DEFAULT_ACTUATOR_MASS_KG for g in geo]
+    free = G.build_model(link_mass_kg=None, bracket_mass_kg=None, **_KW)
+    for n in (1, 2, 3):
+        assert _body_mass(free, f"canarm_seg{n}_link") == pytest.approx(comp[n - 1], abs=1e-9)
+    # the spread is proportional: a sleeve keeps its share of the component link
+    pinned_xml = G.generate_xml(link_mass_kg=links, bracket_mass_kg=brackets, **_KW)
+    free_xml = G.generate_xml(link_mass_kg=None, bracket_mass_kg=None, **_KW)
+    assert _geom_mass(pinned_xml, "canarm_s1_a1_sleeve") == pytest.approx(
+        G.DEFAULT_ACTUATOR_MASS_KG * links[0] / comp[0], rel=1e-9)
+    assert _geom_mass(free_xml, "canarm_s1_a1_sleeve") == pytest.approx(
+        G.DEFAULT_ACTUATOR_MASS_KG, rel=1e-9)
+
+    with pytest.raises(ValueError):
+        G.generate_xml(link_mass_kg=(0.5, 0.5), **_KW)
+    with pytest.raises(ValueError):
+        G.generate_xml(bracket_mass_kg=-0.1, **_KW)
+
+
+def test_mass_and_drawing_tunables_reach_the_model_through_simarm():
+    """``SimArm(**mjcf_tunables)`` is the seam a fitted mass model arrives through."""
+    from digital_twin import sim_core as sc
+
+    arm = sc.SimArm(actuator=sc.placeholder_actuator(),
+                    link_mass_kg=(0.8, 0.6, 0.45), bracket_mass_kg=0.25,
+                    y_tip_radius=0.09)
+    assert _body_mass(arm.model, "canarm_seg1_link") == pytest.approx(0.8, abs=1e-9)
+    assert _body_mass(arm.model, "canarm_seg2_plate2") == pytest.approx(0.25, abs=1e-9)
+    assert "y_tip_radius=0.09" in arm.xml
 
 
 def test_dissipation_tunables_are_arguments_and_propagate():
@@ -462,10 +823,17 @@ def test_dissipation_tunables_are_arguments_and_propagate():
 
 
 def test_every_contracted_tunable_is_a_named_keyword():
-    """``CONTRACT.md`` section 3 names these; none may become a module constant."""
+    """``CONTRACT.md`` section 3 names these; none may become a module constant.
+
+    The per-segment mass totals and the three drawing tunables joined the list
+    on 2026-09-10, because a fit drives the first and a figure estimated the
+    second.
+    """
     sig = inspect.signature(G.generate_xml).parameters
     for name in ("joint_damping", "joint_frictionloss", "tendon_damping",
-                 "link_density", "plate_mass", "base_pos", "base_rpy_deg"):
+                 "link_density", "plate_mass", "base_pos", "base_rpy_deg",
+                 "link_mass_kg", "bracket_mass_kg", "y_tip_radius",
+                 "y_tip_z_offset", "actuator_radius"):
         assert name in sig, name
         assert sig[name].default is not inspect.Parameter.empty, name
         assert sig[name].kind is inspect.Parameter.KEYWORD_ONLY, name
@@ -479,7 +847,7 @@ def test_base_pose_moves_the_whole_arm():
 
 
 # ---------------------------------------------------------------------------
-# 6. Seams and guards
+# 7. Seams and guards
 # ---------------------------------------------------------------------------
 
 def test_build_model_accepts_a_handed_in_scene():
@@ -490,10 +858,13 @@ def test_build_model_accepts_a_handed_in_scene():
 
 
 def test_generated_xml_names_the_parameters_it_was_built_with():
-    xml = G.generate_xml(joint_damping=0.031, actuator_mass=0.042, **_KW)
+    xml = G.generate_xml(joint_damping=0.031, actuator_mass=0.042,
+                         link_mass_kg=(0.7, 0.5, 0.45), **_KW)
     assert "joint_damping=0.031" in xml
     assert "actuator_mass=0.042" in xml
+    assert "link_mass_kg=(0.7, 0.5, 0.45)" in xml
     assert "proximal_order=yx" in xml
+    assert "routing=promax_bearing" in xml
 
 
 def test_generate_scene_writes_a_file(tmp_path):
@@ -502,13 +873,28 @@ def test_generate_scene_writes_a_file(tmp_path):
     mujoco.MjModel.from_xml_string(out.read_text(encoding="utf-8"))
 
 
-def test_tendon_rest_lengths_are_finite_and_ordered(model):
+def test_tendon_rest_lengths_are_the_rigid_span_plus_the_bearing_span(model, seats):
+    """Rest lengths are the rigid sleeve span plus the closed-form bearing span.
+
+    CHANGED 2026-09-10.  This used to assert ``lengths.std() > 1e-3`` so that a
+    model which lost a ring would show up.  Under the ProMax bearing routing the
+    eight muscles of a segment are symmetric by construction and the segments
+    differ only through ``LL``, so the 24 lengths span 1.3 mm and a spread test
+    would be testing ``LL``.  Which hub and which body each tendon routes through
+    -- the ring distinction -- is pinned by
+    ``test_each_tendon_runs_actuator_end_then_bearing_then_bracket``; what is
+    asserted here is the length itself.
+    """
     lengths = G.tendon_rest_lengths(model)
     assert lengths.shape == (24,)
     assert np.all(np.isfinite(lengths)) and np.all(lengths > 0.05)
-    # Lower and upper muscles span different parts of the segment, so a model
-    # whose 24 lengths were all identical would have lost a ring.
-    assert lengths.std() > 1e-3
+    for k, s in enumerate(seats):
+        _g, aa, ja, ao = _ring_numbers(s)
+        n = G.routing_site_names(s)
+        end = model.site_pos[_id(model, mujoco.mjtObj.mjOBJ_SITE, n["end"])]
+        brg = model.site_pos[_id(model, mujoco.mjtObj.mjOBJ_SITE, n["brg"])]
+        assert lengths[k] == pytest.approx(
+            float(np.linalg.norm(brg - end)) + math.hypot(ja - ao, aa), abs=_XML_TOL_M)
 
 
 def test_fitted_params_is_a_writable_copy():
@@ -516,6 +902,14 @@ def test_fitted_params_is_a_writable_copy():
     a[0, 0] = 99.0
     assert b[0, 0] != 99.0
     assert a.shape == (3, 10)
+
+
+def test_params_from_chain_reproduces_the_measured_table():
+    """The display draws from the chain; for the measured chain it is this table."""
+    from UMArm_KINEMATICS import canarm_params as cp
+
+    assert np.allclose(G.params_from_chain(cp.CANARM_PLATE_CHAIN_M),
+                       cp.CANARM_PARAMS, atol=1e-15)
 
 
 def test_a_half_populated_map_is_refused():
