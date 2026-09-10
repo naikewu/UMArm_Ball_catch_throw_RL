@@ -774,6 +774,54 @@ def test_the_default_arm_builds_against_the_real_generator_and_model():
     assert (arm.data.ctrl[arm._act_ids] <= 0.0).all()
 
 
+def test_q_is_kinematics_order_and_a_proximal_pull_moves_its_own_column():
+    """``SimArm.q()`` is ``q``, not ``qpos``, and the physics agrees with the label.
+
+    Two halves, because each half alone was satisfied by a wrong twin on
+    2026-09-10.  ``q()`` returned raw ``qpos`` and ``replay`` recorded it as
+    ``q``, so the twin's column 0 was the proximal *y* hinge; commit ``a35f94a``
+    then rotated the proximal seats 90 deg until the columns lined up, and every
+    proximal muscle tilted its link about the wrong world axis.  A read test alone
+    would pass on a twin with both errors, and a correlation against the arm
+    passed on it.  So the read must map a known ``qpos`` back to its ``q``, AND 5 N
+    of pull on each proximal joint's positive muscle must move that joint's own
+    column positive while the other column of the same u-joint moves by less
+    than a tenth as much.  Gravity stays on, so the pull settles into a
+    deflection rather than a run to the joint limit, and the mean over half a
+    second is used because the undamped swing crosses its start once a period.
+    """
+    import mujoco
+
+    from digital_twin import mjcf_generator as MG
+    from UMArm_KINEMATICS import canarm_actuators as CA
+
+    arm = sc.SimArm()
+    assert arm.q_order == "q"
+    q_known = np.linspace(-0.3, 0.3, 12)
+    with arm.lock:
+        arm.data.qpos[:] = MG.q_to_qpos(q_known)
+    np.testing.assert_array_equal(arm.q(), q_known)
+
+    pairs = CA.joint_pairs()
+    for joint in (0, 1, 4, 5, 8, 9):
+        act = mujoco.mj_name2id(arm.model, mujoco.mjtObj.mjOBJ_ACTUATOR,
+                                f"pam_{pairs[joint][0] - 0x100}")
+        mujoco.mj_resetData(arm.model, arm.data)
+        mean_q = np.zeros(12)
+        steps = 500
+        for _ in range(steps):
+            arm.data.ctrl[:] = 0.0
+            arm.data.ctrl[act] = -5.0
+            mujoco.mj_step(arm.model, arm.data)
+            mean_q += arm.q() / steps
+        other = joint + 1 if joint % 4 == 0 else joint - 1
+        assert mean_q[joint] > 0.0, (
+            f"a pull on joint {joint}'s positive muscle moved it {mean_q[joint]:+.4f} rad")
+        assert abs(mean_q[other]) < 0.1 * mean_q[joint], (
+            f"a pull on joint {joint}'s positive muscle moved joint {other} "
+            f"{mean_q[other]:+.4f} rad against its own {mean_q[joint]:+.4f} rad")
+
+
 def test_the_bring_up_stand_ins_still_build_a_working_arm():
     """The fallback path, kept alive on purpose.
 

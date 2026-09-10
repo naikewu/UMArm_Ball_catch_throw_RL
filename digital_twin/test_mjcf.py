@@ -236,23 +236,18 @@ def test_segment_one_is_not_the_legacy_table(seats):
 def _ujoint_dofs(joint: int):
     """The two qpos indices belonging to ``joint``'s own universal joint.
 
-    Which of the two a given muscle drives is **not** settled by the closed
-    form.  Both this file and the seat table derived it from "axis 0 is t1
-    about +x", and both were consistently wrong: rolling the fitted twin
-    against the real arm on 2026-09-10 produced a cross-correlation matrix
-    that was a permutation with three transpositions, all of them the
-    proximal universal joint (the twin's j0 tracked the arm's j1 at +0.93 and
-    vice versa at +0.97, likewise j4/j5 and j8/j9, while every distal joint sat
-    on its own diagonal at +0.93 to +0.98). Swapping the proximal seat
-    azimuths took the mean per-joint correlation from 0.402 to 0.882.
+    The weaker of the two axis claims, kept because a failure here separates
+    "wrong u-joint" from "wrong axis of the right u-joint".  Which axis is
+    asserted exactly by
+    :func:`test_each_muscle_drives_the_hinge_its_measured_joint_lives_on`.
 
-    A self-consistent derivation cannot catch that, so these tests no longer
-    assert it.  What they do assert is everything the geometry *does* pin: the
-    muscle drives one axis and only one, that axis belongs to its own universal
-    joint and no other, the two members of a pair oppose each other, and the
-    four muscles of a ring cover both of its axes.  The axis assignment itself
-    is pinned by `digital_twin.mjcf_generator.LOWER_SEAT_DEG`'s recorded
-    measurement, and re-deriving it needs the arm.
+    An earlier version of this docstring said the closed form ("axis 0 is t1
+    about +x") had been proven wrong by the arm.  It had not.  The 2026-09-10
+    permutation between the twin's joints and the arm's (j0<->j1, j4<->j5,
+    j8<->j9) came from ``SimArm.q()`` returning ``qpos`` as ``q``; rotating the
+    proximal seats 90 deg hid it and put every proximal muscle on the wrong
+    world axis.  Both are undone, and the evidence is written out under
+    ``mjcf_generator.LOWER_SEAT_DEG``.
     """
     base = (joint // 4) * 4
     return (G.QPOS_FROM_Q[base + (joint % 4)],
@@ -315,6 +310,52 @@ def test_at_rest_a_pure_seat_has_exactly_one_moment_arm(model, seats):
             f"pam_{seat.index} has a {others.max():.3g} m/rad cross arm at rest")
 
 
+def test_each_muscle_drives_the_hinge_its_measured_joint_lives_on(model, seats):
+    """The axis assignment itself: ``qpos[QPOS_FROM_Q[joint]]``, with the map's sign.
+
+    ``_ujoint_dofs`` stops at "one of its own u-joint's two axes", and that
+    tolerance is what let a 90 deg rotation of every proximal seat survive from
+    commit ``a35f94a`` until 2026-09-10.  The rotation hid a read error --
+    ``SimArm.q()`` returned ``qpos`` as ``q`` -- and both are now fixed, so the
+    assignment is asserted exactly: at ``q = 0`` each muscle's largest moment
+    arm is on the hinge that carries its measured joint, and increasing that
+    joint shortens the positive board's tendon (``d(len)/dq < 0``).  ``q[j]``
+    lives at ``qpos[QPOS_FROM_Q[j]]`` because the plate sites reproduce
+    ``fkine(order="yx")`` under :func:`mjcf_generator.q_to_qpos` to 4.4e-16 m,
+    so this pins a physical axis and not a naming convention.
+    """
+    data = mujoco.MjData(model)
+    arms = _tendon_moments(model, data, np.zeros(model.nq))
+    names = G.joint_names()
+    for k, seat in enumerate(seats):
+        dof = int(np.argmax(np.abs(arms[k])))
+        want = G.QPOS_FROM_Q[seat.joint]
+        assert dof == want, (
+            f"pam_{seat.index} (board 0x{seat.board:03X}) drives {names[dof]}; "
+            f"its measured joint q{seat.joint} lives on {names[want]}")
+        assert math.copysign(1.0, arms[k, dof]) == -seat.sign, (
+            f"pam_{seat.index} drives q{seat.joint} the wrong way: "
+            f"d(len)/dq = {arms[k, dof]:+.6g} m/rad for sign {seat.sign:+d}")
+
+
+def test_the_a35f94a_seat_rotation_fails_the_axis_test(monkeypatch):
+    """Teeth: the proximal table that shipped from ``a35f94a`` fails on all 12.
+
+    That table scored 11.746 deg of held-out joint RMS against 9.691 deg for
+    the closed form (same flow net, same outer fit, bearing routing), so a test
+    that let it back in would be letting back 2 deg of error.
+    """
+    monkeypatch.setattr(G, "LOWER_SEAT_DEG",
+                        {(0, +1): 180.0, (0, -1): 0.0, (1, +1): 90.0, (1, -1): 270.0})
+    swapped = G.actuator_seats()
+    model = G.build_model(seats=swapped, **_KW)
+    data = mujoco.MjData(model)
+    arms = _tendon_moments(model, data, np.zeros(model.nq))
+    wrong = [s.index for k, s in enumerate(swapped) if s.ring == "lower"
+             and int(np.argmax(np.abs(arms[k]))) != G.QPOS_FROM_Q[s.joint]]
+    assert len(wrong) == 12, f"only {len(wrong)} of 12 proximal muscles fail: {wrong}"
+
+
 def test_a_pair_opposes_and_a_ring_covers_both_axes(model, seats):
     """The two properties the axis assignment cannot hide behind.
 
@@ -368,10 +409,11 @@ def test_pulling_one_muscle_torques_the_joint_the_map_claims(model, seats):
         tau = np.array(data.qfrc_actuator)
         own_pair = _ujoint_dofs(seat.joint)
         dof = int(own_pair[int(np.argmax(np.abs(tau[list(own_pair)])))])
-        # Which of the joint's two axes is settled by measurement, not here --
-        # see _ujoint_dofs.  What this closes the loop on is that a commanded
-        # newton becomes a generalised torque on this muscle's OWN universal
-        # joint and nowhere else.
+        # Which of the joint's two axes is asserted exactly by
+        # test_each_muscle_drives_the_hinge_its_measured_joint_lives_on.  What
+        # this closes the loop on is that a commanded newton becomes a
+        # generalised torque on this muscle's OWN universal joint and nowhere
+        # else.
         assert abs(tau[dof]) == pytest.approx(np.abs(tau).max())
         assert dof in own_pair
 

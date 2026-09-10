@@ -271,6 +271,36 @@ def test_moment_arm_geometry_follows_the_measured_actuator_map():
     assert np.allclose(d[others], 0.0)
 
 
+def test_tendon_kinematics_writes_q_to_the_hinges_by_name():
+    """``dlen`` takes ``q`` in kinematics order; the proximal pair is not swapped.
+
+    Until 2026-09-10 ``dlen`` wrote ``q`` straight into ``qpos``, which on this
+    arm is declared y-then-x, so a proximal muscle's ``l`` came from the other
+    axis of its u-joint.  Tilting one proximal joint alone by 0.05 rad must
+    shorten its positive muscle and lengthen its negative one, in the measured
+    sense, and move the other pair of that u-joint by less than a tenth as much.
+    """
+    geo = ds.TendonKinematics.auto()
+    if getattr(geo, "is_placeholder", True):
+        pytest.skip("digital_twin.mjcf_generator emits no tendons yet")
+    from UMArm_KINEMATICS import canarm_actuators as CA
+
+    assert geo.q_qposadr is not None, "the twin's hinges were not found by name"
+    pairs = CA.joint_pairs()
+    for joint in (0, 1, 4, 5, 8, 9):
+        q = np.zeros((1, 12))
+        q[0, joint] = 0.05
+        d = geo.dlen(q)[0]
+        pos, neg = pairs[joint]
+        assert d[pos - 0x101] < 0.0 < d[neg - 0x101], (joint, d[pos - 0x101], d[neg - 0x101])
+        other = joint + 1 if joint % 4 == 0 else joint - 1
+        own = abs(d[pos - 0x101])
+        for board in pairs[other]:
+            assert abs(d[board - 0x101]) < 0.1 * own, (
+                f"tilting joint {joint} moved board 0x{board:03X} of joint {other} "
+                f"{d[board - 0x101] * 1e3:+.3f} mm against its own {own * 1e3:.3f} mm")
+
+
 def test_tendon_auto_reports_whether_it_is_the_placeholder():
     """A fit made without the twin's real tendons must say so on its own face."""
     geo = ds.TendonKinematics.auto()

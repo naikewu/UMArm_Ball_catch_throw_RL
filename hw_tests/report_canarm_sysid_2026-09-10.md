@@ -155,6 +155,17 @@ assignment from the same closed form the table used, so table and tests were
 consistently wrong and neither could catch it. They now assert what the geometry
 pins and nothing more.
 
+> **Erratum, later on 2026-09-10.** The permutation above was real, but the seat
+> table did not cause it. `SimArm.q()` returned `qpos` as `q`, so the twin's
+> column 0 was the proximal *y* hinge. Swapping the proximal azimuths lined the
+> columns up by putting every proximal muscle on the wrong world axis: 0 of the
+> 12 drove the hinge their measured joint lives on. The seats are back to the
+> closed form, and `q()` and `dataset.TendonKinematics.dlen` now read the hinges
+> by name. On the same held-out sequence, with the same flow net and outer fit on
+> the bearing routing, that change alone took the twin from 11.746 to 9.691 deg
+> joint RMS and the mean per-joint correlation from +0.737 to +0.838. See
+> `hw_tests/report_canarm_twin_refine_2026-09-10.md`.
+
 ## 9. The twin, scored open loop on the held-out sequence
 
 90 s, 13 501 cycles, a signal family and a seed the fit never saw. The twin is

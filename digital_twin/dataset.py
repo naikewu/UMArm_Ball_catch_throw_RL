@@ -688,6 +688,24 @@ class TendonKinematics:
             len0.append(float(self.model.tendon_length0[t]))
         self.ten_ids = np.asarray(ten, dtype=np.int32)
         self.len0 = np.asarray(len0, dtype=np.float64)
+        #: ``(12,)`` qpos address of ``q[i]``, resolved by hinge name, or
+        #: ``None`` when the scene lacks the CAN arm's names.  See :meth:`dlen`.
+        self.q_qposadr = None
+        try:
+            from . import mjcf_generator as _mg
+        except ImportError:  # pragma: no cover
+            _mg = None
+        if _mg is not None:
+            names = _mg.joint_names()
+            found = []
+            for i in range(len(_mg.QPOS_FROM_Q)):
+                j = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT,
+                                      names[_mg.QPOS_FROM_Q[i]])
+                if j < 0:
+                    break
+                found.append(int(self.model.jnt_qposadr[j]))
+            else:
+                self.q_qposadr = np.asarray(found, dtype=np.int64)
 
     @classmethod
     def auto(cls, *, xml: str | None = None, allow_placeholder: bool = True,
@@ -721,11 +739,25 @@ class TendonKinematics:
             return MomentArmTendonGeometry(ring_radius_m=ring_radius_m)
 
     def dlen(self, q: np.ndarray) -> np.ndarray:
+        """``(N, 24)`` excursion from ``(N, 12)`` joint angles in ``q`` order.
+
+        ``q`` is written to the hinges by NAME.  Until 2026-09-10 it was written
+        straight into ``qpos``, which on this arm swaps each proximal pair
+        (``mjcf_generator.QPOS_FROM_Q``), so the twelve proximal muscles' ``l``
+        and ``ldot`` came from the other axis of their u-joint.  The flow
+        checkpoint of 2026-09-10 was trained on those features; its held-out
+        pressure RMS under the corrected ones is recorded in
+        ``hw_tests/report_canarm_twin_refine_2026-09-10.md``.
+        """
         q = np.atleast_2d(np.asarray(q, dtype=np.float64))
         nq = self.model.nq
+        adr = self.q_qposadr
         out = np.empty((q.shape[0], self.n_nodes), dtype=np.float64)
         for i in range(q.shape[0]):
-            self.data.qpos[:nq] = q[i, :nq]
+            if adr is None:
+                self.data.qpos[:nq] = q[i, :nq]
+            else:
+                self.data.qpos[adr] = q[i, :adr.size]
             self._mj.mj_kinematics(self.model, self.data)
             self._mj.mj_comPos(self.model, self.data)
             self._mj.mj_tendon(self.model, self.data)

@@ -1300,6 +1300,7 @@ class SimArm:
         self.node_hook = node_hook
 
         self._bind_actuators()
+        self._bind_joints()
         self._build_nodes(ids, absent, faults, tle_adc, seven_mm_adc,
                           tle_tuning, seven_mm_tuning, supply_psi, leak_fault_pa_s)
 
@@ -1343,6 +1344,47 @@ class SimArm:
         #: Captured before any pressure-scheduled overwrite.
         self._tendon_damping_base = np.array(
             self.model.tendon_damping[self._ten_ids], dtype=float)
+
+    def _bind_joints(self) -> None:
+        """Resolve the twelve CAN-arm hinges by NAME, in ``q`` order.
+
+        ``q`` is ``UMArm_KINEMATICS`` order and ``qpos`` is MuJoCo declaration
+        order, and on this arm they differ: the proximal pair is declared
+        y-then-x (``mjcf_generator.PROXIMAL_ORDER``, measured 2026-08-21), so
+        ``qpos`` swaps 0/1, 4/5 and 8/9.  Until 2026-09-10 :meth:`q` returned
+        ``data.qpos`` raw and ``replay`` recorded it as ``q``, so the twin's
+        column 0 was the y hinge.  Commit ``a35f94a`` then rotated the proximal
+        seats 90 deg until the columns lined up, and every proximal muscle tilted
+        its link about the wrong world axis -- 2.06 deg of held-out joint RMS and
+        0.10 of mean per-joint correlation (``mjcf_generator.LOWER_SEAT_DEG``).
+
+        By name rather than by permutation, for the reason the actuators are: a
+        merged room puts other robots' hinges in the same model.  A scene that
+        does not carry the twelve names -- ``placeholder_xml`` declares its own
+        ``q0..q11`` -- keeps the raw first twelve ``qpos``, and :attr:`q_order`
+        says which of the two a caller is getting.
+        """
+        mj = self._mujoco
+        adr = None
+        try:
+            from . import mjcf_generator as MG
+            names = MG.joint_names()
+            found = []
+            for i in range(len(MG.QPOS_FROM_Q)):
+                jid = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_JOINT,
+                                    names[MG.QPOS_FROM_Q[i]])
+                if jid < 0:
+                    break
+                found.append(int(self.model.jnt_qposadr[jid]))
+            else:
+                adr = np.asarray(found, dtype=int)
+        except ImportError:                          # pragma: no cover
+            adr = None
+        #: ``(12,)`` qpos address of ``q[i]``, or ``None`` for the raw fallback.
+        self._q_qposadr = adr
+        #: ``"q"`` when :meth:`q` maps the named hinges, ``"qpos"`` when the
+        #: scene lacks them and :meth:`q` returns declaration order.
+        self.q_order = "q" if adr is not None else "qpos"
 
     def _build_nodes(self, ids, absent, faults, tle_adc, seven_mm_adc,
                      tle_tuning, seven_mm_tuning, supply_psi,
@@ -1534,8 +1576,17 @@ class SimArm:
         return 0.0 if node is None else node.p_pa / PA_PER_PSI
 
     def q(self) -> np.ndarray:
+        """The joint angles in ``UMArm_KINEMATICS`` order, rad -- ``q``, not ``qpos``.
+
+        Every consumer compares this against a recording's ``q`` or feeds it to
+        ``fkine``, so it is mapped by hinge name (:meth:`_bind_joints`).  Only a
+        scene without the CAN arm's hinge names returns raw ``qpos``, and
+        :attr:`q_order` then reads ``"qpos"``.
+        """
         with self.lock:
-            return np.array(self.data.qpos, dtype=float)
+            if self._q_qposadr is None:
+                return np.array(self.data.qpos, dtype=float)
+            return np.array(self.data.qpos[self._q_qposadr], dtype=float)
 
     def body_pose(self, name: str):
         mj = self._mujoco

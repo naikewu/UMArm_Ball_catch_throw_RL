@@ -125,8 +125,10 @@ law fitted on the old routing is mostly mis-scaled on the new one, not
 mis-shaped.  Both routings put the link-side point on the link
 side of the joint plane at the seat azimuth, so ``p x b`` has the same sign in
 each: **every muscle pulls its joint the same way under both**, and
-:data:`LOWER_SEAT_DEG`/:data:`UPPER_SEAT_DEG` (corrected against the real arm by
-cross-correlation on 2026-09-10) carry over unchanged.
+:data:`LOWER_SEAT_DEG`/:data:`UPPER_SEAT_DEG` carry over unchanged.  (The
+proximal table's own 2026-09-10 history -- swapped by ``a35f94a`` to hide a
+``qpos``-as-``q`` read, and swapped back once the read was fixed -- is written
+out under :data:`LOWER_SEAT_DEG`.)
 
 ------------------------------------------------------------------------------
 THE SEAT TABLE IS COMPUTED RATHER THAN TYPED
@@ -268,31 +270,46 @@ BASE_CAN_ID = 0x100
 #: one axis and only one.  These are also the azimuths of the two **upside-down
 #: Ys** whose tips carry these four actuators.
 #:
-#: **The pairing was measured, and it is not the one the closed form suggests.**
-#: A muscle at ring azimuth ``th`` pulling along -z has moment ``(-F r sin th,
-#: +F r cos th, 0)``, so 90 deg is pure about +x and 180 deg pure about +y, and
-#: the obvious assignment gives axis 0 (``t1``, about +x) the 90/270 pair.  That
-#: is what this table held until 2026-09-10, and rolling the fitted twin against
-#: the real arm showed it was wrong: the cross-correlation of the twin's twelve
-#: joints against the arm's came out as a **permutation matrix with three
-#: transpositions** -- the twin's ``j0`` tracked the arm's ``j1`` at +0.93 and
-#: its ``j1`` tracked the arm's ``j0`` at +0.97, the same for ``j4/j5`` (+0.94,
-#: +0.89) and ``j8/j9`` (+0.98, +0.97), while every distal joint sat on its own
-#: diagonal at +0.93 to +0.98.  Three swaps, all of them the **proximal**
-#: universal joint, none of them distal.
+#: **This is the closed form, and it is the physical assignment.**  A muscle at
+#: ring azimuth ``th`` pulling along -z has moment ``(-F r sin th, +F r cos th,
+#: 0)``, so 90 deg is pure about +x and 180 deg pure about +y: axis 0 (``t1``,
+#: about +x, hinge ``uj*_x`` at ``qpos[QPOS_FROM_Q[0]] = qpos[1]``) takes the
+#: 90/270 pair and axis 1 (``t2``, about +y) the 180/0 pair.  On the compiled
+#: model all 12 proximal muscles drive the hinge their measured joint lives on,
+#: with the measured sign, at the 43.104 mm closed-form arm
+#: (``test_mjcf.test_each_muscle_drives_the_hinge_its_measured_joint_lives_on``).
 #:
-#: That is the signature of a q-index against a qpos-index, and it is confined
-#: to the proximal joint because the proximal joint is the only one that is
-#: reordered: this arm's chain composes it y-then-x (:data:`PROXIMAL_ORDER`,
-#: measured 2026-08-21, which took `fkine`'s held-out error from 4.64 mm to
-#: 1.99 mm), so :data:`QPOS_FROM_Q` swaps 0/1, 4/5 and 8/9 -- and the seat table
-#: was assigning by ``q`` index while the hinge it reached was the first
-#: declared one.  Swapping the two azimuth pairs took the mean per-joint
-#: correlation from **0.402 to 0.882** with every joint positive.
+#: HISTORY, BECAUSE THIS TABLE WAS ONCE "CORRECTED" THE WRONG WAY.  Commit
+#: ``a35f94a`` swapped the two pairs to ``{(0,+1): 180, (0,-1): 0, (1,+1): 90,
+#: (1,-1): 270}`` after rolling the twin against the arm gave a cross-correlation
+#: matrix that was a permutation with three transpositions, all of them proximal
+#: (the twin's ``j0`` tracked the arm's ``j1`` at +0.93, and so on).  The
+#: permutation was real, but its cause was the read, not the seats:
+#: ``sim_core.SimArm.q()`` returned ``data.qpos`` raw and ``replay`` recorded it
+#: as ``q``, so the twin's column 0 was the *y* hinge, which the 90/270 muscles
+#: do not move.  Rotating the proximal muscles 90 deg made the columns line up
+#: while every proximal muscle tilted its link about the wrong world axis; under
+#: that table 0 of the 12 drove their measured hinge.  The cost is not cosmetic.
+#: The distal u-joint's axes sit at +-45 deg, and a parent tilt about x loads
+#: them with gravity as ``(-, +)`` where a tilt about y loads them as ``(-, -)``,
+#: so one distal axis per segment was pushed by gravity the wrong way whenever
+#: its proximal joint moved.  Measured on the 90 s held-out validation sequence
+#: with the same flow net and outer fit on the bearing routing (fit agent,
+#: 2026-09-10):
 #:
-#: The distal table below needs no such correction, and that asymmetry is the
-#: evidence: a mistake in the shared derivation would have moved both.
-LOWER_SEAT_DEG = {(0, +1): 180.0, (0, -1): 0.0, (1, +1): 90.0, (1, -1): 270.0}
+#: ===============================  =========  =====  ==============================
+#: seats / read                     joint RMS  nrmse  mean corr (seg 1 / 2 / 3)
+#: ===============================  =========  =====  ==============================
+#: a35f94a table, raw ``qpos``      11.746 deg 1.045  +0.737 (+0.836 / +0.888 / +0.485)
+#: this table, ``q`` by hinge name   9.691 deg 0.869  +0.838 (+0.960 / +0.945 / +0.610)
+#: this table, raw ``qpos``         14.314 deg 1.312  +0.392 (the original permutation)
+#: ===============================  =========  =====  ==============================
+#:
+#: The third row reproduces the transpositions exactly, which is what shows the
+#: read was the cause.  ``SimArm.q()`` and ``dataset.TendonKinematics.dlen`` now
+#: resolve the hinges by name in ``q`` order, so a seat table and a read can no
+#: longer cancel each other's error without a test noticing.
+LOWER_SEAT_DEG = {(0, +1): 90.0, (0, -1): 270.0, (1, +1): 180.0, (1, -1): 0.0}
 
 #: The same for an **upper** muscle, which spans a distal universal joint whose
 #: axes are the 45-degree bracket vectors ``(x+y)/sqrt2`` (axis 2 = ``t3``) and
