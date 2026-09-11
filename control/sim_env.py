@@ -109,7 +109,7 @@ class ControlEnv:
         # that count before transmission and assert the decoded wire target.
         wire = np.array([float(counts_to_pa(c, v)) for c, v in zip(counts, self.variants)])
         for a, b in self.envelope.pair_idx:
-            while wire[a] + wire[b] > 30 * PA_PER_PSI + 1e-9:
+            while max(wire[a], 0) + max(wire[b], 0) > 30 * PA_PER_PSI + 1e-9:
                 j = a if wire[a] >= wire[b] else b
                 counts[j] -= 1
                 wire[j] = float(counts_to_pa(counts[j], self.variants[j]))

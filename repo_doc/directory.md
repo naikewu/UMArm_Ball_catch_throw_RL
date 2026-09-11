@@ -130,4 +130,11 @@ segment masses, and a SIM adapter in the operator GUI. Start at
 - `C:\ESP\ESP_Projects\VNEMA_MK8_PIDPWM` (legacy firmware + portable bundle origin; NEVER recursive-copy — 191 GB CSV inside)
 - `C:\RUNZE_SRC\RS485_VEMA` (mocap/Kinova/twin origin; other agents work there — read-only)
 - `C:\RUNZE_SRC\UMArm_dynamic_koopman_compliance` (Koopman controller). Its `runze_trying_MPC/real_system_fitting _experiment/mujoco_fit/generator.py` + `runze_trying_MPC/robot_config.py` config `original` are the ProMax MuJoCo the twin's hub routing and mass prior were checked against — read-only
-`n## Dynamic controllers (2026-09-11)`n`n- `control/CONTRACT.md` — controller APIs, units, measured actuator order, sensor assumptions and benchmark boundaries.`n- `control/sim_env.py` — deterministic fitted-twin experiments: 150 Hz commands, 240 Hz sampled mocap with explicit noise/delay, separate truth and observations, ADC quantization envelope guard, and seeded plant perturbations.`n- `control/test_sim_env.py` — causality, command-edge count, repeatability, pressure-cap and fitted scalar/batched-flow checks.
+
+## Dynamic controllers (2026-09-11)
+
+- `control/CONTRACT.md` — controller APIs, units, measured actuator order, sensor assumptions and benchmark boundaries.
+- `control/sim_env.py` — deterministic fitted-twin experiments: 150 Hz commands, 240 Hz sampled mocap with explicit noise/delay, separate truth and observations, ADC quantization envelope guard, and seeded plant perturbations.
+- `control/test_sim_env.py` — causality, command-edge count, repeatability, pressure-cap and fitted scalar/batched-flow checks.
+- `control/trajectory.py`, `control/assets/soft_reference.json` — measured ProMax tip FK/Jacobian/IK and the versioned RS485 cursive glyph scaled by the measured reach ratio, with C2 entrance and speed ramps; `test_trajectory.py` verifies geometry and derivatives.
+- `control/benchmark.py`, `control/tune.py` — common-clock noisy-twin controller comparison and a separate joint multisine used to select gains; traces retain observed state, truth, commands, target, writing mask and measured computation times.

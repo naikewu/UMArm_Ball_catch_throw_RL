@@ -41,6 +41,10 @@ def test_pressure_caps_are_enforced_before_and_after_adc_quantization():
     env.step(np.full(24, 15 * PA_PER_PSI))
     env.envelope.assert_safe(env.last_targets_pa / PA_PER_PSI)
     assert all(n.sync_count == 1 for n in env.arm.nodes.values())
+    p = np.zeros(24)
+    p[8] = 30 * PA_PER_PSI
+    env.step(p)
+    env.envelope.assert_safe(np.maximum(env.last_targets_pa, 0) / PA_PER_PSI)
 
 
 def test_batched_fitted_flow_preserves_the_plant():

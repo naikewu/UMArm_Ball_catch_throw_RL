@@ -64,3 +64,5 @@
   - **Open.** The window does not enforce CONTRACT.md section 8 on either adapter (bars reach 40 psi, no pair-sum check) — found, and deliberately left identical on both rather than guarded for SIM alone. The masses are the model's, not a scale's: weigh one link body with its sleeves and one connector, and measure segment 3's passive stiffness vented. `2606.29731v1.pdf` is left untracked (6.7 MB).
 
 - 2026-09-11 01:16 — Started the ProMax dynamic-controller implementation, established control/CONTRACT.md and a deterministic 150 Hz CAN / delayed noisy 240 Hz mocap experiment environment, and verified four timing, envelope, determinism and fitted-flow parity checks.
+
+- 2026-09-11 01:22 — Ported and reach-scaled the versioned Soft glyph with measured ProMax FK, analytic Jacobian, bounded IK and smooth time scaling; added separate tuning/comparison runners and fixed the zero-pressure ADC-rounding cap boundary, with eleven environment/trajectory checks passing.
