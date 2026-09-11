@@ -1,0 +1,38 @@
+{
+    "timestamp_utc":  "2026-09-11T06:07:38.6185122Z",
+    "tested_code_commit":  "49651da",
+    "full_suite":  {
+                       "command":  ".venv/Scripts/python.exe -m pytest digital_twin UMArm_KINEMATICS UMArm_MOCAP UMArm_KINOVA viz collection control -q --disable-warnings",
+                       "thread_caps":  "OMP_NUM_THREADS=MKL_NUM_THREADS=OPENBLAS_NUM_THREADS=1",
+                       "passed":  1083,
+                       "skipped":  7,
+                       "duration_s":  205.68,
+                       "exit_code":  0
+                   },
+    "gui":  {
+                "command":  ".venv/Scripts/python.exe hw_tests/gui_controller_sim_test.py --screenshots",
+                "methods":  [
+                                "pid",
+                                "ff_pid",
+                                "koopman_mppi"
+                            ],
+                "exit_code":  0,
+                "hardware_open_attempts":  0,
+                "evidence":  "../../control/results/gui_acceptance.json",
+                "sha256":  "4df2df20f0d34405df94f3f3e407068ad8df3359deef6b1c3ec377d4951a27cb"
+            },
+    "simulation_benchmarks":  {
+                                  "trials":  36,
+                                  "artifact_audit":  "artifact_audit.json",
+                                  "timed_control_calls":  97686,
+                                  "paired_groups":  12
+                              },
+    "media_verification":  {
+                               "slow_decoded_frames":  654,
+                               "fast_decoded_frames":  432,
+                               "svg_xml_checks":  3,
+                               "markdown_link_checks":  "passed",
+                               "png_integrity_checks":  12
+                           },
+    "scope":  "Simulation validation only; empirical results do not establish hardware transfer, workspace-wide convergence, or hard real-time guarantees."
+}

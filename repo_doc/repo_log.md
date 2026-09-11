@@ -82,3 +82,5 @@
 - 2026-09-11 01:55 — Audited all 96 training hashes and whole-episode splits against the frozen checkpoint, documented the complete real-episode metadata schema, and made campaign summaries explicitly retain the legacy allocation mode used for collection.
 
 - 2026-09-11 02:03 — Fixed cold controller startup by discarding solver warmup before a fresh-state reset, passed its deterministic worker regression and all three fresh-plant GUI runs with zero hardware opens, and measured 9 s tip-jog residuals of 8.02/0.021/0.272 mm for PID/feedforward/MPPI while retaining prior startup and larger-pose failures.
+
+- 2026-09-11 02:07 — Completed 36 fresh paired Soft trials and two verified 1080p comparison videos, audited all scores and transmitted pressure caps, documented nominal slow tip RMS 104.09/16.79/16.71 mm for PID/feedforward/MPPI and the GUI/transfer limits, and passed the final offline suite with 1083 tests and 7 skips before publishing the committed deliverables.

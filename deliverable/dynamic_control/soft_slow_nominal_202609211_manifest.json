@@ -1,0 +1,64 @@
+{
+  "simulation": true,
+  "test_duplicated_trace": false,
+  "seed": 202609211,
+  "speed": "slow",
+  "condition": "nominal",
+  "panel_order": [
+    "pid",
+    "ff_pid",
+    "koopman_mppi"
+  ],
+  "camera": {
+    "azimuth": 105.0,
+    "elevation": -10.0,
+    "distance": 1.65,
+    "lookat": [
+      0.0,
+      0.0,
+      0.8
+    ]
+  },
+  "size": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "playback_speed": 1,
+  "pose_selection": "nearest recorded control timestamp; never integrates physics",
+  "guide_source": "saved tip_ref and pen_down from the same episodes",
+  "model_xml_sha256": "cdd7130d9b61498c0478a6b807457e68955817942d9cff6c654b0b4178133e24",
+  "runs": {
+    "pid": {
+      "rms_mm": 104.22662050224572,
+      "path": "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\deliverable\\dynamic_control\\benchmark\\slow_nominal_202609211_pid.npz",
+      "sha256": "893137d00722d70e9d3cca3b31e455bd75179e88f0b778af9cec72cc68858487",
+      "meta_sha256": "af17869eeaf9d82747a455412658fc4df9027cb51392c99acd9370b2772aa2e6"
+    },
+    "ff_pid": {
+      "rms_mm": 16.636595166293247,
+      "path": "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\deliverable\\dynamic_control\\benchmark\\slow_nominal_202609211_ff_pid.npz",
+      "sha256": "91bb0e800de16f00b1f982cc3cd5eb11021eb594c100fe0fdf99f8bc93358bfd",
+      "meta_sha256": "4b66bcba399f4a943c709185fb53f1b2c3af403fc7a54286e1905fd4979ec5f1"
+    },
+    "koopman_mppi": {
+      "rms_mm": 16.516734208597992,
+      "path": "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\deliverable\\dynamic_control\\benchmark\\slow_nominal_202609211_koopman_mppi.npz",
+      "sha256": "73fd37b4c21b3dadf7a7116fd98e3ee33c715dcc5e6d1bfbec82876c8e5b47c0",
+      "meta_sha256": "29883450900112adab1ab7b9ab93ed17d67ba30930cc374f866885303ae13b37"
+    }
+  },
+  "sample_times_s": [
+    0.0,
+    11.892251503867872,
+    21.753333333333334
+  ],
+  "video": "deliverable\\dynamic_control\\soft_slow_nominal_202609211.mp4",
+  "video_sha256": "76f3d0441993dd5a52ed2e099e4e290793ca2f04f81006b108316214779177f8",
+  "frames": 654,
+  "decoded_frames": 654,
+  "duration_s": 21.8,
+  "codec": "H.264 (libx264), yuv420p",
+  "encoder": "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\.venv\\Lib\\site-packages\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe",
+  "simulated_duration_s": 21.78666666666667
+}

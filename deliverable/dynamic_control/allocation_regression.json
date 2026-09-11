@@ -1,0 +1,357 @@
+{
+  "interpretation": "Engineering regression on already inspected seed/reference, not fresh held-out evidence. Only inverse pressure allocation was corrected; model and PID/FF/MPPI tuning unchanged.",
+  "results": [
+    {
+      "method": "ff_pid",
+      "speed": "slow",
+      "seed": 202609111,
+      "identical_reference": true,
+      "old": {
+        "writing_tip_rms_mm": 18.08506773201192,
+        "writing_tip_p95_mm": 31.13276122403125,
+        "writing_tip_max_mm": 41.921102018672414,
+        "writing_joint_rms_deg": 0.37544716262277134,
+        "writing_segment_joint_rms_deg": [
+          0.6259831471706488,
+          0.16623775156132262,
+          0.05823937824732484
+        ],
+        "full_tip_rms_mm": 16.845249403499214,
+        "max_joint_deg": 8.996697407237114,
+        "target_max_psi": 18.44655665326004,
+        "target_pair_max_psi": 18.470526696271065,
+        "pressure_tracking_rms_psi": {
+          "tle": 0.590076594438956,
+          "7mm": 0.4185593780378535
+        },
+        "solver_ms": {
+          "median": 0.5747499963035807,
+          "p95": 0.6519999878946692,
+          "p99": 0.682699998433236,
+          "max": 1.0342999885324389
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 3268,
+        "simulated_duration_s": 21.78666666666667
+      },
+      "bounded": {
+        "writing_tip_rms_mm": 16.655592743119623,
+        "writing_tip_p95_mm": 29.4972058975671,
+        "writing_tip_max_mm": 43.54088326613124,
+        "writing_joint_rms_deg": 0.26144186635616834,
+        "writing_segment_joint_rms_deg": [
+          0.41625730327540345,
+          0.16731782422332578,
+          0.06156420728354084
+        ],
+        "full_tip_rms_mm": 14.326781943800663,
+        "max_joint_deg": 11.190983905267858,
+        "target_max_psi": 30.0,
+        "target_pair_max_psi": 30.0,
+        "pressure_tracking_rms_psi": {
+          "tle": 0.7128585863036209,
+          "7mm": 0.4195120669666229
+        },
+        "solver_ms": {
+          "median": 0.595899997279048,
+          "p95": 0.7555250005680134,
+          "p99": 0.8175289968494325,
+          "max": 1.0935000027529895
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 3268,
+        "simulated_duration_s": 21.78666666666667
+      },
+      "old_source_sha256": {
+        "control/controller.py": "ff1ebcf589f967be505596a6898cbce2a4714cbc93e4e3c3361f0223b8532769",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "6b77a25d136640fd6eb2c0efe54ab41d3f36064d52a0092aea62b70ea9fecbbf",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "new_source_sha256": {
+        "control/controller.py": "9dcb894cc779ff27bb2d14744870ec43162a3543793e1f95c759ad3db6ace0b8",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "5ce46f729ee22f120dbe41082457d674a8cbb3dd8af4c1ca41f512d51224c98c",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "old_trace_sha256": "031ffe0428caaa6f2d937c042eeba0b76cb0395b967047806556ac644b45f555",
+      "new_trace_sha256": "10c9f56bbafa2e5bce093aea9a786f62003cb07929ccd390f782b02cc8d89a4b"
+    },
+    {
+      "method": "koopman_mppi",
+      "speed": "slow",
+      "seed": 202609111,
+      "identical_reference": true,
+      "old": {
+        "writing_tip_rms_mm": 18.24796570965731,
+        "writing_tip_p95_mm": 35.229695945102804,
+        "writing_tip_max_mm": 40.60601191066174,
+        "writing_joint_rms_deg": 0.32733537788849393,
+        "writing_segment_joint_rms_deg": [
+          0.5432927343385864,
+          0.14891207339264864,
+          0.06405894211594511
+        ],
+        "full_tip_rms_mm": 17.08524354769613,
+        "max_joint_deg": 9.051446232476527,
+        "target_max_psi": 18.676900007364118,
+        "target_pair_max_psi": 18.693758588169977,
+        "pressure_tracking_rms_psi": {
+          "tle": 0.5889806113025741,
+          "7mm": 0.41856464796016063
+        },
+        "solver_ms": {
+          "median": 3.563849997590296,
+          "p95": 4.064565012231469,
+          "p99": 4.145663999079261,
+          "max": 4.327600006945431
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 3268,
+        "simulated_duration_s": 21.78666666666667
+      },
+      "bounded": {
+        "writing_tip_rms_mm": 16.578953013267853,
+        "writing_tip_p95_mm": 29.374461293352407,
+        "writing_tip_max_mm": 43.73359592046281,
+        "writing_joint_rms_deg": 0.25695137815668756,
+        "writing_segment_joint_rms_deg": [
+          0.4073469799490721,
+          0.16787046429410257,
+          0.0629283509550017
+        ],
+        "full_tip_rms_mm": 14.267425400381207,
+        "max_joint_deg": 11.132922392473274,
+        "target_max_psi": 29.965387348517226,
+        "target_pair_max_psi": 29.999999999999996,
+        "pressure_tracking_rms_psi": {
+          "tle": 0.7134478534570855,
+          "7mm": 0.4196659435248591
+        },
+        "solver_ms": {
+          "median": 2.947349988971837,
+          "p95": 3.6071450027520764,
+          "p99": 3.7425290048122406,
+          "max": 4.337200021836907
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 3268,
+        "simulated_duration_s": 21.78666666666667
+      },
+      "old_source_sha256": {
+        "control/controller.py": "ff1ebcf589f967be505596a6898cbce2a4714cbc93e4e3c3361f0223b8532769",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "6b77a25d136640fd6eb2c0efe54ab41d3f36064d52a0092aea62b70ea9fecbbf",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "new_source_sha256": {
+        "control/controller.py": "9dcb894cc779ff27bb2d14744870ec43162a3543793e1f95c759ad3db6ace0b8",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "5ce46f729ee22f120dbe41082457d674a8cbb3dd8af4c1ca41f512d51224c98c",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "old_trace_sha256": "0942c8978003575896be76f9a4da1f8c71d82e7c1db6111cd092fc4c42f7850f",
+      "new_trace_sha256": "8bf33931740b24c45db308ee2a835734b3c2fac4de94ba54a294b62f88a0081d"
+    },
+    {
+      "method": "ff_pid",
+      "speed": "fast",
+      "seed": 202609111,
+      "identical_reference": true,
+      "old": {
+        "writing_tip_rms_mm": 46.7847658151923,
+        "writing_tip_p95_mm": 79.17660973326669,
+        "writing_tip_max_mm": 92.50626661282712,
+        "writing_joint_rms_deg": 0.8294997601133479,
+        "writing_segment_joint_rms_deg": [
+          1.3284116815012856,
+          0.5336707522024398,
+          0.12135686539670784
+        ],
+        "full_tip_rms_mm": 36.97682579837913,
+        "max_joint_deg": 8.317642362047287,
+        "target_max_psi": 28.057564927969377,
+        "target_pair_max_psi": 29.207799086033134,
+        "pressure_tracking_rms_psi": {
+          "tle": 1.7547416881220157,
+          "7mm": 0.8168736835671919
+        },
+        "solver_ms": {
+          "median": 0.5764999950770289,
+          "p95": 0.6394999829353765,
+          "p99": 0.6672360043739901,
+          "max": 0.7251999923028052
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 2159,
+        "simulated_duration_s": 14.393333333333334
+      },
+      "bounded": {
+        "writing_tip_rms_mm": 46.274367187823835,
+        "writing_tip_p95_mm": 80.42777904489456,
+        "writing_tip_max_mm": 92.08213555479384,
+        "writing_joint_rms_deg": 0.7631881627524968,
+        "writing_segment_joint_rms_deg": [
+          1.1989051458772915,
+          0.5424383084561099,
+          0.12552150415295088
+        ],
+        "full_tip_rms_mm": 36.093149382796746,
+        "max_joint_deg": 9.946163952652938,
+        "target_max_psi": 30.0,
+        "target_pair_max_psi": 30.0,
+        "pressure_tracking_rms_psi": {
+          "tle": 2.1863624708371896,
+          "7mm": 0.8634322783581212
+        },
+        "solver_ms": {
+          "median": 0.5810000002384186,
+          "p95": 0.7320099888602272,
+          "p99": 0.8149519941071048,
+          "max": 1.1331000132486224
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 2159,
+        "simulated_duration_s": 14.393333333333334
+      },
+      "old_source_sha256": {
+        "control/controller.py": "ff1ebcf589f967be505596a6898cbce2a4714cbc93e4e3c3361f0223b8532769",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "6b77a25d136640fd6eb2c0efe54ab41d3f36064d52a0092aea62b70ea9fecbbf",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "new_source_sha256": {
+        "control/controller.py": "9dcb894cc779ff27bb2d14744870ec43162a3543793e1f95c759ad3db6ace0b8",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "5ce46f729ee22f120dbe41082457d674a8cbb3dd8af4c1ca41f512d51224c98c",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "old_trace_sha256": "5ab45f8e4dd822f6a2d8a5c87e5cebff63d24ba2d398bd918299f71e605aeeaf",
+      "new_trace_sha256": "3f4959ff90bfb91d347464380ba1767cd8a634290d0471ee04078f3e502ca22d"
+    },
+    {
+      "method": "koopman_mppi",
+      "speed": "fast",
+      "seed": 202609111,
+      "identical_reference": true,
+      "old": {
+        "writing_tip_rms_mm": 47.36332842503905,
+        "writing_tip_p95_mm": 82.26426400626103,
+        "writing_tip_max_mm": 96.11671538862882,
+        "writing_joint_rms_deg": 0.7446348639607431,
+        "writing_segment_joint_rms_deg": [
+          1.200223231615673,
+          0.45763423850549034,
+          0.11609625280358489
+        ],
+        "full_tip_rms_mm": 37.52287165662694,
+        "max_joint_deg": 8.621637494617262,
+        "target_max_psi": 28.166735267047024,
+        "target_pair_max_psi": 29.211392639125027,
+        "pressure_tracking_rms_psi": {
+          "tle": 1.740981266974861,
+          "7mm": 0.8072689602614834
+        },
+        "solver_ms": {
+          "median": 3.527099994244054,
+          "p95": 3.982850001193583,
+          "p99": 4.3178320000879475,
+          "max": 8.054300007643178
+        },
+        "solver_over_6_667ms_fraction": 0.0004631773969430292,
+        "cycles": 2159,
+        "simulated_duration_s": 14.393333333333334
+      },
+      "bounded": {
+        "writing_tip_rms_mm": 46.88018779887148,
+        "writing_tip_p95_mm": 81.7162075621391,
+        "writing_tip_max_mm": 96.09868973737562,
+        "writing_joint_rms_deg": 0.7149327920272548,
+        "writing_segment_joint_rms_deg": [
+          1.131217446137212,
+          0.4891016695680499,
+          0.12047131496006949
+        ],
+        "full_tip_rms_mm": 36.57637994292062,
+        "max_joint_deg": 9.740059964383194,
+        "target_max_psi": 29.999974434469152,
+        "target_pair_max_psi": 30.000000000000004,
+        "pressure_tracking_rms_psi": {
+          "tle": 2.172272215513406,
+          "7mm": 0.8593021566110985
+        },
+        "solver_ms": {
+          "median": 2.557700005127117,
+          "p95": 3.572869990603067,
+          "p99": 3.741070010582917,
+          "max": 3.9837000076659024
+        },
+        "solver_over_6_667ms_fraction": 0.0,
+        "cycles": 2159,
+        "simulated_duration_s": 14.393333333333334
+      },
+      "old_source_sha256": {
+        "control/controller.py": "ff1ebcf589f967be505596a6898cbce2a4714cbc93e4e3c3361f0223b8532769",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "6b77a25d136640fd6eb2c0efe54ab41d3f36064d52a0092aea62b70ea9fecbbf",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "new_source_sha256": {
+        "control/controller.py": "9dcb894cc779ff27bb2d14744870ec43162a3543793e1f95c759ad3db6ace0b8",
+        "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+        "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+        "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+        "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+        "control/benchmark.py": "5ce46f729ee22f120dbe41082457d674a8cbb3dd8af4c1ca41f512d51224c98c",
+        "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+        "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+        "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+        "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+      },
+      "old_trace_sha256": "61d17457efbf1c0f0d2de5b2d9eaebf5a0cdbe400c7ff6f439e1d57787ec239e",
+      "new_trace_sha256": "ff202636086ac8d01f5cc94858c4bc0fcf722c350afa65c08f124461e49ec171"
+    }
+  ]
+}

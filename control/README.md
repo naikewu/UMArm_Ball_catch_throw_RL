@@ -121,6 +121,7 @@ Reproduce the common-time writing benchmark and comparison videos:
 .venv/Scripts/python.exe -m control.render_comparison video --speed slow
 .venv/Scripts/python.exe -m control.render_comparison video --speed fast
 .venv/Scripts/python.exe -m control.render_comparison figures
+.venv/Scripts/python.exe -m control.render_comparison figures --folder deliverable/dynamic_control/benchmark_perturbed --condition perturbed
 .venv/Scripts/python.exe -m control.summarize
 .venv/Scripts/python.exe -m control.summarize --folder deliverable/dynamic_control/benchmark_perturbed
 .venv/Scripts/python.exe -m control.valve_probe

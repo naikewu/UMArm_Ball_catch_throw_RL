@@ -1,0 +1,493 @@
+{
+  "status": "passed",
+  "benchmarks_checked": 36,
+  "comparison_groups": [
+    {
+      "condition": "nominal",
+      "speed": "slow",
+      "seed": 202609211,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "nominal",
+      "speed": "slow",
+      "seed": 202609212,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "nominal",
+      "speed": "slow",
+      "seed": 202609213,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "nominal",
+      "speed": "fast",
+      "seed": 202609211,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "nominal",
+      "speed": "fast",
+      "seed": 202609212,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "nominal",
+      "speed": "fast",
+      "seed": 202609213,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "perturbed",
+      "speed": "slow",
+      "seed": 202609211,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "perturbed",
+      "speed": "slow",
+      "seed": 202609212,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "perturbed",
+      "speed": "slow",
+      "seed": 202609213,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "perturbed",
+      "speed": "fast",
+      "seed": 202609211,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "perturbed",
+      "speed": "fast",
+      "seed": 202609212,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    },
+    {
+      "condition": "perturbed",
+      "speed": "fast",
+      "seed": 202609213,
+      "methods": [
+        "pid",
+        "ff_pid",
+        "koopman_mppi"
+      ],
+      "references_exactly_equal": true
+    }
+  ],
+  "checks": [
+    "saved RMS recomputed from NPZ truth",
+    "exact method and paired seed metadata",
+    "all four reference arrays equal within each group",
+    "all recorded controller and plant source hashes match final workspace",
+    "MPPI checkpoint bytes match each run",
+    "video and input NPZ/JSON hashes match manifests",
+    "all encoded frames were decoded successfully",
+    "first/mid/final PNGs and both performance figures visually inspected",
+    "actual decoded wire targets obey 30 psi individual and measured antagonist pair caps across all 36 traces",
+    "SVG XML validated after trailing-whitespace normalization; refreshed SVG byte hashes"
+  ],
+  "artifacts": {
+    "performance_nominal.json": {
+      "bytes": 2156,
+      "sha256": "a881bc947ee64d5aceec898f418fdd13d91f2bf3c27c4b7cde5aec18272092ed"
+    },
+    "performance_nominal.png": {
+      "bytes": 119125,
+      "sha256": "bd8c9cd4cc53381c1c7fc58e0119836ba0822c8186b5d8cacca03e6a0a7d4f38"
+    },
+    "performance_nominal.svg": {
+      "bytes": 82396,
+      "sha256": "824a83b518e94d0a160aca6719aa6b20ec0e843198030bba6f899ade3f851a32"
+    },
+    "performance_perturbed.json": {
+      "bytes": 2155,
+      "sha256": "f760451b2945d8a8fba4cea10c7493147c5edc637a86ad15ab833f4f6e4c57ea"
+    },
+    "performance_perturbed.png": {
+      "bytes": 124873,
+      "sha256": "bed8fd28992c8aafca7ca4cf861098ed96f48416a754dda10d796ec69af72d6c"
+    },
+    "performance_perturbed.svg": {
+      "bytes": 82855,
+      "sha256": "10026f759918922611893fde68ae67fbd90c22685201ff070672bf2eae03f5d2"
+    },
+    "soft_fast_nominal_202609211.mp4": {
+      "bytes": 3055260,
+      "sha256": "155c9a23e235312fe936d63e703910d9b20922dd8725270b2c4fbec5574b414f"
+    },
+    "soft_fast_nominal_202609211_contact_sheet.png": {
+      "bytes": 863669,
+      "sha256": "37ee9f4e1983c8284d9449df1f85354676a4c6fa87a7bbd90e8c2e825c6105ab"
+    },
+    "soft_fast_nominal_202609211_final.png": {
+      "bytes": 821580,
+      "sha256": "b4deeb49d5b097ae08c0988c076f646e8df6dbf93fc150ca8f14542e483669db"
+    },
+    "soft_fast_nominal_202609211_first.png": {
+      "bytes": 760209,
+      "sha256": "dc5b8502af70da5934bd5a5a797d464e2ea15a20f0efb80aead7882673c67083"
+    },
+    "soft_fast_nominal_202609211_manifest.json": {
+      "bytes": 2463,
+      "sha256": "9791ae3210f1c4e038ecf95eedcffadf66fb39b33391ee2625eeb9e0ac147afc"
+    },
+    "soft_fast_nominal_202609211_mid.png": {
+      "bytes": 795039,
+      "sha256": "b2bbc2848f05cdbfa2fd6e83928c1aee2589f0ebd24a03c9b14679fc9282fdda"
+    },
+    "soft_slow_nominal_202609211.mp4": {
+      "bytes": 4261770,
+      "sha256": "76f3d0441993dd5a52ed2e099e4e290793ca2f04f81006b108316214779177f8"
+    },
+    "soft_slow_nominal_202609211_contact_sheet.png": {
+      "bytes": 852634,
+      "sha256": "1267a7800fb83141bd4c3f488f6a831cb04876f66f99eb59d3970948ddbbef3b"
+    },
+    "soft_slow_nominal_202609211_final.png": {
+      "bytes": 802579,
+      "sha256": "185e2547da3db65c49569fc53529548e9d26fca27e78b0d6ce681c8f2dae4fb9"
+    },
+    "soft_slow_nominal_202609211_first.png": {
+      "bytes": 754940,
+      "sha256": "9f821a104e5f1673c729afe603b0e6648b772ca86b41e151d35d6ff8a9ee7f22"
+    },
+    "soft_slow_nominal_202609211_manifest.json": {
+      "bytes": 2465,
+      "sha256": "7811b8fc3582e382aa920ac8f34a17fa2daa2b8b2ad45e98f6edfed73f60fad8"
+    },
+    "soft_slow_nominal_202609211_mid.png": {
+      "bytes": 773555,
+      "sha256": "485c19ef80f5a738fb6015393be7add536a20c0aa3f094885452a7d948753d76"
+    },
+    "koopman_training.svg": {
+      "bytes": 67273,
+      "sha256": "380f0c36b75b2b179ce73c46f6c981b5a50ee48f029162afcfe30d0671175f97"
+    }
+  },
+  "transmitted_pressure_envelope": {
+    "status": "passed",
+    "source_channel": "wire_targets_pa: actual per-board ADC-rounded transmitted targets decoded to Pa gauge",
+    "negative_zero_offset_handling": "max(wire_targets_pa,0) before converting to psi and summing measured antagonist pairs",
+    "cap_psi": 30,
+    "comparison_tolerance_psi": 1e-09,
+    "traces_checked": 36,
+    "samples_checked": 97686,
+    "max_single_psi": 29.980462724935734,
+    "max_antagonist_pair_sum_psi": 29.984575835475585,
+    "records": [
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609211_ff_pid.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609211_koopman_mppi.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609211_pid.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 12.277634961439588,
+        "max_antagonist_pair_sum_psi": 12.281748071979434
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609212_ff_pid.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609212_koopman_mppi.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609212_pid.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 12.524421593830333,
+        "max_antagonist_pair_sum_psi": 12.528534704370179
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609213_ff_pid.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475585
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609213_koopman_mppi.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\fast_nominal_202609213_pid.npz",
+        "condition": "nominal",
+        "samples": 2159,
+        "max_single_psi": 12.425706940874036,
+        "max_antagonist_pair_sum_psi": 12.429820051413882
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609211_ff_pid.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609211_koopman_mppi.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 29.898200514138818,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609211_pid.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 11.6853470437018,
+        "max_antagonist_pair_sum_psi": 12.009262557890988
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609212_ff_pid.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609212_koopman_mppi.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 29.9146529562982,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609212_pid.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 11.241131105398457,
+        "max_antagonist_pair_sum_psi": 12.009262557890988
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609213_ff_pid.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609213_koopman_mppi.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 29.947557840616966,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark\\slow_nominal_202609213_pid.npz",
+        "condition": "nominal",
+        "samples": 3268,
+        "max_single_psi": 11.30694087403599,
+        "max_antagonist_pair_sum_psi": 12.009262557890988
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609211_ff_pid.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609211_koopman_mppi.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609211_pid.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 12.458611825192802,
+        "max_antagonist_pair_sum_psi": 12.462724935732648
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609212_ff_pid.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609212_koopman_mppi.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475585
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609212_pid.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 12.195372750642674,
+        "max_antagonist_pair_sum_psi": 12.19948586118252
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609213_ff_pid.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609213_koopman_mppi.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\fast_perturbed_202609213_pid.npz",
+        "condition": "perturbed",
+        "samples": 2159,
+        "max_single_psi": 12.096658097686374,
+        "max_antagonist_pair_sum_psi": 12.10077120822622
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609211_ff_pid.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609211_koopman_mppi.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 29.964010282776353,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609211_pid.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 11.52082262210797,
+        "max_antagonist_pair_sum_psi": 12.009262557890988
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609212_ff_pid.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609212_koopman_mppi.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 29.964010282776353,
+        "max_antagonist_pair_sum_psi": 29.98457583547558
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609212_pid.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 11.52082262210797,
+        "max_antagonist_pair_sum_psi": 12.009262557890988
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609213_ff_pid.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 29.980462724935734,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609213_koopman_mppi.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 29.9146529562982,
+        "max_antagonist_pair_sum_psi": 29.984575835475578
+      },
+      {
+        "trace": "deliverable\\dynamic_control\\benchmark_perturbed\\slow_perturbed_202609213_pid.npz",
+        "condition": "perturbed",
+        "samples": 3268,
+        "max_single_psi": 10.994344473007713,
+        "max_antagonist_pair_sum_psi": 12.009262557890988
+      }
+    ]
+  }
+}

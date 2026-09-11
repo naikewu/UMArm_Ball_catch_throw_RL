@@ -1,0 +1,925 @@
+{
+  "method": "koopman_mppi",
+  "seed": 202609212,
+  "randomized": true,
+  "environment": {
+    "seed": 202609212,
+    "dt_s": 0.006666666666666667,
+    "control_hz": 150.0,
+    "mocap_hz": 240.0,
+    "joint_noise_std_deg": 0.1,
+    "mocap_latency_s": 0.008333333333333333,
+    "velocity_filter_tau_s": 0.04,
+    "velocity_observer": "CausalJointObserver, every acquisition frame, before 150 Hz readout",
+    "sensor_assumptions": "joint noise and latency provisional, not measured",
+    "board_ids": [
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279,
+      280
+    ],
+    "board_variants": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "randomization": {
+      "link_mass_kg_scale": [
+        1.068080039666207,
+        1.0389037672125327,
+        0.9642071125293746
+      ],
+      "bracket_mass_kg_scale": [
+        0.9101079513427817,
+        1.001583151520602,
+        1.007710406483591
+      ],
+      "joint_stiffness_scale": [
+        1.0649261938445793,
+        0.9486791049637707,
+        1.078820503882332
+      ],
+      "joint_damping_scale": 0.943019517016584,
+      "tendon_damping_scale": 1.0211261989900295,
+      "fill_gain_scale": [
+        1.1217158662310587,
+        1.029837154828384,
+        0.921146431256144,
+        0.8962951822256654,
+        0.9293541306532338,
+        1.0916395947047535,
+        1.0449303594218073,
+        1.1423957614390774,
+        0.8938630773191455,
+        0.9173353903774975,
+        0.9126262712427583,
+        1.0237210360652131,
+        0.8831774185212867,
+        1.0740867779878285,
+        0.8570279507639403,
+        0.8773981323949066,
+        1.1264891492955236,
+        0.9971071878174348,
+        0.8986929336211231,
+        1.0466076626336478,
+        1.0269822493291398,
+        0.9169205529794288,
+        0.9281011550992114,
+        1.071180472506076
+      ],
+      "vent_gain_scale": [
+        0.9135124441544619,
+        1.076238760978614,
+        0.9326419809958583,
+        1.0681321877688141,
+        0.9090616084258318,
+        0.9609251010976377,
+        0.9067846278078665,
+        1.0071727956411478,
+        1.0688850202916809,
+        0.8641599779659511,
+        0.9223941743327146,
+        0.9083019524131573,
+        1.1371943770957105,
+        1.0875677533542794,
+        0.9300858901811304,
+        0.9082649757137354,
+        1.054349295964327,
+        0.9429548665990825,
+        1.116732959800038,
+        1.0278799288569507,
+        0.9819685980956243,
+        0.9395118823831669,
+        1.0524059670196875,
+        0.9111189898126459
+      ],
+      "coeff_scale": [
+        1.0288386858400658,
+        1.0430840832785755,
+        1.13378825877075
+      ],
+      "additional_leak_pa_s": [
+        78.69958176435951,
+        69.44316122363873,
+        4.4797038325954555,
+        14.487372120582947,
+        15.086905719445054,
+        63.31337722100742,
+        44.12227488595536,
+        0.976435582197327,
+        81.16238659024262,
+        14.26903446189376,
+        124.62882675811909,
+        31.440030769521147,
+        12.220282069439643,
+        129.83863537455946,
+        54.71125317986139,
+        126.78962464210818,
+        143.6166607828125,
+        53.81317374847323,
+        123.50287972814039,
+        120.53576929316097,
+        97.49972355306377,
+        141.95281154300366,
+        134.98596001492987,
+        134.08791323251202
+      ]
+    },
+    "pressure_observation": "filtered ADC at sync instants; reply delivery latency omitted offline",
+    "plant": "digital_twin.twin_params fitted ProMax; batched numpy flow"
+  },
+  "trajectory": {
+    "source": {
+      "source_worktree": "C:/RUNZE_SRC/feedforward_PID",
+      "source_commit": "b929d8b31dc803b79faed332655148bf6b01c091",
+      "source_path": "UMArm_KoopmanMPPI\\letter_refs.py",
+      "source_sha256": "e17d9c5e1eda3eaeae6264a544b6c60816b7151550574093fce82cb0fe08a9d5",
+      "geometry": "soft-cursive-v3 (unchanged by table v4)",
+      "original_reach_m": 0.692772,
+      "original_dome_m": 0.588,
+      "layout": {
+        "word": "soft",
+        "style": "cursive",
+        "scale_m_per_unit": 0.008649447071557098,
+        "letter_geom": "cursive-v4",
+        "set_width": 1.42,
+        "reach_fit": 0.950898553085229,
+        "extent_m": [
+          0.47545117447952046,
+          0.22841792234307703
+        ],
+        "r_max_m": 0.24999627479969747,
+        "tracking_units": 2.3,
+        "n_strokes": 1,
+        "r_max_path_m": 0.24999999999999994
+      }
+    },
+    "reach_m": 0.875459,
+    "length_scale": 1.2637043644951007,
+    "size_scale": 1.0,
+    "speed_scale": 1.0,
+    "extent_m": [
+      0.6008297236881195,
+      0.2886527249603015
+    ],
+    "path_length_m": 2.80248614666499,
+    "speed_m_s": 0.3791113093485302,
+    "duration_s": 14.392251503867872,
+    "write_start_s": 4.0,
+    "write_end_s": 12.392251503867872,
+    "ik_max_residual_mm": 0.038434104527296065,
+    "joint_limit_deg": 20.0,
+    "endpoint": "last plate centre in arm base frame; measured yx kinematics"
+  },
+  "wall_elapsed_s": 19.499144599976717,
+  "max_tendon_force_n": 91.02105061022873,
+  "controller_options": {},
+  "checkpoint": "C:\\ESP\\ESP_Projects\\UMArm_koopman_compliance_control_espproject\\control\\checkpoints\\canarm_koopman.pt",
+  "last_controller_diagnostics": {
+    "solve_ms": 4.090000002179295,
+    "effective_samples": 1.7659797077576338,
+    "prior_cost": 0.008103892595660297,
+    "best_cost": 0.007883086063360682,
+    "innovation_q_rad": 0.0005463838867818515
+  },
+  "metrics": {
+    "writing_tip_rms_mm": 48.63297795001904,
+    "writing_tip_p95_mm": 88.57435165223775,
+    "writing_tip_max_mm": 114.33416922038217,
+    "writing_joint_rms_deg": 0.7338988048870462,
+    "writing_segment_joint_rms_deg": [
+      1.1434823451611078,
+      0.5343951125520244,
+      0.15063982683628732
+    ],
+    "full_tip_rms_mm": 37.631369299245875,
+    "max_joint_deg": 10.479092363109292,
+    "target_max_psi": 29.99772527784867,
+    "target_pair_max_psi": 30.000000000000004,
+    "pressure_tracking_rms_psi": {
+      "tle": 2.1855074736991247,
+      "7mm": 0.8673566818634463
+    },
+    "solver_ms": {
+      "median": 3.5579999967012554,
+      "p95": 4.041780010447837,
+      "p99": 4.152971999137662,
+      "max": 4.431300010764971
+    },
+    "solver_over_6_667ms_fraction": 0.0,
+    "cycles": 2159,
+    "simulated_duration_s": 14.393333333333334
+  },
+  "checkpoint_sha256": "c5bb37abf3dc09a27051aef145b911fe6c2173dd50e0de4cafa0868cdb073606",
+  "model_metadata": {
+    "schema": "canarm_control_koopman_v1",
+    "dt_s": 0.006666666666666667,
+    "state_order": "q12,qdot12,p24_Pa_gauge",
+    "pair_indices": [
+      [
+        7,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        9,
+        11
+      ],
+      [
+        8,
+        10
+      ],
+      [
+        15,
+        13
+      ],
+      [
+        12,
+        14
+      ],
+      [
+        19,
+        17
+      ],
+      [
+        16,
+        18
+      ],
+      [
+        21,
+        23
+      ],
+      [
+        20,
+        22
+      ]
+    ],
+    "pressure_scale_pa": 206842.71,
+    "population_source": "per-episode environment variant byte, never CAN id range",
+    "variants": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "seed": 20260911,
+    "best_epoch": 60,
+    "epochs": 80,
+    "horizon": 30,
+    "device": "NVIDIA GeForce RTX 5090",
+    "torch_version": "2.13.0+cu130",
+    "elapsed_s": 84.16194310001447,
+    "warm_start": null,
+    "freeze_encoder": false,
+    "anchor_strength": 0,
+    "data": {
+      "train": [
+        {
+          "episode": 71,
+          "family": "chirp",
+          "sha256": "be489a1b40e242febc97ac8ce96b7d5ba9ba2235643fecb82f6840e74f4dfb1e"
+        },
+        {
+          "episode": 8,
+          "family": "chirp",
+          "sha256": "1c39e1b6effad2cf8cc6257e14cf4f57547431065cc21fe9604d53ace7a93db9"
+        },
+        {
+          "episode": 43,
+          "family": "chirp",
+          "sha256": "753bf94ed428529d023168f3f914b2805171b584f8e793ef55cbbc87968c5bc5"
+        },
+        {
+          "episode": 64,
+          "family": "chirp",
+          "sha256": "ef63e09732bd3be7fe5fd6f3fb3eb3cb0c01e2f8fff83449f6d2e1d70a9c2035"
+        },
+        {
+          "episode": 50,
+          "family": "chirp",
+          "sha256": "59dff7c6ecd8d210136e9df048a0bb69156d7edaecc19c426e8b4830cf36054b"
+        },
+        {
+          "episode": 36,
+          "family": "chirp",
+          "sha256": "5144e3354f4390f0f962098bf05d0445d7c3ae49d6a3ffb7f148efaa6608377b"
+        },
+        {
+          "episode": 29,
+          "family": "chirp",
+          "sha256": "d8c109e3c5fcd14ff2f40811aad235c5b48f8f8f60911e63406202a6d4e1a85e"
+        },
+        {
+          "episode": 15,
+          "family": "chirp",
+          "sha256": "a37b5179b2eec4c67625be0748646921f6cf5c924b0c45ab6997b9422cedebfb"
+        },
+        {
+          "episode": 38,
+          "family": "common_mode",
+          "sha256": "98e0311c2ad395749acc12212819900a18ad9800926c9be581c30a23a8337762"
+        },
+        {
+          "episode": 24,
+          "family": "common_mode",
+          "sha256": "71113848038d17792e541e2c8a4aa5f23480faba775de32a519bb403e37b29e7"
+        },
+        {
+          "episode": 59,
+          "family": "common_mode",
+          "sha256": "fd613ada3485dc0848d59ae558f8230f7005566832d1dc9beb362ccdd56bf7ab"
+        },
+        {
+          "episode": 80,
+          "family": "common_mode",
+          "sha256": "a0a555e33a58ce64274159a6a16dc44641a295194a406844b5c729084c93f34d"
+        },
+        {
+          "episode": 45,
+          "family": "common_mode",
+          "sha256": "e3ee73dbdaf87760a68f6ae0182654a4833d21112dcfd4c417ad453eb3a0294a"
+        },
+        {
+          "episode": 31,
+          "family": "common_mode",
+          "sha256": "09ebd269f299d8487faa1a66016c4b9263fcb4089c17600d961e3c819845b003"
+        },
+        {
+          "episode": 3,
+          "family": "common_mode",
+          "sha256": "8467490c2358afdd9db4bd65e47456d6c2dfd221fca4bcc5a152248c5af3ca93"
+        },
+        {
+          "episode": 66,
+          "family": "common_mode",
+          "sha256": "39a1966c0fcc6907e667ac900705c6573738dc8b1ac4561d6f3eb8f5334cb2b6"
+        },
+        {
+          "episode": 62,
+          "family": "coupled",
+          "sha256": "607065b5f868768c3f59e4e56d4b9f3d88d95c2e0d3d29bfc528f90eafe044de"
+        },
+        {
+          "episode": 6,
+          "family": "coupled",
+          "sha256": "e9aa2c35c38f628ec6ef2707da6f3f1735808699abe862b7dfcceabbe0edd10f"
+        },
+        {
+          "episode": 20,
+          "family": "coupled",
+          "sha256": "2d7ea077b0a46082971f40d7be5f531d3ac8dc28974966be295814647ee60fe6"
+        },
+        {
+          "episode": 69,
+          "family": "coupled",
+          "sha256": "d7a5de3d6ce788d285fb3155e8efd691fae542df8924b6e212354b9731579617"
+        },
+        {
+          "episode": 34,
+          "family": "coupled",
+          "sha256": "e624338859a931bc41a4286f2d6b49abd023d4e4778e2a7a88f8b40cdb57c7c7"
+        },
+        {
+          "episode": 27,
+          "family": "coupled",
+          "sha256": "44af40212d662dfa0030b6000a04b7f66172cf06aaeefa4ac28aee803e26ea9d"
+        },
+        {
+          "episode": 48,
+          "family": "coupled",
+          "sha256": "bff5dfeccd55969d97d2d3ff0dece29346d9c995d07a66709c74d5b720c81168"
+        },
+        {
+          "episode": 13,
+          "family": "coupled",
+          "sha256": "ea57245e8e4e8e7f032cc0a7896645d0b132b9009ca3bd94694f6988b4a8b1da"
+        },
+        {
+          "episode": 95,
+          "family": "disturbance",
+          "sha256": "d44203ef202b0a28090bcf88cf075bcaa5e062981255523567c9c090524e2a9f"
+        },
+        {
+          "episode": 86,
+          "family": "disturbance",
+          "sha256": "27cecf79cb4ac81cab33991444f5e276b6d456ddd08dada9b8e93badfeab2e6f"
+        },
+        {
+          "episode": 90,
+          "family": "disturbance",
+          "sha256": "6e504bf79c7cb220bd39a2572c5ff32c58165624f31f5752a47814c29fe65769"
+        },
+        {
+          "episode": 84,
+          "family": "disturbance",
+          "sha256": "380fb42f06b5a9a5501e4132aa5a200c33fc337cbd5625b0aa4c5737ab56acaa"
+        },
+        {
+          "episode": 89,
+          "family": "disturbance",
+          "sha256": "c9697c2b2dbe496b8ed04ece85eff45901ff931038588856c59797a4d602df22"
+        },
+        {
+          "episode": 87,
+          "family": "disturbance",
+          "sha256": "9320c62405849a34f240b4b9b2a0a88ece2b1abdba2b3867dfb0a56c0920d2d9"
+        },
+        {
+          "episode": 92,
+          "family": "disturbance",
+          "sha256": "7f573b7a19c8960747b9d16724fa3bd256526ebe0cbfd0cdf4d468869fc0ffca"
+        },
+        {
+          "episode": 88,
+          "family": "disturbance",
+          "sha256": "be8b8b9de9f35c5ba346957a71c30590081cdf51d6490f5f93fb60cda3f365cc"
+        },
+        {
+          "episode": 47,
+          "family": "joint_reference",
+          "sha256": "3c3c990bd4b00ec62f1cbb395a0027258b3d5941086aa6a1f79a7e4d353c8ccb"
+        },
+        {
+          "episode": 82,
+          "family": "joint_reference",
+          "sha256": "7951fb6e2f621bf02507103abe5aea7f00d8613933a35a7ab9d84cea6de320a6"
+        },
+        {
+          "episode": 5,
+          "family": "joint_reference",
+          "sha256": "a45435358a0d0c8b303c50095a57b62a72e7f4d62b8eb8e2cf14000419c63522"
+        },
+        {
+          "episode": 68,
+          "family": "joint_reference",
+          "sha256": "5f22dc7d88f3f64bb7d2ccb08a5de8a63871df46e70bed55d78caa3bba1e4610"
+        },
+        {
+          "episode": 33,
+          "family": "joint_reference",
+          "sha256": "e05360d9943b44106426081f24ebffbd60bf44b43a8a5e12a8d9376f3d83076f"
+        },
+        {
+          "episode": 61,
+          "family": "joint_reference",
+          "sha256": "d7bc1da28145e78deb9669a3f8e391360a177cce457aab64a5aebdb7e0e116a2"
+        },
+        {
+          "episode": 40,
+          "family": "joint_reference",
+          "sha256": "f4b8136f113e9915a7df54c3c2eb0d5a57f7f2776c4ad2749f7ae0c9b594e3c8"
+        },
+        {
+          "episode": 54,
+          "family": "joint_reference",
+          "sha256": "c7ce28059194c9d51ffd62bd0a0b26cda62439e6ab5cb878a91da19b61a3ca80"
+        },
+        {
+          "episode": 79,
+          "family": "multisine",
+          "sha256": "6ba2008e02475bb550914591c3ecda5e0ad7fcc145acd5b583e9c713c7b40c94"
+        },
+        {
+          "episode": 9,
+          "family": "multisine",
+          "sha256": "7c7e98f5981d4400e59afa1aa5ee4a3d9e7b6e45e991cd5e56eb62aaffd735a3"
+        },
+        {
+          "episode": 30,
+          "family": "multisine",
+          "sha256": "5d32bf3282c7c5f7570692dbdcc08fb2ec15cbbaa9f65dd3f687352c6c65f48e"
+        },
+        {
+          "episode": 23,
+          "family": "multisine",
+          "sha256": "3858761f6747b82e01b02fec952afbad4e1a106fe7f7ca0776f0b8af78ea4e4d"
+        },
+        {
+          "episode": 51,
+          "family": "multisine",
+          "sha256": "7908cf3412cbbc4371b7ff7119cdd77990e1ffa0b717f6b0850dfeeb76a3dc9a"
+        },
+        {
+          "episode": 44,
+          "family": "multisine",
+          "sha256": "04b3506916e4c8b52f32f5b9fe51c5278f1d10ba2d918063ced4d7b090a5e2b4"
+        },
+        {
+          "episode": 16,
+          "family": "multisine",
+          "sha256": "8218178ac3a9539c53c4dcaa48a0645d5fefcbcb085b53dd5454828d03c5214d"
+        },
+        {
+          "episode": 65,
+          "family": "multisine",
+          "sha256": "f5e298edd851dfc60bc83f389dd4f92b3203d357cb481816ff5d572b07c85ba4"
+        },
+        {
+          "episode": 21,
+          "family": "prbs",
+          "sha256": "1a26e1b7a07dc835d992ffbd11a486facb926b713af18e049f4e100ffd5997a1"
+        },
+        {
+          "episode": 7,
+          "family": "prbs",
+          "sha256": "40a419991d809952396d4a27d8943b3b108352d2b4cf5985744ff440e68b2d5f"
+        },
+        {
+          "episode": 56,
+          "family": "prbs",
+          "sha256": "c99f7ce9ca63bb4f0a1433886a9c726007d02593ce24efc82d4eaeb2904e02c8"
+        },
+        {
+          "episode": 77,
+          "family": "prbs",
+          "sha256": "09b41fb4cdebcb39c685e88dbe42952e6afb0df5da5c7d62e1ac4afedf35a587"
+        },
+        {
+          "episode": 35,
+          "family": "prbs",
+          "sha256": "adb9e5edd45ef5533a2aee82eb40ee2651a4a623ae32bbf16bdd4845ef6a3053"
+        },
+        {
+          "episode": 14,
+          "family": "prbs",
+          "sha256": "1c96b7795a148f47fb3d2ce802cba726367b46106072d8b3119937badb187228"
+        },
+        {
+          "episode": 70,
+          "family": "prbs",
+          "sha256": "56ad098e4fa28e7caed73bd7a051a58c39a14d2a9b83e68bf3b6c0d3f0b7cebb"
+        },
+        {
+          "episode": 0,
+          "family": "prbs",
+          "sha256": "f919a3aebaa8d4efcb174764549dcaf9c2ec1caf4ee1cabcd9a9717a8287b843"
+        },
+        {
+          "episode": 74,
+          "family": "ringdown",
+          "sha256": "3c7c72ed910896c7b3dd9aff54f26743dfded066e3b0004b3b1b63807f3eb4be"
+        },
+        {
+          "episode": 46,
+          "family": "ringdown",
+          "sha256": "f1b5b9c733f89735035a8885074b474041347cf45c64ce6290ba639d0340b151"
+        },
+        {
+          "episode": 53,
+          "family": "ringdown",
+          "sha256": "ae3a48afc6ebfa7cc7450f64ceb3059430350e2f26d54c4652652d65e95fa7f7"
+        },
+        {
+          "episode": 81,
+          "family": "ringdown",
+          "sha256": "39bf78eee34606e1a5cbd2afe852314ae32e344346b919a7c394e08dc607656d"
+        },
+        {
+          "episode": 60,
+          "family": "ringdown",
+          "sha256": "448e2bda890e5e580407d6716914ce1adebe50104817a819ad11c78ec8484781"
+        },
+        {
+          "episode": 39,
+          "family": "ringdown",
+          "sha256": "69248400320d484f9bc9765d12fb88892c253ccb6a32f2540f2ccb1a50015e40"
+        },
+        {
+          "episode": 67,
+          "family": "ringdown",
+          "sha256": "f4cac5dab5367b209a86356140fe7e6d7ea0c5e4973e8f85f8167031fae3ef4c"
+        },
+        {
+          "episode": 25,
+          "family": "ringdown",
+          "sha256": "9479929d94306e59e29d06996d9719e3f49096b175eb6d2a822302f031a50cf1"
+        }
+      ],
+      "validation": [
+        {
+          "episode": 78,
+          "family": "chirp",
+          "sha256": "639d17b327dab699540d5b11a17027a87ff71486b392b98c9004e25f88fe8039"
+        },
+        {
+          "episode": 22,
+          "family": "chirp",
+          "sha256": "082af8a6fc29ca9b81655fd6afb32bd2378bf2985b891b886a190861fcafb6b7"
+        },
+        {
+          "episode": 73,
+          "family": "common_mode",
+          "sha256": "181510487ba2ef1f138dc5d02a87ccc5003e11c8ceda23f27165170389215fd3"
+        },
+        {
+          "episode": 52,
+          "family": "common_mode",
+          "sha256": "0a811c15c7ad7f5d810532e07554a11c623c73169be5c9fe84f82e7ae3971663"
+        },
+        {
+          "episode": 83,
+          "family": "coupled",
+          "sha256": "9bb047e993bb465a67d73ba5a8ba508351e3a0341b6c7b85b7213b03d1d2d30d"
+        },
+        {
+          "episode": 55,
+          "family": "coupled",
+          "sha256": "aa5bf4fe866725ba81990ae85f6eb224e9aa166f7486666c9757ca0c539d6d76"
+        },
+        {
+          "episode": 93,
+          "family": "disturbance",
+          "sha256": "f354b8b891c6baec4edb1595d6f0ac71ae56516c028e703f9909eb052e48f040"
+        },
+        {
+          "episode": 85,
+          "family": "disturbance",
+          "sha256": "87c0f6f003d7965420c3b27280ff67b66dea7b7e202afdc59f5d46195fe36b7c"
+        },
+        {
+          "episode": 19,
+          "family": "joint_reference",
+          "sha256": "f133bbab7db8b5415616dd024a96243e5d5f4d44d13547b979d598eb51656526"
+        },
+        {
+          "episode": 26,
+          "family": "joint_reference",
+          "sha256": "19441e761bd5076e0262390a1d8312313cd2b1c48edc21e464606031a024af02"
+        },
+        {
+          "episode": 2,
+          "family": "multisine",
+          "sha256": "bcd33bba3140e0fa4d9ee13a1a6b30c1dcf7644d4e0949b76b6064da252b3f60"
+        },
+        {
+          "episode": 37,
+          "family": "multisine",
+          "sha256": "4deb534fda6dfd760c7e3221df4f89ea2f73827e063ac1e5fef2e9eab63e1514"
+        },
+        {
+          "episode": 63,
+          "family": "prbs",
+          "sha256": "c83f691218836f84232988b62ab24aaff12c75aee75f8c45006804fca3cb9420"
+        },
+        {
+          "episode": 49,
+          "family": "prbs",
+          "sha256": "053123ee994b30c085c2301017372010ee212db8fbeaf431ea01c092ae01961c"
+        },
+        {
+          "episode": 11,
+          "family": "ringdown",
+          "sha256": "ac4988cca78185bf8962a1df23cc100f87f8d319fe59eac9429c44872de1c7a1"
+        },
+        {
+          "episode": 18,
+          "family": "ringdown",
+          "sha256": "07eeb3a08b0f3bc4cc24a10bffb5ce747b6d1075804273b4c1321be7f447d036"
+        }
+      ],
+      "test": [
+        {
+          "episode": 1,
+          "family": "chirp",
+          "sha256": "d36562f016a871e4b45bbde76327ab9f7849e4df7e6506ed0d97b8e67f981d31"
+        },
+        {
+          "episode": 57,
+          "family": "chirp",
+          "sha256": "fcdeb7fb22f100663d7af6e629722cad502abc409233f1425654832856b25260"
+        },
+        {
+          "episode": 10,
+          "family": "common_mode",
+          "sha256": "56530a034f1f156b7d68892130606759c9dc98ca394b128055ba3053fd368382"
+        },
+        {
+          "episode": 17,
+          "family": "common_mode",
+          "sha256": "91c3b56b635ddfd4816cadcbb2c0b0f2da489292903c1baa5ca4c724f592e9f9"
+        },
+        {
+          "episode": 76,
+          "family": "coupled",
+          "sha256": "ad3f03d7bfabf8f2d699fa828762e9ba166fe5183dccafb58a891a033dc55cb9"
+        },
+        {
+          "episode": 41,
+          "family": "coupled",
+          "sha256": "93f3ba10d97b1816c9bf5c5333b2f08fc2af3c8bf8b09e6a26ea2e838447debf"
+        },
+        {
+          "episode": 91,
+          "family": "disturbance",
+          "sha256": "36e89538cbef4206872fcfa02e9346b134bfb2d22a5a80fa378ebdfa2d0b6e56"
+        },
+        {
+          "episode": 94,
+          "family": "disturbance",
+          "sha256": "d86a90130c4dd8121feb4bb54927c2ebfd9ddee11e534bd01e64482df523376d"
+        },
+        {
+          "episode": 75,
+          "family": "joint_reference",
+          "sha256": "3f1d2d3953e9fe55883fd88ef7efb0292b72dfd54ac3850da841e62078574af3"
+        },
+        {
+          "episode": 12,
+          "family": "joint_reference",
+          "sha256": "f3acfbd922e1d27d4959ce9fc7adef545433cc30a603b61bcd728816f7773136"
+        },
+        {
+          "episode": 58,
+          "family": "multisine",
+          "sha256": "8fa33086e958ce177259880d9cbd3be78e2aa17d95e40ba253f2b90e187a430a"
+        },
+        {
+          "episode": 72,
+          "family": "multisine",
+          "sha256": "422c89ab62204530dc462985161f498efe715b1447cd36b3ae03800d433dc63e"
+        },
+        {
+          "episode": 28,
+          "family": "prbs",
+          "sha256": "297895f07b300d22151f960577ff9c600409179f2e67e25b3fbc0cf20d70b5a4"
+        },
+        {
+          "episode": 42,
+          "family": "prbs",
+          "sha256": "5987b259af65af71d4a2b1f030b2f1d1a1dde9563c86cd5198bccd9a58448772"
+        },
+        {
+          "episode": 32,
+          "family": "ringdown",
+          "sha256": "02b1ede9a2c0f7166f2da9b51aaaa1856dcb2d42244007f55901ffe2491a152d"
+        },
+        {
+          "episode": 4,
+          "family": "ringdown",
+          "sha256": "33cfcd39bd4888a6647c3ee8a45479672715a074a3d0f4a774c4ec6322c0e261"
+        }
+      ]
+    },
+    "sample_count": 288000,
+    "limitations": "Simulation-trained; no new physical-arm validation. Finite dictionary and bounded innovation are not stability guarantees.",
+    "status": "complete",
+    "batch_size": 512,
+    "optimizer_steps_per_epoch": 40,
+    "optimizer": "AdamW,cosine",
+    "learning_rate": 0.0002,
+    "minimum_learning_rate": 2e-05,
+    "sensor_contract": {
+      "dt_s": 0.006666666666666667,
+      "control_hz": 150.0,
+      "mocap_hz": 240.0,
+      "joint_noise_std_deg": 0.1,
+      "mocap_latency_s": 0.008333333333333333,
+      "velocity_filter_tau_s": 0.04,
+      "sensor_assumptions": "joint noise and latency provisional, not measured",
+      "board_ids": [
+        257,
+        258,
+        259,
+        260,
+        261,
+        262,
+        263,
+        264,
+        265,
+        266,
+        267,
+        268,
+        269,
+        270,
+        271,
+        272,
+        273,
+        274,
+        275,
+        276,
+        277,
+        278,
+        279,
+        280
+      ],
+      "board_variants": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pressure_observation": "filtered ADC at sync instants; reply delivery latency omitted offline",
+      "plant": "digital_twin.twin_params fitted ProMax; batched numpy flow"
+    },
+    "training_precision": "float32 CUDA, TF32 allowed; ridge initialization float64",
+    "metadata_audit": "Recorded measured pair map added after collection; numerical arrays and trained weights unchanged."
+  },
+  "source_sha256": {
+    "control/controller.py": "394096c03fd82741c6f38869ee68d6d57ddf7adaa44803bbe3347b5abc0a331b",
+    "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+    "control/sim_env.py": "98e5c721919e31cd0c565ce88d59735ba8762a8a6df673240cf98a6c81b6b22f",
+    "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+    "control/trajectory.py": "5cb37bfbd82eb3ccf947069914213fa836ee0c57e95199b5542aef18ed882d96",
+    "control/benchmark.py": "5ce46f729ee22f120dbe41082457d674a8cbb3dd8af4c1ca41f512d51224c98c",
+    "digital_twin/sim_core.py": "0b6d5c00c6bc9bc44129ae918037ee380324eda6df3a61cfda41b9b52d8bfa9f",
+    "digital_twin/actuator_model.py": "8a858b17898741933b127630982989f8e6906eabae15982cc74eb57d53794bdb",
+    "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+    "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db"
+  },
+  "action_channels": {
+    "targets_pa": "requested Pa before ADC rounding",
+    "wire_targets_pa": "decoded transmitted per-board ADC target Pa"
+  }
+}
