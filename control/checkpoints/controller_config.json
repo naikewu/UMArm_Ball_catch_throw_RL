@@ -1,0 +1,296 @@
+{
+  "controllers": {
+    "pid": {
+      "kp": 150,
+      "ki": 30,
+      "kd": 12
+    },
+    "ff_pid": {
+      "kp": 25,
+      "ki": 8,
+      "kd": 5,
+      "preview": 0.07
+    },
+    "koopman_mppi": {
+      "kp": 25,
+      "ki": 8,
+      "kd": 5,
+      "preview": 0.07,
+      "horizon": 16,
+      "samples": 64,
+      "noise_psi": 0.5,
+      "action_regularization": 0.1,
+      "temperature_min": 0.0001,
+      "adapt": true,
+      "preview_actions": false
+    }
+  },
+  "tuning_seed": 6102,
+  "tuning_trajectory": "control.tune.TuningTrajectory: 12second,6degree0.12/0.23/0.37Hz multisine",
+  "objective": "writing_tip_rms_mm + 15*writing_joint_rms_deg",
+  "selected_mppi": {
+    "tip_rms_mm": 2.6167086299835636,
+    "joint_rms_deg": 0.0773942086448069,
+    "solver_median_ms": 2.8087499958928674,
+    "solver_p99_ms": 3.6407069861888885
+  },
+  "interpretation": "Nominal multisine performance comparable to tunedfeedforward; learned corrections improve objective slightly, not a guarantee on Soft or hardware.",
+  "mppi_tuning_trials": [
+    {
+      "source": "mppi_tuning.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 0.015,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 3.810769610079209,
+      "joint_rms_deg": 0.13697973542900876,
+      "objective": 5.865465641514341,
+      "solver_p99_ms": 5.071350994694512
+    },
+    {
+      "source": "mppi_tuning.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 0.015,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": true
+      },
+      "tip_rms_mm": 3.816263346572245,
+      "joint_rms_deg": 0.13941719223725027,
+      "objective": 5.907521230130999,
+      "solver_p99_ms": 6.855165014858358
+    },
+    {
+      "source": "mppi_tuning.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 0.2,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 3.1505769695771293,
+      "joint_rms_deg": 0.09834286232069868,
+      "objective": 4.625719904387609,
+      "solver_p99_ms": 5.153431007638574
+    },
+    {
+      "source": "mppi_tuning.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 0.2,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 3.1936368531692825,
+      "joint_rms_deg": 0.08977862244731581,
+      "objective": 4.54031618987902,
+      "solver_p99_ms": 3.9126069901976734
+    },
+    {
+      "source": "mppi_tuning.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 1.0,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.6024385866116915,
+      "joint_rms_deg": 0.08135012496074429,
+      "objective": 3.822690461022856,
+      "solver_p99_ms": 4.749514989089221
+    },
+    {
+      "source": "mppi_tuning_refine.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 0.5,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.617773734614942,
+      "joint_rms_deg": 0.08028951541310787,
+      "objective": 3.8221164658115603,
+      "solver_p99_ms": 4.753932993335184
+    },
+    {
+      "source": "mppi_tuning_refine.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 1.0,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.605502724416281,
+      "joint_rms_deg": 0.0813905061638319,
+      "objective": 3.8263603168737594,
+      "solver_p99_ms": 4.784111990593374
+    },
+    {
+      "source": "mppi_tuning_refine.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 2.0,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.6037414321104793,
+      "joint_rms_deg": 0.08136914225235478,
+      "objective": 3.824278565895801,
+      "solver_p99_ms": 4.836065007257275
+    },
+    {
+      "source": "mppi_tuning_refine.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 1.0,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.603260409000462,
+      "joint_rms_deg": 0.08134153516207121,
+      "objective": 3.8233834364315302,
+      "solver_p99_ms": 3.7138549899100326
+    },
+    {
+      "source": "mppi_tuning_refine.json",
+      "config": {
+        "horizon": 24,
+        "samples": 64,
+        "noise_psi": 2.0,
+        "action_regularization": 1.0,
+        "temperature_min": 0.008,
+        "adapt": false,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.6050234978541402,
+      "joint_rms_deg": 0.08135574306535497,
+      "objective": 3.8253596438344646,
+      "solver_p99_ms": 4.742123991018161
+    },
+    {
+      "source": "mppi_tuning_small_noise.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 0.25,
+        "action_regularization": 0.03,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.646430808803967,
+      "joint_rms_deg": 0.08076303481271263,
+      "objective": 3.8578763309946567,
+      "solver_p99_ms": 3.7042630038922653
+    },
+    {
+      "source": "mppi_tuning_small_noise.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 0.25,
+        "action_regularization": 0.2,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.6465394642656883,
+      "joint_rms_deg": 0.080761091693901,
+      "objective": 3.8579558396742035,
+      "solver_p99_ms": 3.635693005635403
+    },
+    {
+      "source": "mppi_tuning_small_noise.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 0.5,
+        "action_regularization": 0.2,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.728372090681055,
+      "joint_rms_deg": 0.08085933081423909,
+      "objective": 3.941262052894641,
+      "solver_p99_ms": 3.659447983081918
+    },
+    {
+      "source": "mppi_tuning_small_noise.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 0.5,
+        "action_regularization": 1.0,
+        "temperature_min": 0.008,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.7204590774073965,
+      "joint_rms_deg": 0.08085409909592794,
+      "objective": 3.9332705638463157,
+      "solver_p99_ms": 3.6889150040224195
+    },
+    {
+      "source": "mppi_tuning_temperature.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 0.25,
+        "action_regularization": 0.03,
+        "temperature_min": 0.0001,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.7590872942611293,
+      "joint_rms_deg": 0.08828741946161707,
+      "objective": 4.083398586185385,
+      "solver_p99_ms": 3.623036997159943
+    },
+    {
+      "source": "mppi_tuning_temperature.json",
+      "config": {
+        "horizon": 16,
+        "samples": 64,
+        "noise_psi": 0.5,
+        "action_regularization": 0.1,
+        "temperature_min": 0.0001,
+        "adapt": true,
+        "preview_actions": false
+      },
+      "tip_rms_mm": 2.6167086299835636,
+      "joint_rms_deg": 0.0773942086448069,
+      "objective": 3.777621759655667,
+      "solver_p99_ms": 3.6407069861888885
+    }
+  ]
+}

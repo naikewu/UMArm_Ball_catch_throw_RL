@@ -59,3 +59,47 @@ def test_batched_fitted_flow_preserves_the_plant():
         a, b = batched.step(p), scalar.step(p)
     np.testing.assert_allclose(a["q_true"], b["q_true"], atol=1e-10, rtol=1e-10)
     np.testing.assert_allclose(a["p_true_pa"], b["p_true_pa"], atol=1e-7, rtol=1e-10)
+
+
+def test_force_clip_at_intermediate_physics_step_invalidates_episode(monkeypatch):
+    env = ControlEnv(seed=7)
+    env.reset()
+    original = env.arm.actuator.force_n
+    calls = [0]
+
+    def transient_clip(*args, **kwargs):
+        force = original(*args, **kwargs).copy()
+        calls[0] += 1
+        if calls[0] == 2:
+            force[0] = -4000.0
+        return force
+
+    monkeypatch.setattr(env.arm.actuator, "force_n", transient_clip)
+    with pytest.raises(RuntimeError, match="force clip"):
+        env.step(np.full(24, 2*PA_PER_PSI))
+    assert calls[0] > 2
+    assert np.max(np.abs(env.arm.data.ctrl)) < 4000
+    assert env.max_force_n == 4000
+
+
+def test_common_observer_does_not_change_existing_sensor_recurrence():
+    env = ControlEnv(seed=62)
+    env.reset()
+    previous_q, previous_stamp = env._q.copy(), env._frame_time
+    velocity = np.zeros(12)
+    original_update = env.observer.update
+
+    def checked_update(stamp, q):
+        nonlocal previous_q, previous_stamp, velocity
+        delta = stamp-previous_stamp
+        alpha = -np.expm1(-delta/env.velocity_tau_s)
+        velocity += alpha*((q-previous_q)/delta-velocity)
+        result = original_update(stamp, q)
+        np.testing.assert_array_equal(result, velocity)
+        previous_q, previous_stamp = q.copy(), stamp
+        return result
+
+    env.observer.update = checked_update
+    for _ in range(20):
+        obs = env.step(np.full(24, 3*PA_PER_PSI))
+    np.testing.assert_array_equal(obs["qdot"], velocity)

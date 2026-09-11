@@ -14,7 +14,7 @@ import time
 
 import numpy as np
 
-from control.controller import make_controller, pair_indices, PA_PER_PSI
+from control.controller import make_controller, pair_indices, PA_PER_PSI, DEFAULT_CHECKPOINT
 from control.sim_env import ControlEnv
 from control.trajectory import SoftTrajectory, tip_position
 
@@ -57,6 +57,10 @@ def score_trace(trace, variants):
 def run(method, trajectory=None, *, seed=202609111, randomize=False,
         noise_std_deg=.1, checkpoint=None, controller_kwargs=None, duration_s=None):
     trajectory = SoftTrajectory() if trajectory is None else trajectory
+    effective_checkpoint = (Path(checkpoint or DEFAULT_CHECKPOINT).resolve()
+                            if method == "koopman_mppi" else None)
+    checkpoint_sha = (hashlib.sha256(effective_checkpoint.read_bytes()).hexdigest()
+                      if effective_checkpoint is not None else None)
     env = ControlEnv(seed=seed, randomize=randomize, noise_std_rad=np.deg2rad(noise_std_deg))
     obs = env.reset()
     controller = make_controller(method, dt=env.dt, seed=seed, checkpoint=checkpoint,
@@ -65,18 +69,24 @@ def run(method, trajectory=None, *, seed=202609111, randomize=False,
     horizon = int(getattr(controller, "horizon", 1))
     prediction_dt = float(getattr(controller, "prediction_dt", env.dt))
     # GPU/module initialization is not part of a running control cycle. Warm
-    # it with the initial observation, then reset controller memory and RNG.
+    # it with the initial observation, then reset controller memory. Preserve
+    # the sampler state explicitly so warmup never consumes experiment noise.
     if method == "koopman_mppi":
+        import copy
+        sampler_state = copy.deepcopy(controller.rng.bit_generator.state)
         q, qd, qdd = trajectory.sample(0)
         controller.command(obs["q"], obs["qdot"], obs["p_pa"], q, qd, qdd,
                            future_q=trajectory.future(0, horizon, prediction_dt))
         controller.reset(obs["q"], obs["p_pa"])
+        controller.rng.bit_generator.state = sampler_state
     seconds = trajectory.duration_s if duration_s is None else duration_s
     n = int(np.ceil(seconds / env.dt))
     trace = {key: np.zeros((n, dim)) for key, dim in
-             (("q_true",12),("q_observed",12),("q_ref",12),("p_measured_pa",24),
-              ("p_true_pa",24),("targets_pa",24),("tip_true",3),("tip_ref",3))}
-    trace.update(t=np.arange(n)*env.dt, pen_down=np.zeros(n, dtype=bool), solve_ms=np.zeros(n))
+             (("q_true",12),("q_observed",12),("qdot_observed",12),("q_ref",12),
+              ("p_measured_pa",24),("p_true_pa",24),("targets_pa",24),
+              ("wire_targets_pa",24),("tip_true",3),("tip_ref",3))}
+    trace.update(t=np.arange(n)*env.dt, pen_down=np.zeros(n, dtype=bool),
+                 solve_ms=np.zeros(n), mocap_time_s=np.zeros(n), mocap_age_s=np.zeros(n))
     started = time.perf_counter()
     try:
         for k, t in enumerate(trace["t"]):
@@ -87,23 +97,41 @@ def run(method, trajectory=None, *, seed=202609111, randomize=False,
                                          future_q=future)
             trace["solve_ms"][k] = 1000*(time.perf_counter() - begin)
             for key, value in (("q_true",obs["q_true"]),("q_observed",obs["q"]),
+                               ("qdot_observed",obs["qdot"]),
                                ("q_ref",q),("p_measured_pa",obs["p_pa"]),
                                ("p_true_pa",obs["p_true_pa"]),("targets_pa",targets)):
                 trace[key][k] = value
             trace["pen_down"][k] = trajectory.pen_down(t)
             trace["tip_ref"][k] = trajectory.tip_target(t)
+            trace["mocap_time_s"][k] = obs["mocap_time_s"]
+            trace["mocap_age_s"][k] = obs["mocap_age_s"]
             obs = env.step(targets)
+            trace["wire_targets_pa"][k] = env.last_targets_pa
         trace["tip_true"][:] = tip_position(trace["q_true"])
         meta = dict(method=method, seed=seed, randomized=randomize,
                     environment=env.meta, trajectory=trajectory.metadata,
                     wall_elapsed_s=time.perf_counter()-started,
                     max_tendon_force_n=env.max_force_n,
                     controller_options=controller_kwargs or {},
-                    checkpoint=None if checkpoint is None else str(checkpoint),
+                    checkpoint=None if effective_checkpoint is None else str(effective_checkpoint),
                     last_controller_diagnostics=getattr(controller,"last_diagnostics",{}),
                     metrics=score_trace(trace, env.variants))
-        if checkpoint is not None:
-            meta["checkpoint_sha256"] = hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest()
+        if effective_checkpoint is not None:
+            final_sha = hashlib.sha256(effective_checkpoint.read_bytes()).hexdigest()
+            if final_sha != checkpoint_sha:
+                raise RuntimeError("Koopman checkpoint changed during the benchmark; discard this run")
+            meta["checkpoint_sha256"] = checkpoint_sha
+            meta["model_metadata"] = getattr(controller, "model_meta", {})
+        root = Path(__file__).resolve().parents[1]
+        provenance = ["control/controller.py", "control/koopman.py", "control/sim_env.py",
+                      "control/observation.py", "control/trajectory.py", "control/benchmark.py",
+                      "digital_twin/sim_core.py", "digital_twin/actuator_model.py",
+                      "digital_twin/checkpoints/canarm_flow.npz",
+                      "digital_twin/checkpoints/canarm_mech.json"]
+        meta["source_sha256"] = {name: hashlib.sha256((root/name).read_bytes()).hexdigest()
+                                  for name in provenance if (root/name).exists()}
+        meta["action_channels"] = {"targets_pa": "requested Pa before ADC rounding",
+                                   "wire_targets_pa": "decoded transmitted per-board ADC target Pa"}
         return trace, meta
     finally:
         env.close()

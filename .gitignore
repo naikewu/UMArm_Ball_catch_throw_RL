@@ -73,3 +73,9 @@ data/*.err
 # documents it and the JSON that carries its numbers, not the mp4.
 *.mp4
 !hw_tests/media/*.jpg
+
+# Regenerated controller rollouts and temporary training checkpoints. The
+# selected model, coverage summary, benchmark JSON and final videos are kept.
+control/data/
+control/checkpoints/*.running.pt
+!deliverable/dynamic_control/soft_*.mp4

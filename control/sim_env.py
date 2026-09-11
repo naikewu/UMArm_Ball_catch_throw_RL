@@ -17,6 +17,22 @@ from collection.safety import PairEnvelope
 from digital_twin.replay import PA_PER_PSI, counts_to_pa, pa_to_counts
 from digital_twin.sim_core import SimArm
 from digital_twin.twin_params import load_twin_kwargs
+from .observation import CausalJointObserver
+
+
+class _ControlArm(SimArm):
+    """Observe every force sample used by physics without changing its steps."""
+    def __init__(self, **kwargs):
+        self.control_peak_force_n = 0.0
+        super().__init__(**kwargs)
+
+    def _step_quantum(self):
+        super()._step_quantum()
+        # ctrl is the tendon-force vector held for this just-completed 1 ms
+        # step. A final-control-tick sample could miss a transient clipped
+        # force that appeared and disappeared between two 150 Hz observations.
+        peak = float(np.max(np.abs(self.data.ctrl)))
+        self.control_peak_force_n = max(self.control_peak_force_n, peak)
 
 
 class ControlEnv:
@@ -61,7 +77,7 @@ class ControlEnv:
             actuator.leak_pa_s += extra_leak
             variation["additional_leak_pa_s"] = extra_leak.tolist()
         kwargs.update(seed=self.seed, batched_actuator=True)
-        self.arm = SimArm(**kwargs)
+        self.arm = _ControlArm(**kwargs)
         self.ids = tuple(sorted(self.arm.nodes))
         self.variants = np.array([self.arm.nodes[b].variant for b in self.ids], dtype=int)
         self.t, self.steps, self._next_camera = 0.0, 0, self.camera_dt
@@ -70,6 +86,8 @@ class ControlEnv:
         self._q = self.arm.q() + self.rng.normal(0, self.noise_std_rad, 12)
         self._qd = np.zeros(12)
         self._frame_time = 0.0
+        self.observer = CausalJointObserver(tau_s=self.velocity_tau_s)
+        self.observer.update(self._frame_time, self._q)
         self._frames.append((0.0, self._q.copy()))
         self.last_targets_pa = np.zeros(24)
         self.max_force_n = 0.0
@@ -78,6 +96,7 @@ class ControlEnv:
                          joint_noise_std_deg=float(np.rad2deg(self.noise_std_rad)),
                          mocap_latency_s=self.latency_s,
                          velocity_filter_tau_s=self.velocity_tau_s,
+                         velocity_observer="CausalJointObserver, every acquisition frame, before 150 Hz readout",
                          sensor_assumptions="joint noise and latency provisional, not measured",
                          board_ids=list(self.ids), board_variants=self.variants.tolist(),
                          randomization=variation,
@@ -133,11 +152,10 @@ class ControlEnv:
             stamp, q = self._frames.popleft()
             delta = stamp - self._frame_time
             if delta > 1e-12:
-                alpha = -np.expm1(-delta / self.velocity_tau_s)
-                self._qd += alpha * ((q - self._q) / delta - self._qd)
+                self._qd = self.observer.update(stamp, q)
                 self._q = q
                 self._frame_time = stamp
-        force = float(np.max(np.abs(self.arm.data.ctrl)))
+        force = self.arm.control_peak_force_n
         self.max_force_n = max(self.max_force_n, force)
         if force >= 4000 - 1e-6:
             raise RuntimeError("control experiment reached the 4000 N force clip")

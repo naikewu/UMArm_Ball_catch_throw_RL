@@ -56,12 +56,17 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--method",choices=["pid","ff_pid"],default="pid")
     p.add_argument("--workers",type=int,default=4)
+    p.add_argument("--refine",action="store_true")
     p.add_argument("--out",type=Path,default=Path("data/control_tuning.json"))
     args=p.parse_args()
     if args.method=="pid":
-        configs=[dict(kp=kp,ki=ki,kd=kd) for kp,ki,kd in
-                 itertools.product([150,300,600],[30,100],[3,9])]
-        configs.append(dict(kp=45,ki=8,kd=2.5))
+        if args.refine:
+            configs=[dict(kp=kp,ki=ki,kd=kd) for kp,ki,kd in
+                     itertools.product([100,150,220],[30,60],[12,20])]
+        else:
+            configs=[dict(kp=kp,ki=ki,kd=kd) for kp,ki,kd in
+                     itertools.product([150,300,600],[30,100],[3,9])]
+            configs.append(dict(kp=45,ki=8,kd=2.5))
     else:
         configs=[dict(kp=kp,ki=8,kd=kd,preview=preview) for kp,kd,preview in
                  itertools.product([25,100],[2,5],[.0,.035,.070])]

@@ -66,3 +66,9 @@
 - 2026-09-11 01:16 — Started the ProMax dynamic-controller implementation, established control/CONTRACT.md and a deterministic 150 Hz CAN / delayed noisy 240 Hz mocap experiment environment, and verified four timing, envelope, determinism and fitted-flow parity checks.
 
 - 2026-09-11 01:22 — Ported and reach-scaled the versioned Soft glyph with measured ProMax FK, analytic Jacobian, bounded IK and smooth time scaling; added separate tuning/comparison runners and fixed the zero-pressure ADC-rounding cap boundary, with eleven environment/trajectory checks passing.
+
+- 2026-09-11 01:24 — Added SIM-only spawned GUI control with joint sliders, tip jog, noisy delayed 240 Hz mocap, ADC-safe targets and process/stale shutdown guards; eight process tests, twelve mocap tests and initial PID/feedforward Tk acceptance passed without a hardware-open attempt.
+
+- 2026-09-11 01:32 — Implemented the three pressure controllers, collected 288000 synchronized noisy-twin transitions from 96 whole episodes, trained the bilinear Koopman dictionary on RTX 5090 (80 epochs, best epoch 60), verified held-out 106.7 ms prediction at 0.581 deg versus 2.614 deg persistence, selected MPPI settings on an independent multisine, and passed 14 controller/schema/parity checks.
+
+- 2026-09-11 01:36 — Trained the 96-coordinate pressure-state Koopman model on 96 simulated episodes (288000 transitions), passed 1064 offline tests before review fixes and 25 focused checks afterward, then retained the first full-word PID instability as evidence and began separate large-motion gain retuning before final acceptance.
