@@ -19,6 +19,13 @@ requests rather than promising an arbitrary tip position. Closing the target
 window stops the controller. The worker process, applied command rate, and
 computation time are visible in the target window.
 
+Startup includes a discarded solver warmup while the simulated actuators are
+disabled, followed by a fresh-state reset. This resolves the optimizer's lazy
+imports before any command reaches the plant; the 150 ms stale-state check
+still applies during control. The [final acceptance record](results/gui_acceptance.json)
+reports active timing separately from warmup and retains each controller's
+tracking bias.
+
 While the sliders permit requests within +/-25 degrees, this interval is a
 kinematic input bound. It does not establish that every requested pose can be
 held under the 30 psi individual and antagonistic-pair caps. The training
@@ -77,7 +84,7 @@ Reproduce the simulation dataset and training with the workspace GPU:
 ```powershell
 .venv/Scripts/python.exe -m control.collect --episodes 84 --seconds 20 --workers 24
 .venv/Scripts/python.exe -m control.collect --start 84 --episodes 12 --seconds 20 --workers 12 --family disturbance
-.venv/Scripts/python.exe -m control.train --epochs 80 --steps 40 --batch 512 --horizon 30 --device cuda
+.venv/Scripts/python.exe -m control.train --epochs 80 --steps 40 --batch 512 --horizon 30 --device cuda --out control/checkpoints/canarm_koopman_retrained.pt
 ```
 
 The 96 episodes cover independent and coupled pressure steps, chirps,
@@ -87,6 +94,10 @@ and leakage. These ranges are assumed robustness scenarios. They do not amount
 to exhaustive modal coverage or fitted confidence intervals. Whole episodes
 are assigned to training, validation, and test sets. Validation chooses the
 checkpoint; held-out test episodes are scored after that choice.
+
+The reproduction command writes a separate checkpoint. To evaluate those new
+weights, pass `--checkpoint control/checkpoints/canarm_koopman_retrained.pt`
+to `control.benchmark`; the default comparison uses the shipped checkpoint.
 
 Feedforward and MPPI settings use a separate 6-degree joint multisine. The
 initial PID gains passed that small-motion test but became unstable on the
@@ -134,12 +145,18 @@ The warm-start training interface supports a later adaptation stage:
 Each input `episode_*.npz` must contain `state` with shape `(N+1,48)`, `action`
 with shape `(N,24)`, and a JSON string `meta`. State order is
 `q12,qdot12,p24_Pa_gauge`; actions are Pa gauge in ascending CAN ID order.
-Metadata requires `episode`, `family`, `dt_s=1/150`, and
-`environment.board_variants`. Preserve each physical episode as a split unit;
+The [metadata example](assets/episode_metadata_example.json) lists the required
+fields: episode/family, state order, measured antagonist indices, ascending
+board IDs and variant bytes, sample rates, pressure-observation definition,
+and camera-noise/latency/filter settings. Replace its assumed sensor values
+with the recording's documented estimates. One model requires a fixed valve
+layout, at least seven episodes total, and at least three episodes per family.
+Preserve each physical episode as a split unit;
 do not divide one recording into adjacent training and test fragments. Use
 causal camera/velocity processing matching the controller and each recorded
 board's pressure calibration. The current batch trainer requires equal episode
-lengths and the checkpoint's fixed sample period, so irregular or dropped
+lengths exceeding both the training and 75-step evaluation horizons, and the
+checkpoint's fixed sample period, so irregular or dropped
 samples need explicit preprocessing before this command can be used.
 
 Warm-start adaptation preserves the original normalization, optionally freezes

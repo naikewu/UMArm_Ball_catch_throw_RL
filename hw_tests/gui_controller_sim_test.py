@@ -8,6 +8,7 @@ only a separate unloaded run establishes whether the 150 Hz deadline is met.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -49,6 +50,12 @@ def main(argv=None):
     records = []
     report = {"sim_only": True, "fresh_plant_per_method": True,
               "jog_settle_s": args.jog_settle_s, "methods": records, "failures": []}
+    report["source_sha256"] = {
+        name: hashlib.sha256((WS / name).read_bytes()).hexdigest()
+        for name in ("control/controller.py", "control/koopman.py",
+                     "control/controller_process.py", "control/observation.py",
+                     "digital_twin/sim_mocap.py", "control/checkpoints/canarm_koopman.pt")
+        if (WS / name).exists()}
     try:
         # No connect first: a Start press must not construct a hardware backend.
         app.toggle_controller()
@@ -128,10 +135,18 @@ def main(argv=None):
             assert "accepted" in window.note.get(), window.note.get()
             assert np.linalg.norm(bridge.target_q - previous_target) > 1e-5
             tip_samples = []
+            jog_samples = []
             jog_end = time.monotonic() + args.jog_settle_s
             while time.monotonic() < jog_end:
                 pump(root, 0.04, tick=0.005)
-                tip_samples.append(tip_position(app.backend.arm.q()))
+                true_tip = tip_position(app.backend.arm.q())
+                tip_samples.append(true_tip)
+                stamp, seq, observed_q, observed_qdot = app._mocap.latest_control_sample()
+                jog_samples.append(np.r_[time.perf_counter(), observed_q, observed_qdot,
+                                         bridge.target_q, bridge.last_pressure_pa, true_tip])
+            np.savez_compressed(args.out.with_name(args.out.stem + f"_{method}_jog_trace.npz"),
+                                samples=np.asarray(jog_samples), target_tip_m=tip_requested,
+                                columns="time,q12,qdot12,requested_q12,target_pa24,truth_tip3")
             tip_after = np.mean(tip_samples[-10:], axis=0)
             before_error = float(np.linalg.norm(tip_before - tip_requested))
             after_error = float(np.linalg.norm(tip_after - tip_requested))
@@ -144,6 +159,7 @@ def main(argv=None):
                 f"tip jog did not reduce error: {before_error * 1000:.2f} -> {after_error * 1000:.2f} mm")
             assert bridge.running, bridge.status
             record.update(applied_hz=bridge.command_hz, last_solve_ms=bridge.solve_ms,
+                          startup_warmup_ms=bridge.warmup_ms,
                           deadline_misses=bridge.deadline_misses, commands=bridge.commands,
                           backend_hz=((app.backend.stats.cycles - cycle_n0) /
                                       (time.perf_counter() - cycle_t0)),

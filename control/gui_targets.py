@@ -83,7 +83,7 @@ class TargetWindow:
         self.tracking = tk.StringVar(value="Waiting for a measured pose ...")
         ttk.Label(content, textvariable=self.tracking, wraplength=490).grid(
             row=17, column=0, columnspan=3, sticky="w", pady=(6, 0))
-        self.window.after(100, self._poll)
+        self._poll_id = self.window.after(100, self._poll)
 
     def _labels(self):
         for var, label in zip(self.variables, self.value_labels):
@@ -192,9 +192,10 @@ class TargetWindow:
                 error_mm = float(1000 * np.linalg.norm(tip_position(measured_q) - self._cartesian_goal))
                 line += f" | tip error: {error_mm:.2f} mm"
             self.tracking.set(line)
-        self.window.after(100, self._poll)
+        self._poll_id = self.window.after(100, self._poll)
 
     def close(self):
         self._closed = True
+        self.window.after_cancel(self._poll_id)
         self._executor.shutdown(wait=False, cancel_futures=True)
         self.window.destroy()

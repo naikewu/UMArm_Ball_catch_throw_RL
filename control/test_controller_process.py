@@ -10,7 +10,8 @@ from types import SimpleNamespace
 import numpy as np
 
 from control.controller_process import (ControllerBridge, validate_joint_target,
-                                        quantized_safe_targets)
+                                        quantized_safe_targets, _controller_main,
+                                        _read, _write)
 from digital_twin.sim_master import SimMaster
 from TLE_PCB.tlelib.proto import NodeCal
 
@@ -77,6 +78,49 @@ def _until(predicate, timeout=15):
 
 
 class ProcessTests(unittest.TestCase):
+    def test_slow_warmup_emits_nothing_then_resets_from_fresh_state(self):
+        from unittest.mock import patch
+        entered = threading.Event()
+        release = threading.Event()
+        resets = []
+
+        class SlowFirstCommand:
+            calls = 0
+            def reset(self, q, p):
+                resets.append(q.copy())
+            def command(self, *args):
+                self.calls += 1
+                if self.calls == 1:
+                    entered.set()
+                    if not release.wait(2):
+                        raise RuntimeError("test did not release warmup")
+                return np.zeros(24)
+
+        backend = _Backend()
+        bridge = ControllerBridge(backend, _Mocap(backend))
+        _write(bridge._observation, np.r_[time.perf_counter(), 1, np.full(12, .1),
+                                         np.zeros(36)])
+        with patch("control.controller.make_controller", return_value=SlowFirstCommand()):
+            worker = threading.Thread(target=_controller_main,
+                args=(bridge._observation, bridge._target, bridge._command,
+                      bridge._stop, bridge._messages, "pid", None, bridge.dt))
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(2))
+                self.assertEqual(_read(bridge._command)[2], 0)
+                fresh_stamp = time.perf_counter()
+                _write(bridge._observation, np.r_[fresh_stamp, 2, np.full(12, .2), np.zeros(36)])
+                release.set()
+                self.assertTrue(_until(lambda: _read(bridge._command)[2] > 0, 2))
+                self.assertEqual(_read(bridge._command)[1], fresh_stamp)
+                np.testing.assert_array_equal(resets[0], np.full(12, .1))
+                np.testing.assert_array_equal(resets[1], np.full(12, .2))
+            finally:
+                bridge._stop.set()
+                release.set()
+                worker.join(2)
+                bridge._messages.close()
+
     def test_quantized_pair_caps_use_each_node_calibration(self):
         from collection.safety import PairEnvelope
         envelope = PairEnvelope()

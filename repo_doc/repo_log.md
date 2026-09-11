@@ -76,3 +76,9 @@
 - 2026-09-11 01:36 — Trained the 96-coordinate pressure-state Koopman model on 96 simulated episodes (288000 transitions), passed 1064 offline tests before review fixes and 25 focused checks afterward, then retained the first full-word PID instability as evidence and began separate large-motion gain retuning before final acceptance.
 
 - 2026-09-11 01:49 — Replaced the PID gains selected on a small multisine with uniform 85/8/12 after independent coupled-pose and speed stress rejected sustained oscillation in the prior 150/30/12 setting, retained failed-run evidence, pinned collection to the original legacy allocator, and passed 22 focused controller/allocation/reference tests.
+
+- 2026-09-11 01:53 — Corrected feedforward pressure allocation at antagonist saturation, selected PID85/8/12 on six independent stress cases, committed the spawned SIM controller GUI, and started fresh paired writing benchmarks with the frozen model and controller sources.
+
+- 2026-09-11 01:55 — Audited all 96 training hashes and whole-episode splits against the frozen checkpoint, documented the complete real-episode metadata schema, and made campaign summaries explicitly retain the legacy allocation mode used for collection.
+
+- 2026-09-11 02:03 — Fixed cold controller startup by discarding solver warmup before a fresh-state reset, passed its deterministic worker regression and all three fresh-plant GUI runs with zero hardware opens, and measured 9 s tip-jog residuals of 8.02/0.021/0.272 mm for PID/feedforward/MPPI while retaining prior startup and larger-pose failures.

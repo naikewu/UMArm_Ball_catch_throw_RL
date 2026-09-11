@@ -38,7 +38,7 @@ def summarize_campaign(directory):
     repo=Path(__file__).resolve().parents[1]
     result["twin_checkpoints"]={str(p.relative_to(repo)):hashlib.sha256(p.read_bytes()).hexdigest()
                                for p in (repo/"digital_twin/checkpoints/canarm_flow.npz",repo/"digital_twin/checkpoints/canarm_mech.json")}
-    result["collection_feedback"]={"kp_psi_per_rad":25,"ki_psi_per_rad_s":8,"kd_psi_s_per_rad":2,"preview_s":.035}
+    result["collection_feedback"]={"kp_psi_per_rad":25,"ki_psi_per_rad_s":8,"kd_psi_s_per_rad":2,"preview_s":.035,"allocation_mode":"legacy_clip"}
     result["limitations"]="Sampled coverage is not exhaustive modal coverage; parameter ranges and sensor noise are assumed robustness scenarios, not measured confidence intervals. No hardware ran."
     return result
 

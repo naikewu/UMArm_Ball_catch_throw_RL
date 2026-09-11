@@ -1,0 +1,158 @@
+{
+  "sim_only": true,
+  "methods": [
+    {
+      "method": "pid",
+      "child_pid": 42320,
+      "joint2_target_deg": 4.816005174932991,
+      "joint2_motion_deg": 3.985351389045545,
+      "joint2_start_deg": -0.18399482506700846,
+      "joint2_final_deg": 3.801356563978537,
+      "joint2_last_half_second_mean_deg": 3.9149866076638684,
+      "joint2_range_deg": [
+        -0.06549921131166093,
+        4.123221837562282
+      ],
+      "measured_backend_hz": 145.5616038154502,
+      "manual_override_refused": true,
+      "tip_message": "Tip target accepted; kinematic residual 0.00 mm.",
+      "tip_jog_mm": 10.0,
+      "tip_requested_m": [
+        -0.04796,
+        -0.00154,
+        -0.87353
+      ],
+      "tip_before_m": [
+        -0.055897434743618316,
+        -0.0001245908774505037,
+        -0.8736673886093007
+      ],
+      "tip_after_m": [
+        -0.04333382553206057,
+        -0.002573420738296412,
+        -0.8738856849402946
+      ],
+      "tip_error_before_mm": 8.063816027375688,
+      "tip_error_after_mm": 4.7535208432180225,
+      "tip_motion_mm": 12.801902100712795,
+      "applied_hz": 146.01337717214693,
+      "last_solve_ms": 0.15639999764971435,
+      "deadline_misses": 0,
+      "commands": 1432,
+      "backend_hz": 142.1151701122771,
+      "backend_reply_fraction": 0.9816426949280848,
+      "mocap_hz": 241.98538638936353,
+      "solve_ms_p50_p95_p99_max": [
+        0.16739999409765005,
+        0.32083501428132877,
+        0.33661400200799113,
+        0.5284000071696937
+      ],
+      "applied_interval_ms_p50_p95_p99_max": [
+        6.6524000139907,
+        8.538800000678748,
+        14.481430000159907,
+        21.7531000089366
+      ],
+      "worker_commands": 1432,
+      "shutdown": "target window close",
+      "all_boards_disabled": true
+    },
+    {
+      "method": "ff_pid",
+      "child_pid": 31912,
+      "joint2_target_deg": 9.147545887780883,
+      "joint2_motion_deg": 5.05045494372129,
+      "joint2_start_deg": 4.1475458877808835,
+      "joint2_final_deg": 9.198000831502174,
+      "joint2_last_half_second_mean_deg": 9.150748442352482,
+      "joint2_range_deg": [
+        4.146730360902939,
+        9.456937687105404
+      ],
+      "measured_backend_hz": 136.7478720198996,
+      "manual_override_refused": true,
+      "tip_message": "Tip target accepted; kinematic residual 0.00 mm.",
+      "tip_jog_mm": 10.0,
+      "tip_requested_m": [
+        -0.10732,
+        0.00161,
+        -0.86711
+      ],
+      "tip_before_m": [
+        -0.11565288119028774,
+        -0.0008169670353682518,
+        -0.8672832934986777
+      ],
+      "tip_after_m": [
+        -0.10720297746462726,
+        0.0014856284746034224,
+        -0.8671357252672379
+      ],
+      "tip_error_before_mm": 8.68084722587026,
+      "tip_error_after_mm": 0.17269724806433934,
+      "tip_motion_mm": 8.759257699052068,
+      "applied_hz": 143.37217218718146,
+      "last_solve_ms": 0.519900000654161,
+      "deadline_misses": 0,
+      "commands": 1447,
+      "backend_hz": 137.15170666502596,
+      "backend_reply_fraction": 0.9761686245717083,
+      "mocap_hz": 241.08723455432548,
+      "solve_ms_p50_p95_p99_max": [
+        0.6176999886520207,
+        0.9234999888576567,
+        1.0889239970128983,
+        1.2826000165659934
+      ],
+      "applied_interval_ms_p50_p95_p99_max": [
+        6.687100016279146,
+        8.843199990224093,
+        16.370350013312418,
+        35.68100000848062
+      ],
+      "worker_commands": 1447,
+      "shutdown": "worker terminated",
+      "all_boards_disabled": true
+    },
+    {
+      "method": "koopman_mppi",
+      "child_pid": 44108,
+      "joint2_target_deg": 14.945231800445441,
+      "joint2_motion_deg": 2.1487783419544195,
+      "joint2_start_deg": 9.945231800445441,
+      "joint2_final_deg": 12.09401014239986,
+      "joint2_last_half_second_mean_deg": 12.069654400241523,
+      "joint2_range_deg": [
+        9.872939682406113,
+        12.413069240057531
+      ],
+      "measured_backend_hz": 140.54842031589854,
+      "manual_override_refused": true,
+      "tip_message": "Tip target accepted; kinematic residual 0.00 mm.",
+      "tip_jog_mm": 10.0,
+      "tip_requested_m": [
+        -0.1313,
+        0.00383,
+        -0.86241
+      ],
+      "tip_before_m": [
+        -0.14096678116614986,
+        0.005067294001471018,
+        -0.8625274294158762
+      ],
+      "tip_after_m": [
+        -0.11393959523239397,
+        0.003661799687906357,
+        -0.8649472032525083
+      ],
+      "tip_error_before_mm": 9.74635030296053,
+      "tip_error_after_mm": 17.545636078086343,
+      "tip_motion_mm": 27.17166721391464
+    }
+  ],
+  "failures": [
+    "AssertionError: tip jog did not reduce error: 9.75 -> 17.55 mm"
+  ],
+  "gui_log": "[controller] connect the SIM adapter first; live control is not enabled\ntwin: flow canarm_flow.npz (holdout 0.534 psi) | mech canarm_mech.json | coeff 0.04215/0.04728/0.03235 | bracket_mass_kg [0.2228642916388765, 0.2228642916388765, 0.06128450998767816] | joint_damping 0.001015 | joint_frictionloss 0.1083 | joint_stiffness [0.025256963614832376, 0.016824507164929243, 3.9505554416573054] | link_mass_kg [0.5640130863690507, 0.5599407067930982, 0.5593475792830526] | plate_mass 0.06128 | spacer_mass 0.1003 | tendon_damping 94.67\n01:33:56 CAN link open on SIM at 1000 kbit/s (adapter SIM (plant pid 24652))\n01:33:56 Scan found 24 board(s): 0x101 TLE/DVP 1.46, 0x102 TLE/DVP 1.46, 0x103 TLE/DVP 1.46, 0x104 TLE/DVP 1.46, 0x105 TLE/DVP 1.46, 0x106 TLE/DVP 1.46, 0x107 TLE/DVP 1.46, 0x108 TLE/DVP 1.46, 0x109 7mm 0.2.1, 0x10A 7mm 0.2.1, 0x10B 7mm 0.2.1, 0x10C 7mm 0.2.1, 0x10D 7mm 0.2.1, 0x10E 7mm 0.2.1, 0x10F 7mm 0.2.1, 0x110 7mm 0.2.1, 0x111 7mm 0.2.1, 0x112 7mm 0.2.1, 0x113 7mm 0.2.1, 0x114 7mm 0.2.1, 0x115 7mm 0.2.1, 0x116 7mm 0.2.1, 0x117 7mm 0.2.1, 0x118 7mm 0.2.1\nmocap started (twin)\n01:33:56 all boards disabled\n01:33:56 sync master running at 150 Hz\n01:33:56 24 board(s) enabled\n[controller] pid started in process 42320; SIM only, 240 Hz noisy mocap, 150 Hz requested control\n[controller] use joint sliders or tip targets while control is running\n01:34:06 all boards disabled\n01:34:06 all boards disabled\n[controller] stopped; all twin boards disabled\n01:34:06 all boards disabled\n[controller] ff_pid started in process 31912; SIM only, 240 Hz noisy mocap, 150 Hz requested control\n01:34:06 24 board(s) enabled\n[controller] use joint sliders or tip targets while control is running\n[controller] stopped: RuntimeError: controller exited (-15)\n01:34:16 all boards disabled\n01:34:16 all boards disabled\n[controller] stopped; all twin boards disabled\n[controller] stopped: RuntimeError: controller exited (-15)\n01:34:17 all boards disabled\n[controller] koopman_mppi started in process 44108; SIM only, 240 Hz noisy mocap, 150 Hz requested control\n01:34:18 24 board(s) enabled\n[controller] use joint sliders or tip targets while control is running\n\n"
+}

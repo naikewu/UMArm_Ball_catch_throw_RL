@@ -104,6 +104,17 @@ def quantized_safe_targets(psi, nodes, envelope=None):
     return wire
 
 
+def _warm_controller(controller, obs):
+    """Resolve lazy solver imports without publishing a pressure command."""
+    q, p_pa, qdot = obs[2:14], obs[14:38], obs[38:50]
+    controller.reset(q, p_pa)
+    started = time.perf_counter()
+    pressure = controller.command(q, qdot, p_pa, q, np.zeros(12), np.zeros(12))
+    PairEnvelope().assert_safe(np.asarray(pressure) / PA_PER_PSI,
+                               where="discarded controller warmup")
+    return (time.perf_counter() - started) * 1000
+
+
 def _controller_main(observation, target, command, stop, messages, method,
                      checkpoint, dt):
     """Child entry point: it never receives a backend or hardware address."""
@@ -111,7 +122,19 @@ def _controller_main(observation, target, command, stop, messages, method,
         from control.controller import make_controller
 
         controller = make_controller(method, dt=dt, checkpoint=checkpoint)
-        messages.put(("ready", "controller loaded"))
+        # scipy.optimize is imported lazily by the pressure allocator; in a
+        # fresh GUI child its first call took240ms, versus2.4ms when warm. Run
+        # it while all boards are disabled, then reset from a fresh observation
+        # in the main loop. Neither this command nor its old state is emitted.
+        while not stop.is_set():
+            obs = _read(observation)
+            if obs[0] > 0 and time.perf_counter() - obs[0] < STATE_TIMEOUT_S:
+                break
+            stop.wait(0.001)
+        if stop.is_set():
+            return
+        warmup_ms = _warm_controller(controller, obs)
+        messages.put(("ready", warmup_ms))
         envelope = PairEnvelope()
         q_ref = None
         qd_ref = np.zeros(12)
@@ -200,6 +223,7 @@ class ControllerBridge:
         self.status = "stopped"
         self.error = ""
         self.command_hz = self.solve_ms = 0.0
+        self.warmup_ms = 0.0
         self.deadline_misses = self.commands = 0
         self.worker_commands = 0
         self.solve_times_ms = deque(maxlen=8192)
@@ -260,6 +284,7 @@ class ControllerBridge:
                         break
                     if kind == "error":
                         raise RuntimeError(message)
+                    self.warmup_ms = float(message)
                     ready = True
                     self.status = "waiting for first command"
                 if not self.process.is_alive():

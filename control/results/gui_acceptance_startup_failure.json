@@ -1,0 +1,136 @@
+{
+  "sim_only": true,
+  "fresh_plant_per_method": true,
+  "jog_settle_s": 9.0,
+  "methods": [
+    {
+      "method": "pid",
+      "child_pid": 44236,
+      "joint2_target_deg": 5.0,
+      "joint2_motion_deg": 3.02652073430571,
+      "joint2_start_deg": 0.10918780147403996,
+      "joint2_final_deg": 3.13570853577975,
+      "joint2_last_half_second_mean_deg": 3.0959094323840866,
+      "joint2_range_deg": [
+        -0.21041595637867047,
+        3.2872521856113806
+      ],
+      "measured_backend_hz": 145.92924190744935,
+      "manual_override_refused": true,
+      "tip_message": "Tip target accepted; kinematic residual 0.00 mm.",
+      "tip_jog_mm": 10.0,
+      "tip_requested_m": [
+        -0.02998,
+        0.0031,
+        -0.87452
+      ],
+      "tip_before_m": [
+        -0.03938636373145443,
+        0.0014419534384609643,
+        -0.8745494865172211
+      ],
+      "tip_after_m": [
+        -0.022731869967379033,
+        0.0021990179055094918,
+        -0.8748611959520606
+      ],
+      "tip_error_before_mm": 9.55142222411671,
+      "tip_error_after_mm": 7.311878854444805,
+      "tip_motion_mm": 16.6746056000333,
+      "applied_hz": 144.650116495696,
+      "last_solve_ms": 0.1604999997653067,
+      "deadline_misses": 0,
+      "commands": 2059,
+      "backend_hz": 141.463359016974,
+      "backend_reply_fraction": 0.9840881797907016,
+      "mocap_hz": 241.2297663670786,
+      "solve_ms_p50_p95_p99_max": [
+        0.15839998377487063,
+        0.3096000000368804,
+        0.32554199278820306,
+        0.5642999894917011
+      ],
+      "applied_interval_ms_p50_p95_p99_max": [
+        6.658900005277246,
+        8.527799998410046,
+        16.6244719916722,
+        27.318499982357025
+      ],
+      "worker_commands": 2061,
+      "shutdown": "target window close",
+      "all_boards_disabled": true
+    },
+    {
+      "method": "ff_pid",
+      "child_pid": 20916,
+      "joint2_target_deg": 5.0,
+      "joint2_motion_deg": 4.907041058741669,
+      "joint2_start_deg": 0.08914027043638507,
+      "joint2_final_deg": 4.996181329178054,
+      "joint2_last_half_second_mean_deg": 4.967659563122297,
+      "joint2_range_deg": [
+        -0.10580799061518321,
+        5.293067260439572
+      ],
+      "measured_backend_hz": 146.16197254610614,
+      "manual_override_refused": true,
+      "tip_message": "Tip target accepted; kinematic residual 0.00 mm.",
+      "tip_jog_mm": 10.0,
+      "tip_requested_m": [
+        -0.06208,
+        -0.00326,
+        -0.87247
+      ],
+      "tip_before_m": [
+        -0.0740053429102456,
+        -0.0017293094952099935,
+        -0.8723209531573487
+      ],
+      "tip_after_m": [
+        -0.06206655728842451,
+        -0.0033734319008970224,
+        -0.8724740712333061
+      ],
+      "tip_error_before_mm": 12.024102124886648,
+      "tip_error_after_mm": 0.11429819585735805,
+      "tip_motion_mm": 12.052434847526417,
+      "applied_hz": 147.8669462575176,
+      "last_solve_ms": 0.5241000035312027,
+      "deadline_misses": 1,
+      "commands": 2076,
+      "backend_hz": 144.10960061930828,
+      "backend_reply_fraction": 0.9752296656738957,
+      "mocap_hz": 240.62103142010073,
+      "solve_ms_p50_p95_p99_max": [
+        0.6195499881869182,
+        0.9193250079988502,
+        1.1209750082343817,
+        1.3092000153847039
+      ],
+      "applied_interval_ms_p50_p95_p99_max": [
+        6.652200012467802,
+        8.34436999866739,
+        10.859502004459497,
+        38.45309998723678
+      ],
+      "worker_commands": 2077,
+      "shutdown": "worker terminated",
+      "all_boards_disabled": true
+    },
+    {
+      "method": "koopman_mppi"
+    }
+  ],
+  "failures": [
+    "AssertionError: stopped: RuntimeError: controller returned an obsolete command"
+  ],
+  "source_sha256": {
+    "control/controller.py": "394096c03fd82741c6f38869ee68d6d57ddf7adaa44803bbe3347b5abc0a331b",
+    "control/koopman.py": "7856a035257f2bc8bb08ee0f6d740c6ff9c3a567bb22a3dbf325ec5cabe776bb",
+    "control/controller_process.py": "3e6322e8198578411ef302cec88f10f1726676fa98cb0e37c3f44fc834151ea4",
+    "control/observation.py": "85b50ed95ba77c0994216b15bf56fd402062bc77c88f9b361e4c87e300caa64f",
+    "digital_twin/sim_mocap.py": "059ad3cd55d02b877033f96c40081bbf37130d5aab2d74c749691c2d1e008d77",
+    "control/checkpoints/canarm_koopman.pt": "c5bb37abf3dc09a27051aef145b911fe6c2173dd50e0de4cafa0868cdb073606"
+  },
+  "gui_log": "[controller] connect the SIM adapter first; live control is not enabled\ntwin: flow canarm_flow.npz (holdout 0.534 psi) | mech canarm_mech.json | coeff 0.04215/0.04728/0.03235 | bracket_mass_kg [0.2228642916388765, 0.2228642916388765, 0.06128450998767816] | joint_damping 0.001015 | joint_frictionloss 0.1083 | joint_stiffness [0.025256963614832376, 0.016824507164929243, 3.9505554416573054] | link_mass_kg [0.5640130863690507, 0.5599407067930982, 0.5593475792830526] | plate_mass 0.06128 | spacer_mass 0.1003 | tendon_damping 94.67\n01:56:39 CAN link open on SIM at 1000 kbit/s (adapter SIM (plant pid 25296))\n01:56:39 Scan found 24 board(s): 0x101 TLE/DVP 1.46, 0x102 TLE/DVP 1.46, 0x103 TLE/DVP 1.46, 0x104 TLE/DVP 1.46, 0x105 TLE/DVP 1.46, 0x106 TLE/DVP 1.46, 0x107 TLE/DVP 1.46, 0x108 TLE/DVP 1.46, 0x109 7mm 0.2.1, 0x10A 7mm 0.2.1, 0x10B 7mm 0.2.1, 0x10C 7mm 0.2.1, 0x10D 7mm 0.2.1, 0x10E 7mm 0.2.1, 0x10F 7mm 0.2.1, 0x110 7mm 0.2.1, 0x111 7mm 0.2.1, 0x112 7mm 0.2.1, 0x113 7mm 0.2.1, 0x114 7mm 0.2.1, 0x115 7mm 0.2.1, 0x116 7mm 0.2.1, 0x117 7mm 0.2.1, 0x118 7mm 0.2.1\nmocap started (twin)\n01:56:39 all boards disabled\n01:56:39 sync master running at 150 Hz\n01:56:39 24 board(s) enabled\n[controller] pid started in process 44236; SIM only, 240 Hz noisy mocap, 150 Hz requested control\n[controller] use joint sliders or tip targets while control is running\n01:56:53 all boards disabled\n01:56:53 all boards disabled\n[controller] stopped; all twin boards disabled\n01:56:53 sync master stopped, all targets disabled\ntwin mocap stopped: the SIM backend it read was disconnected\ntwin: flow canarm_flow.npz (holdout 0.534 psi) | mech canarm_mech.json | coeff 0.04215/0.04728/0.03235 | bracket_mass_kg [0.2228642916388765, 0.2228642916388765, 0.06128450998767816] | joint_damping 0.001015 | joint_frictionloss 0.1083 | joint_stiffness [0.025256963614832376, 0.016824507164929243, 3.9505554416573054] | link_mass_kg [0.5640130863690507, 0.5599407067930982, 0.5593475792830526] | plate_mass 0.06128 | spacer_mass 0.1003 | tendon_damping 94.67\n01:56:54 CAN link open on SIM at 1000 kbit/s (adapter SIM (plant pid 46344))\n01:56:54 Scan found 24 board(s): 0x101 TLE/DVP 1.46, 0x102 TLE/DVP 1.46, 0x103 TLE/DVP 1.46, 0x104 TLE/DVP 1.46, 0x105 TLE/DVP 1.46, 0x106 TLE/DVP 1.46, 0x107 TLE/DVP 1.46, 0x108 TLE/DVP 1.46, 0x109 7mm 0.2.1, 0x10A 7mm 0.2.1, 0x10B 7mm 0.2.1, 0x10C 7mm 0.2.1, 0x10D 7mm 0.2.1, 0x10E 7mm 0.2.1, 0x10F 7mm 0.2.1, 0x110 7mm 0.2.1, 0x111 7mm 0.2.1, 0x112 7mm 0.2.1, 0x113 7mm 0.2.1, 0x114 7mm 0.2.1, 0x115 7mm 0.2.1, 0x116 7mm 0.2.1, 0x117 7mm 0.2.1, 0x118 7mm 0.2.1\nmocap started (twin)\n01:56:54 all boards disabled\n01:56:54 sync master running at 150 Hz\n[controller] ff_pid started in process 20916; SIM only, 240 Hz noisy mocap, 150 Hz requested control\n01:56:55 24 board(s) enabled\n[controller] use joint sliders or tip targets while control is running\n[controller] stopped: RuntimeError: controller exited (-15)\n01:57:09 all boards disabled\n01:57:09 all boards disabled\n[controller] stopped; all twin boards disabled\n[controller] stopped: RuntimeError: controller exited (-15)\n01:57:09 sync master stopped, all targets disabled\ntwin mocap stopped: the SIM backend it read was disconnected\ntwin: flow canarm_flow.npz (holdout 0.534 psi) | mech canarm_mech.json | coeff 0.04215/0.04728/0.03235 | bracket_mass_kg [0.2228642916388765, 0.2228642916388765, 0.06128450998767816] | joint_damping 0.001015 | joint_frictionloss 0.1083 | joint_stiffness [0.025256963614832376, 0.016824507164929243, 3.9505554416573054] | link_mass_kg [0.5640130863690507, 0.5599407067930982, 0.5593475792830526] | plate_mass 0.06128 | spacer_mass 0.1003 | tendon_damping 94.67\n01:57:09 CAN link open on SIM at 1000 kbit/s (adapter SIM (plant pid 21816))\n01:57:09 Scan found 24 board(s): 0x101 TLE/DVP 1.46, 0x102 TLE/DVP 1.46, 0x103 TLE/DVP 1.46, 0x104 TLE/DVP 1.46, 0x105 TLE/DVP 1.46, 0x106 TLE/DVP 1.46, 0x107 TLE/DVP 1.46, 0x108 TLE/DVP 1.46, 0x109 7mm 0.2.1, 0x10A 7mm 0.2.1, 0x10B 7mm 0.2.1, 0x10C 7mm 0.2.1, 0x10D 7mm 0.2.1, 0x10E 7mm 0.2.1, 0x10F 7mm 0.2.1, 0x110 7mm 0.2.1, 0x111 7mm 0.2.1, 0x112 7mm 0.2.1, 0x113 7mm 0.2.1, 0x114 7mm 0.2.1, 0x115 7mm 0.2.1, 0x116 7mm 0.2.1, 0x117 7mm 0.2.1, 0x118 7mm 0.2.1\nmocap started (twin)\n01:57:09 all boards disabled\n01:57:09 sync master running at 150 Hz\n[controller] koopman_mppi started in process 22848; SIM only, 240 Hz noisy mocap, 150 Hz requested control\n[controller] stopped: RuntimeError: controller returned an obsolete command\n01:57:11 all boards disabled\n01:57:11 all boards disabled\n[controller] stopped; all twin boards disabled\n[controller] stopped: RuntimeError: controller returned an obsolete command\n\n"
+}

@@ -1,0 +1,27 @@
+{
+  "description": "Metadata example for a real episode_*.npz. Copy this object into the archive's meta JSON string after replacing the episode identifier, family, recorded valve layout and sensor descriptions. The example noise and latency values are the simulation assumptions, NOT measurements of the real arm. The archive separately needs state[N+1,48] and action[N,24] arrays; they are not represented in this metadata file.",
+  "episode": 0,
+  "family": "multisine",
+  "dt_s": 0.006666666666666667,
+  "state_order": "q12,qdot12,p24_Pa_gauge",
+  "pair_indices": [
+    [7, 3], [1, 5], [0, 4], [2, 6],
+    [9, 11], [8, 10], [15, 13], [12, 14],
+    [19, 17], [16, 18], [21, 23], [20, 22]
+  ],
+  "pair_indices_description": "Zero-based [positive,negative] pressure-array columns from the measured CAN actuator map. Joint angles are in UMArm_KINEMATICS order, not MuJoCo qpos order. Pressure-array columns are ascending CAN IDs 0x101 through 0x118.",
+  "environment": {
+    "board_ids": [257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280],
+    "board_variants": [2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "board_layout_description": "Example of the shipped layout only: 2 is TLE/DVP and 0 is legacy 7mm. Record each board's returned variant byte instead of inferring it from its CAN ID. A warm start requires the same recorded layout as the checkpoint.",
+    "control_hz": 150.0,
+    "mocap_hz": 240.0,
+    "pressure_observation": "REPLACE with the actual pressure sampling and alignment procedure: synchronized filtered ADC counts converted using each recorded board's NodeCal, then expressed in Pa gauge.",
+    "joint_noise_std_deg": 0.1,
+    "mocap_latency_s": 0.008333333333333333,
+    "velocity_filter_tau_s": 0.04,
+    "sensor_assumptions": "The 0.10 degree noise and 8.33 ms latency above are provisional simulation assumptions, not measured real values. Replace them with measured estimates and describe their source. The 40 ms time constant describes the currently deployed causal velocity estimator; preserve that processing or explicitly document and validate a change.",
+    "synchronization_description": "The trainer expects a regular 150 Hz state/action sequence derived from the actual acquisition and sync timestamps. Handle missing or irregular samples explicitly before constructing this archive; do not silently relabel them as uniformly sampled. Use only camera information available at each control instant."
+  },
+  "dataset_requirements_description": "Use at least seven complete episodes in total and at least three episodes per family, with equal lengths. Each episode must exceed both the training horizon and the 75-step evaluation horizon. Each physical episode remains one split unit. Commands must satisfy the measured 30 psi individual and antagonist-pair caps. Keep separate real validation and test episodes; the interface alone does not demonstrate sim-to-real improvement."
+}
