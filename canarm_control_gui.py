@@ -1,6 +1,7 @@
 """The CAN arm's control window: the TLE controller, plus the room it stands in.
 
-WHAT THIS FILE IS, AND WHAT IT DELIBERATELY IS NOT.  It is not a new controller.
+WHAT THIS FILE IS. It extends the existing pressure window and can launch a
+SIM-only joint controller in a separate process.
 Every byte that reaches a board still goes through ``TLE_PCB/tlelib``'s
 :class:`~tlelib.backend.Backend` — the 150 Hz sync master, the node registry, the
 one-serial-write table-then-sync cycle — **unchanged**, and every widget that
@@ -104,14 +105,22 @@ inline placement fails it.  Shortening the interpreter's switch interval to
 0.5 ms is still not applied, because it would change thread scheduling for the
 real bus too.
 
-NO SIM-ONLY GUARD.  The operator's 30 psi envelope (``digital_twin/CONTRACT.md``
+THE MANUAL WINDOW'S EXISTING ENVELOPE GAP. The operator's 30 psi envelope (``digital_twin/CONTRACT.md``
 section 8: each line <= 30 psi, each antagonistic pair's sum <= 30 psi) is
 enforced by ``collection/safety.py`` for campaigns, and **not** by this window
 or by the inherited TLE window, whose bars and group slider reach
 ``VEMA_TLE_controller.TARGET_MAX_PSI`` = 40 psi with no pair check.  Adding the
 check for the SIM adapter alone would make the twin behave differently from
 the metal, which is the one thing the SIM adapter must not do, so the gap is
-left identical on both and reported instead.
+left identical on both and reported instead. The dynamic-controller path added
+on 2026-09-11 enforces both limits, including ADC rounding, before staging each
+complete command; manual pressure/enable/tuning edits are blocked while that
+controller owns the targets. Dynamic control is SIM-only until a separate
+hardware validation. Its target popup has 12 joint sliders and bounded tip IK,
+and closing it, STOP ALL, stale measurements, or worker failure disables output.
+The GUI's twin receiver now requests 240 Hz, 0.10 degree Gaussian joint noise,
+and 8.33 ms delay; these are explicit test assumptions rather than measured
+Motive specifications. SimMocap's defaults remain exact for geometry tests.
 
 THE GUI DISCIPLINE, from ``vema_control_gui.py``: the service thread owns the
 I/O (that is ``Backend``'s cycle thread), there is exactly one ``after()`` pump
@@ -253,6 +262,10 @@ class CanArmControllerApp(VTC.ControllerApp):
         self._viewer_proc = None
         self._viewer_stop = None
         self._viz_publisher = None
+        self._controller = None
+        self._target_window = None
+        self._controller_switch_interval = None
+        self._last_controller_plot = 0.0
         self._include_rs485 = bool(include_rs485)
         self._include_kinova = bool(include_kinova)
         self._prefer_sim = bool(prefer_sim)
@@ -329,6 +342,135 @@ class CanArmControllerApp(VTC.ControllerApp):
         self.kin_status = tk.StringVar(value="kinematics: mocap off")
         ttk.Label(frame, textvariable=self.kin_status,
                   font=("Consolas", 9)).pack(anchor="w")
+
+        controller_row = ttk.Frame(frame)
+        controller_row.pack(fill="x", pady=(5, 0))
+        ttk.Label(controller_row, text="SIM controller").pack(side="left")
+        self.controller_method = ttk.Combobox(controller_row, width=16,
+            state="readonly", values=("pid", "ff_pid", "koopman_mppi"))
+        self.controller_method.set("pid")
+        self.controller_method.pack(side="left", padx=5)
+        self.controller_button = ttk.Button(controller_row, text="Start controller",
+                                            command=self.toggle_controller)
+        self.controller_button.pack(side="left")
+        self.controller_status = tk.StringVar(value="stopped; starts joint sliders and tip targets")
+        ttk.Label(controller_row, textvariable=self.controller_status).pack(side="left", padx=8)
+
+    # ---- dynamic control (SIM only) ------------------------------------
+    def toggle_controller(self) -> None:
+        if self._controller is not None:
+            self._stop_controller()
+            return
+        if twin_arm(self.backend) is None:
+            self.log("[controller] connect the SIM adapter first; live control is not enabled")
+            return
+        if getattr(self._mocap, "bound_backend", None) is not self.backend:
+            self.log("[controller] start the connected twin's mocap source first")
+            return
+        try:
+            from control.controller_process import ControllerBridge
+            from control.gui_targets import TargetWindow
+            from tlelib.timing import fine_gil_handoff
+
+            bridge = ControllerBridge(self.backend, self._mocap,
+                self.controller_method.get(), log=self.log)
+            self._controller = bridge
+            self._controller_switch_interval = fine_gil_handoff(0.0005)
+            bridge.start()
+            self.select_all(True)
+            self._target_window = TargetWindow(self.root, bridge, self._stop_controller)
+        except Exception as exc:
+            self.log(f"[controller] start failed: {type(exc).__name__}: {exc}")
+            self._stop_controller()
+            return
+        self.controller_button.configure(text="Stop controller")
+        self.controller_method.configure(state="disabled")
+        self.cycle_button.configure(text="Stop cycle")
+        self.log(f"[controller] {bridge.method} started in process {bridge.process.pid}; "
+                 "SIM only, 240 Hz noisy mocap, 150 Hz requested control")
+
+    def _stop_controller(self) -> None:
+        bridge, self._controller = self._controller, None
+        window, self._target_window = self._target_window, None
+        if bridge is not None:
+            bridge.stop()
+            self.log("[controller] stopped; all twin boards disabled")
+        if window is not None:
+            window.close()
+        if self._controller_switch_interval is not None:
+            sys.setswitchinterval(self._controller_switch_interval)
+            self._controller_switch_interval = None
+        if hasattr(self, "controller_button"):
+            self.controller_button.configure(text="Start controller")
+            self.controller_method.configure(state="readonly")
+            self.controller_status.set("stopped")
+        if bridge is not None:
+            for base in self.targets:
+                self.targets[base] = 0.0
+                if base in self.node_bars:
+                    self.node_bars[base].set_target(0.0)
+
+    def _controller_owns_targets(self) -> bool:
+        return self._controller is not None
+
+    def _replot(self) -> None:
+        # Keep feedback scheduling responsive during control. Pressure bars
+        # remain at the inherited 10 Hz; the history plot redraws at 1 Hz.
+        if self._controller_owns_targets():
+            import time
+            now = time.monotonic()
+            if now - self._last_controller_plot < 1.0:
+                self.root.after(VTC.PLOT_MS, self._replot)
+                return
+            self._last_controller_plot = now
+        super()._replot()
+
+    def _channel_moved(self, base, psi) -> None:
+        if self._controller_owns_targets():
+            self.log("[controller] use joint sliders or tip targets while control is running")
+            return
+        super()._channel_moved(base, psi)
+
+    def _target_moved(self, _value=None) -> None:
+        if self._controller_owns_targets():
+            return
+        super()._target_moved(_value)
+
+    def _set_target(self, base, psi) -> None:
+        if self._controller_owns_targets():
+            return
+        super()._set_target(base, psi)
+
+    def enable_selected(self, on) -> None:
+        if self._controller_owns_targets():
+            return
+        super().enable_selected(on)
+
+    def _selection_changed(self) -> None:
+        if self._controller_owns_targets():
+            for var in self.selected.values():
+                var.set(True)
+            return
+        super()._selection_changed()
+
+    def apply_tuning(self) -> None:
+        if self._controller_owns_targets():
+            self.log("[controller] stop control before changing board tuning")
+            return
+        super().apply_tuning()
+
+    def stop_all(self) -> None:
+        self._stop_controller()
+        super().stop_all()
+
+    def disconnect(self) -> None:
+        self._stop_controller()
+        super().disconnect()
+
+    def toggle_cycle(self) -> None:
+        if self._controller_owns_targets():
+            self._stop_controller()
+        super().toggle_cycle()
 
     # ---- the adapter list and the construction seam --------------------
     def refresh_ports(self) -> None:
@@ -523,6 +665,19 @@ class CanArmControllerApp(VTC.ControllerApp):
         """Repaint the strip.  Reads snapshots only; never blocks."""
         self._reap_viewer()
         self._reap_twin_mocap()
+        bridge = self._controller
+        if bridge is not None:
+            if not bridge.running:
+                reason = bridge.status
+                self._stop_controller()
+                self.controller_status.set(reason)
+                self.log("[controller] " + reason)
+            else:
+                self.controller_status.set(f"{bridge.status}; {bridge.command_hz:.1f} Hz applied")
+                for base, pa in zip(range(0x101, 0x119), bridge.last_pressure_pa):
+                    self.targets[base] = float(pa / 6894.757)
+                    if base in self.node_bars:
+                        self.node_bars[base].set_target(self.targets[base])
         try:
             self.mocap_status.set(_mocap_line(self._mocap, self._viewer_proc))
             self.kin_status.set(_kin_line(self._mocap))
@@ -650,6 +805,7 @@ class CanArmControllerApp(VTC.ControllerApp):
         has just been released.
         """
         self._stop_viewer()
+        self._stop_controller()
         self._stop_mocap()
         super().on_close()
 
@@ -809,7 +965,9 @@ def _build_mocap(kind: str, backend=None):
                                f"adapter connected")
         from digital_twin.sim_mocap import SimMocap
         link = backend.link
-        rx = SimMocap(arm, alive=lambda: link.is_open)
+        rx = SimMocap(arm, alive=lambda: link.is_open, rate_hz=240.0,
+                      joint_noise_std_rad=0.0017453292519943296,
+                      latency_s=2.0 / 240.0)
         rx.bound_backend = backend
     elif kind == "live":
         from UMArm_MOCAP.canarm_mocap import (CanArmMarkerMocap, CanArmMocap,

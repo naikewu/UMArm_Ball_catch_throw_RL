@@ -54,7 +54,7 @@ def collect_episode(task):
     obs=env.reset()
     # Explicit collection gains preserve this campaign when benchmark defaults
     # are subsequently tuned. These are the pre-benchmark exploration gains.
-    controller=(make_controller("ff_pid",kp=25.,ki=8.,kd=2.,preview=.035)
+    controller=(make_controller("ff_pid",kp=25.,ki=8.,kd=2.,preview=.035,allocation_mode="legacy_clip")
                 if family in ("joint_reference","disturbance") else None)
     if controller: controller.reset(obs["q"],obs["p_pa"])
     n=round(seconds/env.dt)

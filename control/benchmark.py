@@ -148,7 +148,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--methods", nargs="+", default=["pid", "ff_pid", "koopman_mppi"])
     parser.add_argument("--speeds", nargs="+", default=["slow", "fast"])
-    parser.add_argument("--seeds", nargs="+", type=int, default=[202609111, 202609112, 202609113])
+    parser.add_argument("--seeds", nargs="+", type=int, default=[202609211, 202609212, 202609213])
     parser.add_argument("--randomized", action="store_true")
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--out", type=Path, default=Path("deliverable/dynamic_control/benchmark"))

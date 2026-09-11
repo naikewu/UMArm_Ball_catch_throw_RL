@@ -1,15 +1,16 @@
 {
   "controllers": {
     "pid": {
-      "kp": 150,
-      "ki": 30,
+      "kp": 85,
+      "ki": 8,
       "kd": 12
     },
     "ff_pid": {
       "kp": 25,
       "ki": 8,
       "kd": 5,
-      "preview": 0.07
+      "preview": 0.07,
+      "allocation_mode": "bounded"
     },
     "koopman_mppi": {
       "kp": 25,
@@ -22,7 +23,8 @@
       "action_regularization": 0.1,
       "temperature_min": 0.0001,
       "adapt": true,
-      "preview_actions": false
+      "preview_actions": false,
+      "allocation_mode": "bounded"
     }
   },
   "tuning_seed": 6102,
@@ -292,5 +294,28 @@
       "objective": 3.777621759655667,
       "solver_p99_ms": 3.6407069861888885
     }
-  ]
+  ],
+  "pid_tuning": {
+    "report": "control/checkpoints/pid_robust_tuning.json",
+    "development_seeds": [
+      73101,
+      73102,
+      73103
+    ],
+    "confirmation_seeds": [
+      73201,
+      73202,
+      73203,
+      73204,
+      73205,
+      73206
+    ],
+    "supersedes": {
+      "kp": 150,
+      "ki": 30,
+      "kd": 12
+    },
+    "reason": "The preceding small-amplitude tuning failed a held-out Soft run; replacement selected on separate coupled hold/multisine stress with settling gates, before fresh final benchmark seeds.",
+    "observer": "Unchanged shared causal 40ms derivative estimate; no model-based term or fallback."
+  }
 }

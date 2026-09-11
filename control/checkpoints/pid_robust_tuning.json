@@ -1,0 +1,1184 @@
+{
+  "selected_config": {
+    "kp": 85,
+    "ki": 8,
+    "kd": 12
+  },
+  "selection_objective": "worst-case joint RMSdeg + tip RMSmm/100 after empirical excursion/settling gates",
+  "selected_cases": [
+    {
+      "seed": 73201,
+      "randomize": false,
+      "initial_deg": 0.0,
+      "speed": 1.0,
+      "joint_rms_deg": 3.2294746039647007,
+      "tip_rms_mm": 143.35217728818375,
+      "max_joint_deg": 11.006340707662726,
+      "settling_rms_deg": 0.16286693122456294,
+      "settling_max_std_deg": 0.01991895042146221,
+      "command_max_psi": 12.154794669643431,
+      "segment_rms_deg": [
+        3.4699257086422572,
+        2.7278664775233437,
+        3.4361138965795055
+      ],
+      "passes": true
+    },
+    {
+      "seed": 73202,
+      "randomize": true,
+      "initial_deg": 4.0,
+      "speed": 1.0,
+      "joint_rms_deg": 3.1173708529133215,
+      "tip_rms_mm": 122.38657353452753,
+      "max_joint_deg": 10.942742177713367,
+      "settling_rms_deg": 0.14474811843846186,
+      "settling_max_std_deg": 0.013956105496898324,
+      "command_max_psi": 12.522483002310839,
+      "segment_rms_deg": [
+        3.1741062601507144,
+        2.7817701879885925,
+        3.367611493962828
+      ],
+      "passes": true
+    },
+    {
+      "seed": 73203,
+      "randomize": true,
+      "initial_deg": -4.0,
+      "speed": 1.0,
+      "joint_rms_deg": 3.1644806298575703,
+      "tip_rms_mm": 119.96858376909914,
+      "max_joint_deg": 10.91788906635018,
+      "settling_rms_deg": 0.13879550193452242,
+      "settling_max_std_deg": 0.018406173779354728,
+      "command_max_psi": 12.97552454609975,
+      "segment_rms_deg": [
+        3.1737153348329867,
+        2.7398388935426685,
+        3.530244578086358
+      ],
+      "passes": true
+    },
+    {
+      "seed": 73204,
+      "randomize": false,
+      "initial_deg": 2.0,
+      "speed": 1.8,
+      "joint_rms_deg": 3.308659007246553,
+      "tip_rms_mm": 138.0304928534245,
+      "max_joint_deg": 12.384461795355612,
+      "settling_rms_deg": 0.13824155401500704,
+      "settling_max_std_deg": 0.012500938049224029,
+      "command_max_psi": 17.403949079568168,
+      "segment_rms_deg": [
+        3.6466125475888465,
+        2.7075381393070077,
+        3.4947285203098066
+      ],
+      "passes": true
+    },
+    {
+      "seed": 73205,
+      "randomize": true,
+      "initial_deg": -2.0,
+      "speed": 1.5,
+      "joint_rms_deg": 3.1251408398024427,
+      "tip_rms_mm": 117.33994753074296,
+      "max_joint_deg": 11.348590553615745,
+      "settling_rms_deg": 0.17984223848238848,
+      "settling_max_std_deg": 0.02297618665015341,
+      "command_max_psi": 14.09172097025974,
+      "segment_rms_deg": [
+        3.1194577726604473,
+        2.8118210412639737,
+        3.414990694320681
+      ],
+      "passes": true
+    },
+    {
+      "seed": 73206,
+      "randomize": true,
+      "initial_deg": 0.0,
+      "speed": 1.5,
+      "joint_rms_deg": 3.1760989845188807,
+      "tip_rms_mm": 132.51049088540927,
+      "max_joint_deg": 11.339561053426559,
+      "settling_rms_deg": 0.20802857080325143,
+      "settling_max_std_deg": 0.024694884890352372,
+      "command_max_psi": 14.487067630306258,
+      "segment_rms_deg": [
+        3.3506692342047755,
+        2.879128680471083,
+        3.2781775428777533
+      ],
+      "passes": true
+    }
+  ],
+  "reference_speed_by_case": [
+    {
+      "seed": 73201,
+      "max_reference_speed_deg_s": 36.375107311023754
+    },
+    {
+      "seed": 73202,
+      "max_reference_speed_deg_s": 36.1630386216665
+    },
+    {
+      "seed": 73203,
+      "max_reference_speed_deg_s": 35.75818102563518
+    },
+    {
+      "seed": 73204,
+      "max_reference_speed_deg_s": 64.26603824532701
+    },
+    {
+      "seed": 73205,
+      "max_reference_speed_deg_s": 54.84259142761434
+    },
+    {
+      "seed": 73206,
+      "max_reference_speed_deg_s": 54.52067366366988
+    }
+  ],
+  "acceptance": {
+    "max_joint_deg_less_than": 24,
+    "settling_rms_deg_less_than": 1.5,
+    "settling_max_std_deg_less_than": 0.6
+  },
+  "failed_preceding_default": {
+    "kp": 150,
+    "ki": 30,
+    "kd": 12
+  },
+  "seed_policy": "73101..73103 development;73201..73206 confirmation; no Soft references or final benchmarkseeds used",
+  "limitations": "Finite scenarios demonstrate bounded settling here; they do not guarantee stability. Faster1.5/1.8times references are additional boundary tests beyond intended30deg/s GUI motion.",
+  "stages": [
+    {
+      "source": "data\\control_pid_stress.json",
+      "sha256": "48d2259dfe820257fca4e3381ce4ce2a41d805938225dfcfd377922293feb349",
+      "cases": [
+        {
+          "seed": 73101,
+          "randomize": false,
+          "initial_deg": 0.0
+        },
+        {
+          "seed": 73102,
+          "randomize": true,
+          "initial_deg": 3.0
+        },
+        {
+          "seed": 73103,
+          "randomize": true,
+          "initial_deg": -3.0
+        }
+      ],
+      "results": [
+        {
+          "config": {
+            "kp": 110,
+            "ki": 20,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 3.967387515185276,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.838041621853334,
+          "max_settling_rms_deg": 0.13180541214580613,
+          "max_settling_std_deg": 0.02334756684575949,
+          "worst_joint_rms_deg": 2.710058032135869,
+          "worst_tip_rms_mm": 127.43024619814149
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 3.9949754302563747,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.326872930817018,
+          "max_settling_rms_deg": 0.10461124332258787,
+          "max_settling_std_deg": 0.01943433985030548,
+          "worst_joint_rms_deg": 2.733337977994007,
+          "worst_tip_rms_mm": 127.87596802175722
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 20,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 4.598401663262524,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.672009048454306,
+          "max_settling_rms_deg": 0.14494278135697608,
+          "max_settling_std_deg": 0.027713420036306242,
+          "worst_joint_rms_deg": 3.172715437010445,
+          "worst_tip_rms_mm": 145.72498475789217
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 20,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 4.60504347089803,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.651503152178886,
+          "max_settling_rms_deg": 0.1460595981802865,
+          "max_settling_std_deg": 0.027387426532664058,
+          "worst_joint_rms_deg": 3.1776939882358755,
+          "worst_tip_rms_mm": 145.63584445623303
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 4.645200974932067,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.049240638969493,
+          "max_settling_rms_deg": 0.149443516839072,
+          "max_settling_std_deg": 0.01826860894025668,
+          "worst_joint_rms_deg": 3.211903010232846,
+          "worst_tip_rms_mm": 146.6936114285945
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 4.645276336150386,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.037158444051002,
+          "max_settling_rms_deg": 0.1495893939540734,
+          "max_settling_std_deg": 0.022764255108350687,
+          "worst_joint_rms_deg": 3.21246035993374,
+          "worst_tip_rms_mm": 146.46294362156613
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 2.5
+          },
+          "passes": true,
+          "objective": 4.660591730605835,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.118261020966333,
+          "max_settling_rms_deg": 0.14244027316550104,
+          "max_settling_std_deg": 0.022593075731293436,
+          "worst_joint_rms_deg": 3.210977036814785,
+          "worst_tip_rms_mm": 147.8634448956824
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 20,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 5.271894232023106,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.618269091513561,
+          "max_settling_rms_deg": 0.15690259088568373,
+          "max_settling_std_deg": 0.03541539274778916,
+          "worst_joint_rms_deg": 3.6724330247614616,
+          "worst_tip_rms_mm": 164.218541990056
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 20,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 5.275573214115118,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.643368562160127,
+          "max_settling_rms_deg": 0.1555082743908263,
+          "max_settling_std_deg": 0.035700598874930045,
+          "worst_joint_rms_deg": 3.672725628104709,
+          "worst_tip_rms_mm": 164.37150684856093
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 20,
+            "kd": 2.5
+          },
+          "passes": true,
+          "objective": 5.276339031837152,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.640472495417326,
+          "max_settling_rms_deg": 0.15014959022092325,
+          "max_settling_std_deg": 0.03700257120495048,
+          "worst_joint_rms_deg": 3.6686409300641145,
+          "worst_tip_rms_mm": 164.48063286610858
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 5.346709645681025,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.688623118741658,
+          "max_settling_rms_deg": 0.21150302500742096,
+          "max_settling_std_deg": 0.02570234518008699,
+          "worst_joint_rms_deg": 3.735101295900932,
+          "worst_tip_rms_mm": 165.13816678691663
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 5.359745412227143,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.711426615108156,
+          "max_settling_rms_deg": 0.21141694384898566,
+          "max_settling_std_deg": 0.021387842773984513,
+          "worst_joint_rms_deg": 3.740319100339502,
+          "worst_tip_rms_mm": 165.55664136067193
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 2.5
+          },
+          "passes": true,
+          "objective": 5.368001652691886,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.730213288027596,
+          "max_settling_rms_deg": 0.20613892847306434,
+          "max_settling_std_deg": 0.018131172170451876,
+          "worst_joint_rms_deg": 3.741109214323549,
+          "worst_tip_rms_mm": 165.91937208800957
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 20,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 6.181478051816144,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.625716897950737,
+          "max_settling_rms_deg": 0.17877880354896936,
+          "max_settling_std_deg": 0.0457469657438827,
+          "worst_joint_rms_deg": 4.343561306115994,
+          "worst_tip_rms_mm": 187.6047779001262
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 20,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 6.199807617329528,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.653837139107475,
+          "max_settling_rms_deg": 0.1781932908728338,
+          "max_settling_std_deg": 0.046983223675769493,
+          "worst_joint_rms_deg": 4.3562232930412135,
+          "worst_tip_rms_mm": 188.00651138833743
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 20,
+            "kd": 2.5
+          },
+          "passes": true,
+          "objective": 6.205792763730797,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.67493940151139,
+          "max_settling_rms_deg": 0.17574199604851698,
+          "max_settling_std_deg": 0.04772849671710696,
+          "worst_joint_rms_deg": 4.359465136927658,
+          "worst_tip_rms_mm": 188.03923646180368
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 6.307323201570717,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.174756807111375,
+          "max_settling_rms_deg": 0.29841569989237177,
+          "max_settling_std_deg": 0.032097359195471784,
+          "worst_joint_rms_deg": 4.458834732138869,
+          "worst_tip_rms_mm": 188.68469490365365
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 6.338437173366318,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.201445183477242,
+          "max_settling_rms_deg": 0.2970130712006297,
+          "max_settling_std_deg": 0.029066364434843166,
+          "worst_joint_rms_deg": 4.482061961184188,
+          "worst_tip_rms_mm": 189.35453445301508
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 2.5
+          },
+          "passes": true,
+          "objective": 6.3573757445753465,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.223916362981962,
+          "max_settling_rms_deg": 0.2967410907085346,
+          "max_settling_std_deg": 0.026081405435171044,
+          "worst_joint_rms_deg": 4.494021752540125,
+          "worst_tip_rms_mm": 189.72653981889178
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 20,
+            "kd": 5
+          },
+          "passes": false,
+          "objective": 3.963367971436722,
+          "case_count": 3,
+          "failed_cases": [
+            73101
+          ],
+          "max_joint_deg": 15.597356768400463,
+          "max_settling_rms_deg": 2.9501409389978286,
+          "max_settling_std_deg": 8.893420829801627,
+          "worst_joint_rms_deg": 2.7035478522628194,
+          "worst_tip_rms_mm": 128.15391491101477
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": false,
+          "objective": 3.9908815640341953,
+          "case_count": 3,
+          "failed_cases": [
+            73101
+          ],
+          "max_joint_deg": 11.525725357527795,
+          "max_settling_rms_deg": 2.193588412400219,
+          "max_settling_std_deg": 6.37115353183978,
+          "worst_joint_rms_deg": 2.7278270770934108,
+          "worst_tip_rms_mm": 128.60451376918863
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 20,
+            "kd": 2.5
+          },
+          "passes": false,
+          "objective": 4.610504265778961,
+          "case_count": 3,
+          "failed_cases": [
+            73102
+          ],
+          "max_joint_deg": 11.737707331229434,
+          "max_settling_rms_deg": 0.2647154564532865,
+          "max_settling_std_deg": 0.6098264549005531,
+          "worst_joint_rms_deg": 3.166768772883812,
+          "worst_tip_rms_mm": 147.12958775113307
+        },
+        {
+          "config": {
+            "kp": 150,
+            "ki": 30,
+            "kd": 12
+          },
+          "passes": false,
+          "objective": 8.351311969906165,
+          "case_count": 3,
+          "failed_cases": [
+            73101,
+            73102,
+            73103
+          ],
+          "max_joint_deg": 39.88759701346583,
+          "max_settling_rms_deg": 9.987839507141812,
+          "max_settling_std_deg": 21.466503240784387,
+          "worst_joint_rms_deg": 5.189185944946918,
+          "worst_tip_rms_mm": 316.21260249592467
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 20,
+            "kd": 2.5
+          },
+          "passes": false,
+          "objective": 12.49359342941423,
+          "case_count": 3,
+          "failed_cases": [
+            73101,
+            73102,
+            73103
+          ],
+          "max_joint_deg": 41.817903757755985,
+          "max_settling_rms_deg": 12.83157420724877,
+          "max_settling_std_deg": 31.996183773059645,
+          "worst_joint_rms_deg": 7.7336700057675465,
+          "worst_tip_rms_mm": 475.9923423646684
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 8,
+            "kd": 2.5
+          },
+          "passes": false,
+          "objective": 13.285373136148454,
+          "case_count": 3,
+          "failed_cases": [
+            73101,
+            73102,
+            73103
+          ],
+          "max_joint_deg": 42.11878536993797,
+          "max_settling_rms_deg": 13.529535364414214,
+          "max_settling_std_deg": 33.43762789077661,
+          "worst_joint_rms_deg": 8.228371966875033,
+          "worst_tip_rms_mm": 505.7001169273422
+        }
+      ]
+    },
+    {
+      "source": "data\\control_pid_stress_confirmation.json",
+      "sha256": "5212ec33b4dddacd201b37ef2b4c3c3c887e08163d0de61b1891f4572b5dc6c9",
+      "cases": [
+        {
+          "seed": 73201,
+          "randomize": false,
+          "initial_deg": 0.0,
+          "speed": 1.0
+        },
+        {
+          "seed": 73202,
+          "randomize": true,
+          "initial_deg": 4.0,
+          "speed": 1.0
+        },
+        {
+          "seed": 73203,
+          "randomize": true,
+          "initial_deg": -4.0,
+          "speed": 1.0
+        },
+        {
+          "seed": 73204,
+          "randomize": false,
+          "initial_deg": 2.0,
+          "speed": 1.8
+        },
+        {
+          "seed": 73205,
+          "randomize": true,
+          "initial_deg": -2.0,
+          "speed": 1.5
+        },
+        {
+          "seed": 73206,
+          "randomize": true,
+          "initial_deg": 0.0,
+          "speed": 1.5
+        }
+      ],
+      "results": [
+        {
+          "config": {
+            "kp": [
+              85,
+              85,
+              85,
+              85,
+              110,
+              110,
+              110,
+              110,
+              110,
+              110,
+              110,
+              110
+            ],
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": false,
+          "objective": 6.159844349263685,
+          "case_count": 6,
+          "failed_cases": [
+            73204,
+            73205,
+            73206
+          ],
+          "max_joint_deg": 33.54465212955066,
+          "max_settling_rms_deg": 7.5462238764991,
+          "max_settling_std_deg": 21.758762419846104,
+          "worst_joint_rms_deg": 3.9992735384228246,
+          "worst_tip_rms_mm": 216.05708108408606
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 20,
+            "kd": 5
+          },
+          "passes": false,
+          "objective": 7.334138742155627,
+          "case_count": 6,
+          "failed_cases": [
+            73204,
+            73205,
+            73206
+          ],
+          "max_joint_deg": 40.93523411021296,
+          "max_settling_rms_deg": 9.701965965121268,
+          "max_settling_std_deg": 23.288342962228647,
+          "worst_joint_rms_deg": 4.711969903722609,
+          "worst_tip_rms_mm": 262.2168838433018
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 20,
+            "kd": 8
+          },
+          "passes": false,
+          "objective": 7.76183862885254,
+          "case_count": 6,
+          "failed_cases": [
+            73202,
+            73203,
+            73204,
+            73205,
+            73206
+          ],
+          "max_joint_deg": 41.574277954323925,
+          "max_settling_rms_deg": 10.648715386138699,
+          "max_settling_std_deg": 23.75108625129145,
+          "worst_joint_rms_deg": 4.915175868791932,
+          "worst_tip_rms_mm": 284.66627600606074
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": false,
+          "objective": 8.320597120622482,
+          "case_count": 6,
+          "failed_cases": [
+            73204,
+            73205,
+            73206
+          ],
+          "max_joint_deg": 41.975870815874295,
+          "max_settling_rms_deg": 14.964319178121412,
+          "max_settling_std_deg": 32.39067397162733,
+          "worst_joint_rms_deg": 5.2819329681125495,
+          "worst_tip_rms_mm": 303.8664152509932
+        },
+        {
+          "config": {
+            "kp": 110,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": false,
+          "objective": 8.950731224136314,
+          "case_count": 6,
+          "failed_cases": [
+            73203,
+            73204,
+            73205,
+            73206
+          ],
+          "max_joint_deg": 41.664533022192956,
+          "max_settling_rms_deg": 12.272843379505165,
+          "max_settling_std_deg": 28.633724727260336,
+          "worst_joint_rms_deg": 5.619916294648081,
+          "worst_tip_rms_mm": 333.0814929488233
+        }
+      ]
+    },
+    {
+      "source": "data\\control_pid_fast_stress.json",
+      "sha256": "59eecea00f8988cf14f8fc1072705790c3f48a2a4252f599b0709f45ac94a874",
+      "cases": [
+        {
+          "seed": 73204,
+          "randomize": false,
+          "initial_deg": 2.0,
+          "speed": 1.8
+        },
+        {
+          "seed": 73205,
+          "randomize": true,
+          "initial_deg": -2.0,
+          "speed": 1.5
+        },
+        {
+          "seed": 73206,
+          "randomize": true,
+          "initial_deg": 0.0,
+          "speed": 1.5
+        }
+      ],
+      "results": [
+        {
+          "config": {
+            "kp": [
+              65,
+              65,
+              65,
+              65,
+              85,
+              85,
+              85,
+              85,
+              110,
+              110,
+              110,
+              110
+            ],
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 4.588544619295199,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.972589097406502,
+          "max_settling_rms_deg": 0.2505840708693443,
+          "max_settling_std_deg": 0.036123653616818796,
+          "worst_joint_rms_deg": 3.2342739045936884,
+          "worst_tip_rms_mm": 139.18733229557694
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 4.688963935780798,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 12.384461795355612,
+          "max_settling_rms_deg": 0.20802857080325143,
+          "max_settling_std_deg": 0.024694884890352372,
+          "worst_joint_rms_deg": 3.308659007246553,
+          "worst_tip_rms_mm": 138.0304928534245
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 5.096387129346478,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.248481426455344,
+          "max_settling_rms_deg": 0.14710649384281244,
+          "max_settling_std_deg": 0.02632633689384909,
+          "worst_joint_rms_deg": 3.687825258509384,
+          "worst_tip_rms_mm": 145.8244169333452
+        },
+        {
+          "config": {
+            "kp": [
+              45,
+              45,
+              45,
+              45,
+              85,
+              85,
+              85,
+              85,
+              110,
+              110,
+              110,
+              110
+            ],
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 5.1128720734500455,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.692353502704757,
+          "max_settling_rms_deg": 0.19463576217777012,
+          "max_settling_std_deg": 0.02923763632843407,
+          "worst_joint_rms_deg": 3.566654562027092,
+          "worst_tip_rms_mm": 154.6217511422953
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 16
+          },
+          "passes": true,
+          "objective": 5.123021854099119,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.68001384614698,
+          "max_settling_rms_deg": 0.2901898857991475,
+          "max_settling_std_deg": 0.03256679997565027,
+          "worst_joint_rms_deg": 3.660861645039504,
+          "worst_tip_rms_mm": 146.21602090596147
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 5.36297580191016,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 13.650201586596934,
+          "max_settling_rms_deg": 0.1934406549713498,
+          "max_settling_std_deg": 0.02222899210643488,
+          "worst_joint_rms_deg": 3.8197390561100906,
+          "worst_tip_rms_mm": 154.32367458000692
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 16
+          },
+          "passes": true,
+          "objective": 5.935152610660901,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 11.122346378234726,
+          "max_settling_rms_deg": 0.22388291767464208,
+          "max_settling_std_deg": 0.034388716094509615,
+          "worst_joint_rms_deg": 4.280046802571882,
+          "worst_tip_rms_mm": 165.51058080890184
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 5.984388744919815,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.547874143894239,
+          "max_settling_rms_deg": 0.22473554070694837,
+          "max_settling_std_deg": 0.03431699882282466,
+          "worst_joint_rms_deg": 4.340679108074779,
+          "worst_tip_rms_mm": 166.87477432398168
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 8
+          },
+          "passes": true,
+          "objective": 6.1304880851233925,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 10.781478806742474,
+          "max_settling_rms_deg": 0.22518403313897933,
+          "max_settling_std_deg": 0.02943231919888173,
+          "worst_joint_rms_deg": 4.469078755620366,
+          "worst_tip_rms_mm": 168.93091889347724
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": true,
+          "objective": 6.574531773280572,
+          "case_count": 3,
+          "failed_cases": [],
+          "max_joint_deg": 13.253041624962426,
+          "max_settling_rms_deg": 0.23003704752624635,
+          "max_settling_std_deg": 0.5644111520783328,
+          "worst_joint_rms_deg": 4.684642245314756,
+          "worst_tip_rms_mm": 188.98895279658157
+        },
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 16
+          },
+          "passes": false,
+          "objective": 4.5918665978776,
+          "case_count": 3,
+          "failed_cases": [
+            73205,
+            73206
+          ],
+          "max_joint_deg": 12.021758957741916,
+          "max_settling_rms_deg": 1.1474508213796928,
+          "max_settling_std_deg": 1.9365851710012592,
+          "worst_joint_rms_deg": 3.2795107914241024,
+          "worst_tip_rms_mm": 131.47160038251866
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 5
+          },
+          "passes": false,
+          "objective": 6.270264971140278,
+          "case_count": 3,
+          "failed_cases": [
+            73204
+          ],
+          "max_joint_deg": 16.83295193387474,
+          "max_settling_rms_deg": 2.310153524430451,
+          "max_settling_std_deg": 6.519017106764477,
+          "worst_joint_rms_deg": 4.258523375295747,
+          "worst_tip_rms_mm": 201.1741595844531
+        },
+        {
+          "config": {
+            "kp": 45,
+            "ki": 8,
+            "kd": 2.5
+          },
+          "passes": false,
+          "objective": 7.5192075725683285,
+          "case_count": 3,
+          "failed_cases": [
+            73204
+          ],
+          "max_joint_deg": 17.970953403032293,
+          "max_settling_rms_deg": 3.0538408965123782,
+          "max_settling_std_deg": 7.933800346779114,
+          "worst_joint_rms_deg": 5.136420330105069,
+          "worst_tip_rms_mm": 238.27872424632594
+        }
+      ]
+    },
+    {
+      "source": "data\\control_pid_final_confirmation.json",
+      "sha256": "79fdeed0446106e156680459273a205cd0f0268027b6ed25fa7833932c3a309e",
+      "cases": [
+        {
+          "seed": 73201,
+          "randomize": false,
+          "initial_deg": 0.0,
+          "speed": 1.0
+        },
+        {
+          "seed": 73202,
+          "randomize": true,
+          "initial_deg": 4.0,
+          "speed": 1.0
+        },
+        {
+          "seed": 73203,
+          "randomize": true,
+          "initial_deg": -4.0,
+          "speed": 1.0
+        },
+        {
+          "seed": 73204,
+          "randomize": false,
+          "initial_deg": 2.0,
+          "speed": 1.8
+        },
+        {
+          "seed": 73205,
+          "randomize": true,
+          "initial_deg": -2.0,
+          "speed": 1.5
+        },
+        {
+          "seed": 73206,
+          "randomize": true,
+          "initial_deg": 0.0,
+          "speed": 1.5
+        }
+      ],
+      "results": [
+        {
+          "config": {
+            "kp": 85,
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 4.688963935780798,
+          "case_count": 6,
+          "failed_cases": [],
+          "max_joint_deg": 12.384461795355612,
+          "max_settling_rms_deg": 0.20802857080325143,
+          "max_settling_std_deg": 0.024694884890352372,
+          "worst_joint_rms_deg": 3.308659007246553,
+          "worst_tip_rms_mm": 143.35217728818375
+        },
+        {
+          "config": {
+            "kp": [
+              65,
+              65,
+              65,
+              65,
+              85,
+              85,
+              85,
+              85,
+              110,
+              110,
+              110,
+              110
+            ],
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 4.794041725030934,
+          "case_count": 6,
+          "failed_cases": [],
+          "max_joint_deg": 11.972589097406502,
+          "max_settling_rms_deg": 0.2505840708693443,
+          "max_settling_std_deg": 0.036123653616818796,
+          "worst_joint_rms_deg": 3.2579862016990213,
+          "worst_tip_rms_mm": 153.60555233319127
+        },
+        {
+          "config": {
+            "kp": 65,
+            "ki": 8,
+            "kd": 12
+          },
+          "passes": true,
+          "objective": 5.34458606382668,
+          "case_count": 6,
+          "failed_cases": [],
+          "max_joint_deg": 11.248481426455344,
+          "max_settling_rms_deg": 0.22059960236767281,
+          "max_settling_std_deg": 0.02632633689384909,
+          "worst_joint_rms_deg": 3.7389020228241208,
+          "worst_tip_rms_mm": 160.5684041002559
+        }
+      ]
+    }
+  ],
+  "failed_original_default_cases": [
+    {
+      "seed": 73101,
+      "randomize": false,
+      "initial_deg": 0.0,
+      "joint_rms_deg": 5.189185944946918,
+      "tip_rms_mm": 316.21260249592467,
+      "max_joint_deg": 39.88759701346583,
+      "settling_rms_deg": 9.987839507141812,
+      "settling_max_std_deg": 21.466503240784387,
+      "command_max_psi": 30.0,
+      "segment_rms_deg": [
+        7.955986424519036,
+        3.268742806885577,
+        2.6077869523806037
+      ],
+      "passes": false
+    },
+    {
+      "seed": 73102,
+      "randomize": true,
+      "initial_deg": 3.0,
+      "joint_rms_deg": 2.305933151777188,
+      "tip_rms_mm": 117.78733183985354,
+      "max_joint_deg": 12.5995872827203,
+      "settling_rms_deg": 2.2205364024527565,
+      "settling_max_std_deg": 6.350293047297693,
+      "command_max_psi": 20.23933693077979,
+      "segment_rms_deg": [
+        2.671926938423184,
+        2.016085032312722,
+        2.1790343456697396
+      ],
+      "passes": false
+    },
+    {
+      "seed": 73103,
+      "randomize": true,
+      "initial_deg": -3.0,
+      "joint_rms_deg": 2.332096355547315,
+      "tip_rms_mm": 109.52528653179553,
+      "max_joint_deg": 13.490282615511513,
+      "settling_rms_deg": 1.5779015457694914,
+      "settling_max_std_deg": 4.696495255050801,
+      "command_max_psi": 17.01972934680189,
+      "segment_rms_deg": [
+        2.5787718096790897,
+        2.04310880665221,
+        2.3434296644994106
+      ],
+      "passes": false
+    }
+  ]
+}

@@ -19,14 +19,35 @@ requests rather than promising an arbitrary tip position. Closing the target
 window stops the controller. The worker process, applied command rate, and
 computation time are visible in the target window.
 
+While the sliders permit requests within +/-25 degrees, this interval is a
+kinematic input bound. It does not establish that every requested pose can be
+held under the 30 psi individual and antagonistic-pair caps. The training
+campaign's largest commanded pressure was 17.73 psi, compared with the 30 psi
+runtime cap ([campaign summary](checkpoints/campaign_summary.json)). Predictions
+above that observed pressure range extrapolate from the collected data. The
+window therefore displays measured joint error and tip-to-request error
+separately from the inverse-kinematics residual, so an operator can distinguish
+geometric reachability from convergence of the pressure controller.
+
+An earlier [mixed-posture trial](results/gui_acceptance_mixed_postures.json)
+increased MPPI tip error from 9.75 to 17.55 mm after a 10 mm jog at a larger warm
+pose. That trial used different starting poses for the three controllers and
+does not provide an equal-condition ranking. The fresh-plant GUI acceptance
+uses a common joint target and reports motion, remaining bias, and measured
+timing; its success does not establish convergence over the full slider range.
+
 The mechanism has two antagonistic muscles per joint. Their pressure difference
 produces torque, while their combined pressure changes joint stiffness. The
 vanilla PID commands this difference from angle error, accumulated error, and
 velocity error. Its integral is limited when the pressure command saturates.
 The feedforward PID first estimates the pressure required by the desired motion
 using the fitted mass, gravity, passive stiffness, damping, and tendon geometry;
-feedback then corrects the remaining error. Preview compensates for pressure
-response delay. These nominal model parameters are available to both model-based
+feedback then corrects the remaining error. A bounded torque allocation retains
+the 6 psi pair mean at small demands and vents the opposing muscle when larger
+torques require it. It resolves the torque equation after that change, since
+simply clipping a negative pressure would discard part of the requested torque.
+Preview compensates for pressure response delay. These nominal model parameters
+are available to both model-based
 controllers, which makes this a comparison within the fitted twin.
 
 The Koopman model lifts the 48 observed state variables (12 angles, 12 filtered
@@ -67,12 +88,18 @@ to exhaustive modal coverage or fitted confidence intervals. Whole episodes
 are assigned to training, validation, and test sets. Validation chooses the
 checkpoint; held-out test episodes are scored after that choice.
 
-Gain selection uses a separate joint multisine instead of the writing path:
+Feedforward and MPPI settings use a separate 6-degree joint multisine. The
+initial PID gains passed that small-motion test but became unstable on the
+full word. The final PID gains, 85/8/12 in psi-based radian units, were selected
+using independent 10–14 degree postures, reversals, multisines, and settling
+tests on nominal and perturbed plants. The final six cases include a faster
+boundary test; passing these cases is empirical evidence, not a stability proof:
 
 ```powershell
 .venv/Scripts/python.exe -m control.tune --method pid --out data/control_pid_tuning.json
 .venv/Scripts/python.exe -m control.tune --method pid --refine --out data/control_pid_refine.json
 .venv/Scripts/python.exe -m control.tune --method ff_pid --out data/control_ff_tuning.json
+.venv/Scripts/python.exe -m control.tune_pid_stress --configs control/checkpoints/pid_stress_confirmation_configs.json --confirm --workers 3 --out data/control_pid_final_confirmation.json
 ```
 
 Reproduce the common-time writing benchmark and comparison videos:
@@ -83,6 +110,8 @@ Reproduce the common-time writing benchmark and comparison videos:
 .venv/Scripts/python.exe -m control.render_comparison video --speed slow
 .venv/Scripts/python.exe -m control.render_comparison video --speed fast
 .venv/Scripts/python.exe -m control.render_comparison figures
+.venv/Scripts/python.exe -m control.summarize
+.venv/Scripts/python.exe -m control.summarize --folder deliverable/dynamic_control/benchmark_perturbed
 .venv/Scripts/python.exe -m control.valve_probe
 ```
 
@@ -92,7 +121,7 @@ include operating-system delays or CAN reply delivery time. The GUI acceptance
 test measures the actual controller process, bus cycle, and mocap rates:
 
 ```powershell
-.venv/Scripts/python.exe hw_tests/gui_controller_sim_test.py --help
+.venv/Scripts/python.exe hw_tests/gui_controller_sim_test.py --screenshots
 .venv/Scripts/python.exe -m pytest control digital_twin/test_sim_mocap.py -q
 ```
 

@@ -69,6 +69,10 @@
 
 - 2026-09-11 01:24 — Added SIM-only spawned GUI control with joint sliders, tip jog, noisy delayed 240 Hz mocap, ADC-safe targets and process/stale shutdown guards; eight process tests, twelve mocap tests and initial PID/feedforward Tk acceptance passed without a hardware-open attempt.
 
+- 2026-09-11 01:37 — Aligned GUI feedback with the shared camera-rate velocity observer, smoothed slider references, reduced host scheduling overhead, added measured joint/tip errors and operator screenshots, and preserved a failed larger warm-pose MPPI jog alongside its successful fresh-plant isolation.
+
 - 2026-09-11 01:32 — Implemented the three pressure controllers, collected 288000 synchronized noisy-twin transitions from 96 whole episodes, trained the bilinear Koopman dictionary on RTX 5090 (80 epochs, best epoch 60), verified held-out 106.7 ms prediction at 0.581 deg versus 2.614 deg persistence, selected MPPI settings on an independent multisine, and passed 14 controller/schema/parity checks.
 
 - 2026-09-11 01:36 — Trained the 96-coordinate pressure-state Koopman model on 96 simulated episodes (288000 transitions), passed 1064 offline tests before review fixes and 25 focused checks afterward, then retained the first full-word PID instability as evidence and began separate large-motion gain retuning before final acceptance.
+
+- 2026-09-11 01:49 — Replaced the PID gains selected on a small multisine with uniform 85/8/12 after independent coupled-pose and speed stress rejected sustained oscillation in the prior 150/30/12 setting, retained failed-run evidence, pinned collection to the original legacy allocator, and passed 22 focused controller/allocation/reference tests.

@@ -52,6 +52,40 @@ def test_q_of_t_is_not_an_argument():
         SMC.SimMocap(SC.SimArm(), q_of_t=lambda t: np.zeros(12))
 
 
+def test_joint_noise_is_seeded_and_has_the_requested_scale():
+    q = np.full(12, 0.05)
+    arm = _posed_arm(q)
+    sigma = np.deg2rad(0.10)
+    a = SMC.SimMocap(arm, joint_noise_std_rad=sigma, seed=41)
+    b = SMC.SimMocap(arm, joint_noise_std_rad=sigma, seed=41)
+    samples = np.array([a._sample_q(i / 240) for i in range(1000)])
+    repeat = np.array([b._sample_q(i / 240) for i in range(1000)])
+    np.testing.assert_array_equal(samples, repeat)
+    assert abs(np.std(samples - q) / sigma - 1) < 0.03
+    assert abs(np.mean(samples - q)) < sigma * 0.03
+
+
+def test_latency_uses_only_samples_old_enough_and_keeps_history_bounded():
+    arm = _posed_arm(np.zeros(12))
+    rx = SMC.SimMocap(arm, latency_s=0.010)
+    assert rx._sample_q(0.0) is None
+    with arm.lock:
+        arm.data.qpos[:] = MG.q_to_qpos(np.full(12, 0.1))
+    np.testing.assert_array_equal(rx._sample_q(0.01), np.zeros(12))
+    np.testing.assert_allclose(rx._sample_q(0.02), 0.1)
+    for i in range(3, 200):
+        rx._sample_q(i * 0.01)
+    assert len(rx._measurement_history) <= 3
+
+
+@pytest.mark.parametrize("kwargs", [dict(joint_noise_std_rad=-1),
+                                    dict(joint_noise_std_rad=float("nan")),
+                                    dict(latency_s=-1)])
+def test_invalid_measurement_options_refused(kwargs):
+    with pytest.raises(ValueError):
+        SMC.SimMocap(SC.SimArm(), **kwargs)
+
+
 def test_a_posed_twin_round_trips_through_the_receiver_exactly():
     q = np.random.default_rng(20260910).uniform(-0.35, 0.35, 12)
     rx = SMC.SimMocap(_posed_arm(q), rate_hz=200.0).start()
