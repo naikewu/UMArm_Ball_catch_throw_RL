@@ -1,0 +1,29 @@
+{
+  "schema": "plate_tangent_stiffness_v1",
+  "definition": "frozen pressure, local static tangent with constant balancing torque",
+  "endpoint": "final plate centre, arm base axes",
+  "units": "m/N",
+  "samples": 3000,
+  "q_range_rad": 0.1,
+  "pair_mean_psi": [
+    2,
+    14
+  ],
+  "pair_difference_psi": [
+    -3,
+    3
+  ],
+  "source_sha256": {
+    "digital_twin/checkpoints/canarm_mech.json": "ce6c2cbb0f9e39d16d286b239314f58a1f8ed84d3e81f8f55c9c726ca52ff5db",
+    "digital_twin/checkpoints/canarm_flow.npz": "ea3c80b82b8d3d244f6855117eb3354559f93636905801cc075847cf83e2e7a2",
+    "digital_twin/tangent_compliance.py": "b071ce3ed823aca40144e09a62bf1cf9d2e6b1507d1fc21a7a6f58f129d501ba",
+    "digital_twin/actuator_model.py": "d1b93e220ca3db44c5834c9ec5a7d3d86c6654841625e7ccd61947e97d5a94e8"
+  },
+  "metrics": {
+    "holdout_relF_median": 0.0004882373072508725,
+    "holdout_relF_p90": 0.0010237535166339369,
+    "holdout_relF_max": 0.0028563043016155074,
+    "holdout_frames": 600,
+    "minimum_fitted_stiffness_eigenvalue": 2.6703413346766296
+  }
+}

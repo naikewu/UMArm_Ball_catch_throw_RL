@@ -16,7 +16,7 @@ import numpy as np
 
 from control.controller import make_controller, pair_indices, PA_PER_PSI, DEFAULT_CHECKPOINT
 from control.sim_env import ControlEnv
-from control.trajectory import SoftTrajectory, tip_position
+from control.trajectory import FigureEightComplianceTrajectory, SoftTrajectory, tip_position
 
 
 def _rms(a):
@@ -33,7 +33,7 @@ def score_trace(trace, variants):
     pressure_error = (trace["p_measured_pa"] - trace["targets_pa"]) / PA_PER_PSI
     pairs = pair_indices()
     dt = float(np.median(np.diff(trace["t"])))
-    return dict(
+    metrics = dict(
         writing_tip_rms_mm=1000*_rms(tip_error[active]),
         writing_tip_p95_mm=1000*float(np.percentile(tip_error[active], 95)),
         writing_tip_max_mm=1000*float(tip_error[active].max()),
@@ -52,6 +52,21 @@ def score_trace(trace, variants):
                    "max": float(np.max(milliseconds))},
         solver_over_6_667ms_fraction=float(np.mean(milliseconds > 1000*dt)),
         cycles=len(trace["t"]), simulated_duration_s=float(trace["t"][-1] + dt))
+    if "compliance_ref" in trace and "compliance_pred" in trace:
+        finite = np.isfinite(trace["compliance_pred"]).all(axis=(1, 2))
+        valid = active & finite
+        if np.any(valid):
+            num = np.linalg.norm(trace["compliance_pred"][valid] - trace["compliance_ref"][valid], axis=(1, 2))
+            den = np.maximum(np.linalg.norm(trace["compliance_ref"][valid], axis=(1, 2)), 1e-12)
+            rel = num / den
+            metrics.update(compliance_relF_median=float(np.median(rel)),
+                           compliance_relF_p90=float(np.percentile(rel, 90)),
+                           compliance_relF_max=float(np.max(rel)))
+            ref_xy = trace["compliance_ref"][valid, :2, :2]
+            rel_xy = np.linalg.norm(trace["compliance_pred"][valid, :2, :2] - ref_xy, axis=(1, 2)) / np.maximum(np.linalg.norm(ref_xy, axis=(1, 2)), 1e-12)
+            metrics.update(predicted_compliance_xy_relF_median=float(np.median(rel_xy)),
+                           predicted_compliance_xy_relF_p90=float(np.percentile(rel_xy, 90)))
+    return metrics
 
 
 def run(method, trajectory=None, *, seed=202609111, randomize=False,
@@ -85,6 +100,10 @@ def run(method, trajectory=None, *, seed=202609111, randomize=False,
              (("q_true",12),("q_observed",12),("qdot_observed",12),("q_ref",12),
               ("p_measured_pa",24),("p_true_pa",24),("targets_pa",24),
               ("wire_targets_pa",24),("tip_true",3),("tip_ref",3))}
+    has_compliance_reference = hasattr(trajectory, "compliance_target")
+    if has_compliance_reference:
+        trace["compliance_ref"] = np.zeros((n, 3, 3))
+        trace["compliance_pred"] = np.full((n, 3, 3), np.nan)
     trace.update(t=np.arange(n)*env.dt, pen_down=np.zeros(n, dtype=bool),
                  solve_ms=np.zeros(n), mocap_time_s=np.zeros(n), mocap_age_s=np.zeros(n))
     started = time.perf_counter()
@@ -92,9 +111,14 @@ def run(method, trajectory=None, *, seed=202609111, randomize=False,
         for k, t in enumerate(trace["t"]):
             q, qd, qdd = trajectory.sample(t)
             future = trajectory.future(t, horizon, prediction_dt) if horizon > 1 else None
+            future_tip = (trajectory.future_tip(t, horizon, prediction_dt)
+                          if horizon > 1 and hasattr(trajectory, "future_tip") else None)
+            future_compliance = (trajectory.future_compliance(t, horizon, prediction_dt)
+                                 if horizon > 1 and hasattr(trajectory, "future_compliance") else None)
             begin = time.perf_counter()
             targets = controller.command(obs["q"], obs["qdot"], obs["p_pa"], q, qd, qdd,
-                                         future_q=future)
+                                         future_q=future, future_tip=future_tip,
+                                         future_compliance=future_compliance)
             trace["solve_ms"][k] = 1000*(time.perf_counter() - begin)
             for key, value in (("q_true",obs["q_true"]),("q_observed",obs["q"]),
                                ("qdot_observed",obs["qdot"]),
@@ -103,6 +127,11 @@ def run(method, trajectory=None, *, seed=202609111, randomize=False,
                 trace[key][k] = value
             trace["pen_down"][k] = trajectory.pen_down(t)
             trace["tip_ref"][k] = trajectory.tip_target(t)
+            if has_compliance_reference:
+                trace["compliance_ref"][k] = trajectory.compliance_target(t)
+                head = getattr(controller, "compliance_head", None)
+                if head is not None:
+                    trace["compliance_pred"][k] = head.predict(obs["q_true"], obs["p_true_pa"])
             trace["mocap_time_s"][k] = obs["mocap_time_s"]
             trace["mocap_age_s"][k] = obs["mocap_age_s"]
             obs = env.step(targets)
@@ -125,6 +154,7 @@ def run(method, trajectory=None, *, seed=202609111, randomize=False,
         root = Path(__file__).resolve().parents[1]
         provenance = ["control/controller.py", "control/koopman.py", "control/sim_env.py",
                       "control/observation.py", "control/trajectory.py", "control/benchmark.py",
+                      "digital_twin/compliance_head.py",
                       "digital_twin/sim_core.py", "digital_twin/actuator_model.py",
                       "digital_twin/checkpoints/canarm_flow.npz",
                       "digital_twin/checkpoints/canarm_mech.json"]
@@ -144,23 +174,60 @@ def save_run(folder, name, trace, meta):
     (folder / (name + ".json")).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
+def _make_trajectory(kind, speed):
+    if kind == "soft":
+        return SoftTrajectory(speed=speed)
+    scale = {"slow": 1.0, "fast": 1.5}.get(speed, None)
+    if scale is None:
+        scale = float(speed)
+    if kind == "fig8_compliance":
+        return FigureEightComplianceTrajectory(speed_scale=scale, entry_s=2,
+            smooth_ramp_s=.75 / scale, dome_m=.5, soft_m_per_n=.078,
+            hard_m_per_n=.060, z_m_per_n=0)
+    if kind == "fig8":
+        return FigureEightComplianceTrajectory(speed_scale=scale)
+    raise ValueError(f"unknown trajectory {kind!r}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--methods", nargs="+", default=["pid", "ff_pid", "koopman_mppi"])
     parser.add_argument("--speeds", nargs="+", default=["slow", "fast"])
     parser.add_argument("--seeds", nargs="+", type=int, default=[202609211, 202609212, 202609213])
+    parser.add_argument("--trajectory", choices=["soft", "fig8", "fig8_compliance"], default="soft")
     parser.add_argument("--randomized", action="store_true")
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--compliance-head", type=Path)
+    parser.add_argument("--tip-weight", type=float, default=10.0)
+    parser.add_argument("--compliance-weight", type=float)
+    parser.add_argument("--mppi-horizon", type=int)
+    parser.add_argument("--mppi-samples", type=int)
     parser.add_argument("--out", type=Path, default=Path("deliverable/dynamic_control/benchmark"))
     args = parser.parse_args()
     results = []
     for speed in args.speeds:
-        trajectory = SoftTrajectory(speed=speed)
+        trajectory = _make_trajectory(args.trajectory, speed)
         for seed in args.seeds:
             for method in args.methods:
-                name = f"{speed}_{'perturbed' if args.randomized else 'nominal'}_{seed}_{method}"
+                name = f"{args.trajectory}_{speed}_{'perturbed' if args.randomized else 'nominal'}_{seed}_{method}"
+                controller_kwargs = {}
+                if method == "koopman_mppi" and args.trajectory == "fig8_compliance":
+                    controller_kwargs = {
+                        "tip_weight": args.tip_weight,
+                        "compliance_weight": 10.0 if args.compliance_weight is None else args.compliance_weight,
+                        "tangent_compliance": True,
+                        "noise_psi": .03,
+                        "common_noise_psi": .03,
+                        "action_regularization": 10.,
+                    }
+                    if args.mppi_horizon is not None:
+                        controller_kwargs["horizon"] = args.mppi_horizon
+                    if args.mppi_samples is not None:
+                        controller_kwargs["samples"] = args.mppi_samples
+                    if args.compliance_head is not None:
+                        controller_kwargs["compliance_head"] = args.compliance_head
                 trace, meta = run(method, trajectory, seed=seed, randomize=args.randomized,
-                                  checkpoint=args.checkpoint)
+                                  checkpoint=args.checkpoint, controller_kwargs=controller_kwargs)
                 save_run(args.out, name, trace, meta)
                 results.append(dict(name=name, **meta))
                 print(json.dumps({"run":name, **meta["metrics"]}), flush=True)

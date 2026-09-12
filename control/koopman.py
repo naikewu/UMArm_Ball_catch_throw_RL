@@ -101,7 +101,8 @@ observer estimates slow model mismatch from observed state transitions.
     def __init__(self,dt=1/150,checkpoint=DEFAULT_CHECKPOINT,twin_kwargs=None,
                  seed=20260911,horizon=16,samples=64,adapt=True,
                  action_regularization=.1,noise_psi=.5,temperature_min=.0001,
-                 preview_actions=False,**kwargs):
+                 preview_actions=False,tip_weight=0.0,compliance_weight=0.0,
+                 compliance_head=None,tangent_compliance=False,common_noise_psi=.03,**kwargs):
         super().__init__(dt=dt,twin_kwargs=twin_kwargs,**kwargs)
         from threadpoolctl import threadpool_limits
         self._blas=threadpool_limits(limits=1,user_api="blas")
@@ -119,6 +120,21 @@ observer estimates slow model mismatch from observed state transitions.
         self.noise_psi=float(noise_psi)
         self.temperature_min=float(temperature_min)
         self.preview_actions=bool(preview_actions)
+        self.tip_weight=float(tip_weight)
+        self.compliance_weight=float(compliance_weight)
+        self.compliance_head=None
+        self.compliance_planner=None
+        self.tangent_compliance=bool(tangent_compliance)
+        self.common_noise_psi=float(common_noise_psi)
+        if self.compliance_weight > 0:
+            if self.tangent_compliance:
+                from digital_twin.train_tangent_compliance import DEFAULT_TANGENT_HEAD, TangentComplianceHead
+                from .compliance_planner import CompliancePressurePlanner
+                self.compliance_head=TangentComplianceHead(DEFAULT_TANGENT_HEAD if compliance_head is None else compliance_head)
+                self.compliance_planner=CompliancePressurePlanner(self.compliance_head,self.dt)
+            else:
+                from digital_twin.compliance_head import DEFAULT_HEAD, TipComplianceHead
+                self.compliance_head=TipComplianceHead(DEFAULT_HEAD if compliance_head is None else compliance_head)
         self.reset(np.zeros(12),np.zeros(24))
 
     def reset(self,q,p_pa):
@@ -127,10 +143,15 @@ observer estimates slow model mismatch from observed state transitions.
         self.correction=np.zeros((getattr(self,"horizon",24),12))
         self.innovation=np.zeros(48)
         self.predicted=None
+        if getattr(self,"compliance_planner",None) is not None:
+            self.compliance_planner.reset()
 
-    def command(self,q,qdot,p_pa,q_ref,qd_ref,qdd_ref,future_q=None):
+    def command(self,q,qdot,p_pa,q_ref,qd_ref,qdd_ref,future_q=None,
+                future_tip=None,future_compliance=None):
         started=time.perf_counter()
         prior=super().command(q,qdot,p_pa,q_ref,qd_ref,qdd_ref,future_q)
+        if self.compliance_planner is not None and future_compliance is not None:
+            prior=self.compliance_planner.command(prior,self.dynamics.last_B,q_ref,future_compliance[0])
         x=np.concatenate((q,qdot,p_pa))
         model=self.predictor; H,K=self.horizon,self.samples
         if self.adapt and self.predicted is not None:
@@ -141,6 +162,18 @@ observer estimates slow model mismatch from observed state transitions.
         if len(refs)<H:
             refs=np.concatenate((refs,np.repeat(refs[-1:],H-len(refs),axis=0)))
         refs=refs[:H]
+        tip_refs=None
+        if future_tip is not None and self.tip_weight > 0:
+            tip_refs=np.asarray(future_tip,dtype=float)
+            if len(tip_refs)<H:
+                tip_refs=np.concatenate((tip_refs,np.repeat(tip_refs[-1:],H-len(tip_refs),axis=0)))
+            tip_refs=tip_refs[:H]
+        compliance_refs=None
+        if future_compliance is not None and self.compliance_weight > 0 and self.compliance_head is not None:
+            compliance_refs=np.asarray(future_compliance,dtype=float)
+            if len(compliance_refs)<H:
+                compliance_refs=np.concatenate((compliance_refs,np.repeat(compliance_refs[-1:],H-len(compliance_refs),axis=0)))
+            compliance_refs=compliance_refs[:H]
         self.correction[:-1]=self.correction[1:]
         self.correction[-1]=self.correction[-2]
         # Four temporal knots suppress sample-to-sample pressure chatter.
@@ -166,6 +199,13 @@ observer estimates slow model mismatch from observed state transitions.
         pairs=pair_indices()
         actions[:,:,pairs[:,0]]+=delta/2
         actions[:,:,pairs[:,1]]-=delta/2
+        common = np.zeros_like(delta)
+        if self.compliance_planner is not None:
+            common = self.rng.normal(size=(K,1,12))*self.common_noise_psi*PA_PER_PSI
+            common = np.repeat(common,H,axis=1)
+            common[:2] = 0
+            actions[:,:,pairs[:,0]]+=common
+            actions[:,:,pairs[:,1]]+=common
         actions=project_pressures(actions)
         z=np.repeat(model.encode(x)[None,:],K,axis=0)
         cost=np.zeros(K)
@@ -176,8 +216,20 @@ observer estimates slow model mismatch from observed state transitions.
             xp=model.decode(z)
             err=xp[:,:12]-refs[h]
             cost+=(np.mean((err/.08)**2,axis=1)+.015*np.mean((xp[:,12:24]-qd_ref)**2,axis=1))*(2 if h==H-1 else 1)
+            if tip_refs is not None:
+                from .trajectory import tip_position
+                tip_err=(tip_position(xp[:,:12])-tip_refs[h])/.010
+                cost+=self.tip_weight*np.sum(tip_err*tip_err,axis=1)
+            if compliance_refs is not None:
+                Cx=self.compliance_head.predict(xp[:,:12],xp[:,24:48])
+                Ccost=Cx[:,:2,:2] if self.tangent_compliance else Cx
+                Cref=compliance_refs[h,:2,:2] if self.tangent_compliance else compliance_refs[h]
+                den=max(float(np.linalg.norm(Cref)),1e-12)
+                rel=np.sum((Ccost-Cref)**2,axis=(1,2))/(den*den)
+                cost+=self.compliance_weight*rel
         cost/=H
         cost+=self.action_regularization*np.mean((delta/(5*PA_PER_PSI))**2,axis=(1,2))
+        cost+=self.action_regularization*np.mean((common/(5*PA_PER_PSI))**2,axis=(1,2))
         cost+=.004*np.mean(((actions[:,0]-p_pa)/(5*PA_PER_PSI))**2,axis=1)
         cost=np.nan_to_num(cost,nan=1e12,posinf=1e12,neginf=1e12)
         temperature=max(self.temperature_min,.25*float(np.std(cost)))
@@ -189,5 +241,8 @@ observer estimates slow model mismatch from observed state transitions.
         self.last_p=result
         self.last_diagnostics={"solve_ms":1000*(time.perf_counter()-started),
             "effective_samples":float(1/(weights@weights)),"prior_cost":float(cost[0]),
-            "best_cost":float(cost.min()),"innovation_q_rad":float(np.linalg.norm(self.innovation[:12]))}
+            "best_cost":float(cost.min()),"innovation_q_rad":float(np.linalg.norm(self.innovation[:12])),
+            "tip_weight":self.tip_weight,"compliance_weight":self.compliance_weight,
+            "tangent_compliance":self.tangent_compliance,
+            "compliance_head":None if self.compliance_head is None else str(self.compliance_head.path)}
         return result

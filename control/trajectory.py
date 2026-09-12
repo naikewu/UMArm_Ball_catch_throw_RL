@@ -53,15 +53,14 @@ def _position(q, with_jacobian=False):
     q = np.asarray(q, dtype=float)
     if q.shape[-1:] != (12,) or not np.all(np.isfinite(q)):
         raise ValueError("q must be finite with final dimension 12")
-    if with_jacobian and q.shape != (12,):
-        raise ValueError("tip_jacobian accepts one joint vector")
     rot = np.broadcast_to(np.eye(3), q.shape[:-1] + (3, 3)).copy()
     trans = np.zeros(q.shape[:-1] + (3,))
-    velocities, axes = np.zeros((12, 3)), np.zeros((12, 3))
+    velocities = np.zeros(q.shape[:-1] + (12, 3))
+    axes = np.zeros_like(velocities)
     for j in _ORDER:
         if with_jacobian:
-            axes[j] = rot @ _W[j]
-            velocities[j] = rot @ _V[j] + np.cross(trans, axes[j])
+            axes[..., j, :] = rot @ _W[j]
+            velocities[..., j, :] = rot @ _V[j] + np.cross(trans, axes[..., j, :])
         a = q[..., j]
         r = np.eye(3) + np.sin(a)[..., None, None] * _K[j] + (
             1 - np.cos(a))[..., None, None] * _K2[j]
@@ -69,7 +68,7 @@ def _position(q, with_jacobian=False):
         trans += np.einsum("...ij,...j->...i", rot, p)
         rot = rot @ r
     pos = trans + np.einsum("...ij,j->...i", rot, _HOME)
-    return (pos, (velocities + np.cross(axes, pos)).T) if with_jacobian else pos
+    return (pos, np.swapaxes(velocities + np.cross(axes, pos[..., None, :]), -1, -2)) if with_jacobian else pos
 
 
 def tip_position(q):
@@ -78,7 +77,7 @@ def tip_position(q):
 
 
 def tip_jacobian(q):
-    """Analytic (3, 12) position derivative in metres per radian."""
+    """Analytic (..., 3, 12) position derivative in metres per radian."""
     return _position(q, True)[1]
 
 
@@ -215,6 +214,125 @@ class SoftTrajectory:
 
     def tip_target(self, t):
         return tip_position(self.sample(t)[0]) if t < self.entry_s else self._shape(self._arc(t)[0])
+
+    def pen_down(self, t):
+        return (np.asarray(t) >= self.write_start_s) & (np.asarray(t) <= self.write_end_s)
+
+    def q(self, t):
+        return self.sample(t)[0]
+
+    def qd(self, t):
+        return self.sample(t)[1]
+
+    def qdd(self, t):
+        return self.sample(t)[2]
+
+    pos = tip_target
+    active = pen_down
+
+
+class FigureEightComplianceTrajectory:
+    """Figure-eight tip path with a matched tip-compliance reference."""
+
+    def __init__(self, *, period_s=9.0, loops=2.0, amp_x_m=0.035, amp_y_m=0.018,
+                 entry_s=1.0, hold_s=1.0, grid_dt=0.05, speed_scale=1.0,
+                 soft_m_per_n=0.050, hard_m_per_n=0.035, z_m_per_n=0.002,
+                 smooth_ramp_s=0.0, dome_m=None, compliance_period_s=None):
+        if min(period_s, loops, amp_x_m, amp_y_m, entry_s, grid_dt, speed_scale) <= 0 or hold_s < 0:
+            raise ValueError("figure-eight timing and amplitudes must be positive")
+        self.period_s = float(period_s) / float(speed_scale)
+        self.loops = float(loops)
+        self.path_s = self.period_s * self.loops
+        self.entry_s = float(entry_s)
+        self.write_start_s = self.entry_s
+        self.write_end_s = self.entry_s + self.path_s
+        self.duration_s = self.write_end_s + float(hold_s)
+        self.seconds = self.duration_s
+        self.amp_x_m, self.amp_y_m = float(amp_x_m), float(amp_y_m)
+        self.center = tip_position(np.zeros(12))
+        self.soft_m_per_n = float(soft_m_per_n)
+        self.hard_m_per_n = float(hard_m_per_n)
+        self.z_m_per_n = float(z_m_per_n)
+        self.compliance_period_s = self.period_s if compliance_period_s is None else float(compliance_period_s)
+        if self.compliance_period_s <= 0:
+            raise ValueError("compliance period must be positive")
+        self.smooth_ramp_s = float(smooth_ramp_s)
+        self.dome_m = dome_m
+        if not 0 <= self.smooth_ramp_s < self.path_s / 2:
+            raise ValueError("phase ramp must be shorter than half the path duration")
+
+        ts = np.linspace(0.0, self.duration_s, int(np.ceil(self.duration_s / grid_dt)) + 1)
+        qs, residuals = [], []
+        q = np.zeros(12)
+        for t in ts:
+            q, info = inverse_kinematics(self.tip_target(t), q, return_info=True)
+            qs.append(q.copy())
+            residuals.append(info["residual_m"])
+        qs = np.asarray(qs)
+        self._joint = CubicSpline(ts, qs, axis=0)
+        self.metadata = {
+            "source": "analytic figure-eight tip path plus smooth xy compliance schedule",
+            "period_s": self.period_s,
+            "loops": self.loops,
+            "amp_x_m": self.amp_x_m,
+            "amp_y_m": self.amp_y_m,
+            "duration_s": self.duration_s,
+            "write_start_s": self.write_start_s,
+            "write_end_s": self.write_end_s,
+            "ik_max_residual_mm": 1000 * float(np.max(residuals)),
+            "compliance_units": "m/N",
+            "compliance_soft_m_per_n": self.soft_m_per_n,
+            "compliance_hard_m_per_n": self.hard_m_per_n,
+            "compliance_z_m_per_n": self.z_m_per_n,
+            "compliance_period_s": self.compliance_period_s,
+            "smooth_ramp_s": self.smooth_ramp_s,
+            "dome_m": self.dome_m,
+        }
+
+    def _phase(self, t):
+        tau = np.clip(np.asarray(t, dtype=float) - self.entry_s, 0.0, self.path_s)
+        r = self.smooth_ramp_s
+        if r > 0:
+            start = tau / 2 - r * np.sin(np.pi * tau / r) / (2 * np.pi)
+            rem = self.path_s - tau
+            end = self.path_s - r - (rem / 2 - r * np.sin(np.pi * rem / r) / (2 * np.pi))
+            arc = np.where(tau < r, start, np.where(tau > self.path_s-r, end, tau-r/2))
+            return 2 * np.pi * self.loops * arc / (self.path_s-r)
+        return 2.0 * np.pi * tau / self.period_s
+
+    def tip_target(self, t):
+        phase = self._phase(t)
+        x = self.amp_x_m * np.sin(phase)
+        y = self.amp_y_m * np.sin(2.0 * phase)
+        zeros = np.zeros_like(x)
+        if self.dome_m is not None:
+            zeros = self.dome_m - np.sqrt(self.dome_m**2 - x*x - y*y)
+        return self.center + np.stack([x, y, zeros], axis=-1)
+
+    def compliance_target(self, t):
+        phase = self._phase(t) * self.period_s / self.compliance_period_s
+        blend = 0.5 + 0.5 * np.sin(phase)
+        cx = self.hard_m_per_n + (self.soft_m_per_n - self.hard_m_per_n) * blend
+        cy = self.soft_m_per_n + (self.hard_m_per_n - self.soft_m_per_n) * blend
+        shape = np.asarray(cx).shape
+        C = np.zeros(shape + (3, 3), dtype=float)
+        C[..., 0, 0] = cx
+        C[..., 1, 1] = cy
+        C[..., 2, 2] = self.z_m_per_n
+        return C
+
+    def sample(self, t):
+        tc = np.clip(float(t), 0.0, self.duration_s)
+        return self._joint(tc), self._joint(tc, 1), self._joint(tc, 2)
+
+    def future(self, t, H, dt):
+        return np.stack([self.sample(t + (k + 1) * dt)[0] for k in range(H)])
+
+    def future_tip(self, t, H, dt):
+        return np.stack([self.tip_target(t + (k + 1) * dt) for k in range(H)])
+
+    def future_compliance(self, t, H, dt):
+        return np.stack([self.compliance_target(t + (k + 1) * dt) for k in range(H)])
 
     def pen_down(self, t):
         return (np.asarray(t) >= self.write_start_s) & (np.asarray(t) <= self.write_end_s)

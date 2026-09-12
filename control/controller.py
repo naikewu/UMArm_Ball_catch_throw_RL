@@ -70,7 +70,8 @@ class PIDController:
         self.integral = np.clip(self.integral + self.dt * e, -.3, .3)
         return self.kp * e + self.ki * self.integral + self.kd * (np.asarray(qd_ref) - qdot)
 
-    def command(self, q, qdot, p_pa, q_ref, qd_ref, qdd_ref, future_q=None):
+    def command(self, q, qdot, p_pa, q_ref, qd_ref, qdd_ref, future_q=None,
+                future_tip=None, future_compliance=None):
         started = time.perf_counter()
         d = self._feedback(q, qdot, q_ref, qd_ref)
         p = differential_to_pressure(d)
@@ -175,6 +176,8 @@ class InverseDynamics:
             adr,n = d.moment_rowadr[a],d.moment_rownnz[a]
             moments[i,d.moment_colind[adr:adr+n]] = d.actuator_moment[adr:adr+n]
         B = moments[:,self.dofs].T * law.force_n(np.full(24, PA_PER_PSI), dl)
+        self.last_B = B
+        self.last_tau = tau
         pairs = pair_indices()
         D = np.zeros((24,12))
         D[pairs[:,0],np.arange(12)] = .5
@@ -195,7 +198,8 @@ class FeedforwardPIDController(PIDController):
         self.dynamics = InverseDynamics(twin_kwargs, allocation_mode=allocation_mode)
         self.preview = float(preview)
 
-    def command(self, q, qdot, p_pa, q_ref, qd_ref, qdd_ref, future_q=None):
+    def command(self, q, qdot, p_pa, q_ref, qd_ref, qdd_ref, future_q=None,
+                future_tip=None, future_compliance=None):
         started = time.perf_counter()
         # Pressure dynamics introduce lag; preview was selected on a separate
         # joint multisine, before scoring the Soft references.
