@@ -109,3 +109,37 @@ def test_mppi_reset_replays_sampling(tmp_path):
     c.command(q,q,p,q,q,q)
     c.reset(q,p);b=c.command(q,q,p,q,q,q)
     np.testing.assert_array_equal(a,b)
+
+
+def test_zero_mppi_correction_blend_preserves_feedforward_prior(tmp_path):
+    import torch
+    from .koopman import LiftedDynamics, KoopmanMPPIController, SCHEMA
+    model = LiftedDynamics()
+    path = tmp_path / "test.pt"
+    meta = {
+        "schema": SCHEMA,
+        "status": "complete",
+        "dt_s": 1 / 150,
+        "state_order": "q12,qdot12,p24_Pa_gauge",
+        "pair_indices": pair_indices().tolist(),
+        "variants": [2] * 8 + [0] * 16,
+    }
+    torch.save({"config": model.config(), "state_dict": model.state_dict(), "meta": meta}, path)
+    feedforward = make_controller("ff_pid")
+    mppi = KoopmanMPPIController(
+        checkpoint=path, horizon=4, samples=8, correction_blend=0.0
+    )
+    q = np.zeros(12)
+    qdot = np.zeros(12)
+    pressure = np.full(24, 6 * PA_PER_PSI)
+    q_ref = np.linspace(-.03, .03, 12)
+    qd_ref = np.linspace(.10, -.10, 12)
+    qdd_ref = np.zeros(12)
+    feedforward.reset(q, pressure)
+    mppi.reset(q, pressure)
+    expected = feedforward.command(q, qdot, pressure, q_ref, qd_ref, qdd_ref)
+    actual = mppi.command(
+        q, qdot, pressure, q_ref, qd_ref, qdd_ref,
+        future_q=np.repeat(q_ref[None, :], 4, axis=0),
+    )
+    np.testing.assert_allclose(actual, expected, atol=1e-9)

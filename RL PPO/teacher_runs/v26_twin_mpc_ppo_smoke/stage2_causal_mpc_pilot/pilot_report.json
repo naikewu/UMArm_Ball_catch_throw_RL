@@ -1,0 +1,240 @@
+{
+  "schema": "can_v15_causal_terminal_mpc_v26",
+  "source_hash": "07a70362f56e5adaeea3d47f567064249f285a15724cf8fdcbe8c479531c3df3",
+  "kind": "causal_terminal_mpc_pilot",
+  "oracle_sha256": "53246026cfce20d96245248c9f356eef9934175ccee920cd52dc669a0cfa1974",
+  "oracle_source_hash": "06d8fc9bf61dcb9d6c4ab957c3f1e9bbaacb878629e9bfe1987ceb01a3add952",
+  "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+  "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d",
+  "manifest": {
+    "schema": "can_generalized_teacher_v14",
+    "design": "split_latin_hypercube_reachable_v1",
+    "design_seed": 20261299,
+    "first_seed": 33900001,
+    "episodes": 5,
+    "train_episodes": 4,
+    "validation_episodes": 1,
+    "parameter_ranges": {
+      "launch_speed": [
+        4.5,
+        5.5
+      ],
+      "launch_distance": [
+        1.7,
+        2.3
+      ],
+      "target_distance": [
+        1.3,
+        1.7
+      ],
+      "target_azimuth": [
+        10.0,
+        30.0
+      ]
+    },
+    "fixed": {
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "orbit_radius": 0.62,
+      "launch_angle_jitter_deg": 3.0,
+      "launch_position_jitter_m": 0.04,
+      "authority": 0.25
+    },
+    "scenarios": [
+      {
+        "scenario_id": 0,
+        "seed": 33900001,
+        "split": "train",
+        "launch_speed": 5.49120679,
+        "launch_distance": 2.278576962,
+        "target_distance": 1.467340138,
+        "target_azimuth": 29.650557592,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 1,
+        "seed": 33900002,
+        "split": "train",
+        "launch_speed": 5.018209958,
+        "launch_distance": 2.049855197,
+        "target_distance": 1.553004204,
+        "target_azimuth": 21.074381457,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 2,
+        "seed": 33900003,
+        "split": "train",
+        "launch_speed": 4.807437644,
+        "launch_distance": 1.967933912,
+        "target_distance": 1.365803025,
+        "target_azimuth": 12.70202183,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 3,
+        "seed": 33900004,
+        "split": "train",
+        "launch_speed": 4.746042989,
+        "launch_distance": 1.778563116,
+        "target_distance": 1.622179871,
+        "target_azimuth": 17.095889104,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 4,
+        "seed": 33900005,
+        "split": "validation",
+        "launch_speed": 4.970169334,
+        "launch_distance": 1.784729438,
+        "target_distance": 1.581077875,
+        "target_azimuth": 23.569341936,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    ],
+    "reachability_constraint": {
+      "grasp_height_m": 0.3145409999999999,
+      "launch_height_m": 0.5,
+      "safety_distance_margin_m": 0.03,
+      "adjusted_scenarios": []
+    },
+    "manifest_sha256": "cf9f3e6e6220971f6f5d38f1c7cc5b91138637369e4f73fbdc15fff97b117ebb"
+  },
+  "dynamic": {
+    "decision_interval_s": 0.5,
+    "force_step": 0.05,
+    "radius_step": 0.0225,
+    "release_tolerance_m": 0.08,
+    "preview_horizon_s": 2.0
+  },
+  "candidates": [
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.09
+    ],
+    [
+      1.0,
+      1.18
+    ],
+    [
+      1.2,
+      1.0
+    ],
+    [
+      1.2,
+      1.09
+    ],
+    [
+      1.2,
+      1.18
+    ],
+    [
+      1.4,
+      1.0
+    ],
+    [
+      1.4,
+      1.09
+    ],
+    [
+      1.4,
+      1.18
+    ]
+  ],
+  "decision_information": "current_measured_postcatch_state_only",
+  "planner": "restore_verified_twin_snapshot_and_roll_each_candidate_to_terminal",
+  "exact_v15_paired_baseline": true,
+  "candidate": {
+    "episodes": 5,
+    "captured": 4,
+    "captured_rate": 0.8,
+    "released": 4,
+    "released_rate": 0.8,
+    "hit15": 4,
+    "hit15_rate": 0.8,
+    "hit30": 4,
+    "hit30_rate": 0.8,
+    "mean_landing_error_m": 0.05773305373593442,
+    "mean_weld_peak_n": 320.67027252044375,
+    "mean_impact_weld_impulse_ns": 2.384256946884192,
+    "mean_relative_capture_speed_m_s": 4.778772953339596,
+    "mean_pressure_integral_psi_s": 160.231220619364,
+    "mean_contact_impulse_ns": 0.03529593269950215,
+    "max_contact_peak_n": 31.20960060273207
+  },
+  "baseline": {
+    "episodes": 5,
+    "captured": 4,
+    "captured_rate": 0.8,
+    "released": 4,
+    "released_rate": 0.8,
+    "hit15": 4,
+    "hit15_rate": 0.8,
+    "hit30": 4,
+    "hit30_rate": 0.8,
+    "mean_landing_error_m": 0.029191163469155183,
+    "mean_weld_peak_n": 320.67027252044375,
+    "mean_impact_weld_impulse_ns": 2.384034860769805,
+    "mean_relative_capture_speed_m_s": 4.778772953339596,
+    "mean_pressure_integral_psi_s": 226.15258267595328,
+    "mean_contact_impulse_ns": 0.0,
+    "max_contact_peak_n": 0.0
+  },
+  "release_given_capture": 1.0,
+  "hit15_given_release": 1.0,
+  "safe_positive": 1,
+  "safe_positive_fraction": 0.25,
+  "paired_mean_utility_delta": -2.038519696693412,
+  "selected_action_counts": [
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0
+  ],
+  "prediction_exact_episodes": 4,
+  "planned_episodes": 4,
+  "checks": {
+    "capture_nonregression": true,
+    "release_given_capture": true,
+    "hit15_given_release": true,
+    "safe_positive_fraction": true,
+    "exact_twin_prediction": true,
+    "safety": true
+  },
+  "qualified_as_causal_mpc": true,
+  "episodes_completed": 5
+}

@@ -1,4 +1,55 @@
-# UMArm Koopman compliance control — CAN-arm workspace
+# UMArm Ball Catch-and-Throw RL
+
+Digital-twin and reinforcement-learning workspace for a 24-actuator pneumatic
+UMArm. The project combines CAN hardware control, OptiTrack state estimation,
+MuJoCo simulation, learned pneumatic dynamics, Koopman-MPPI control, behavior
+cloning, terminal digital-twin MPC, and constrained on-policy PPO to catch an
+incoming ball and throw it into a target region.
+
+## Current RL status
+
+The current V26 pipeline keeps the validated V15 behavior-cloning policy as the
+approach/catch anchor. After a real post-catch state is observed, the terminal
+digital twin evaluates nine force/radius trajectories and selects the best safe
+15 cm hit; if none is safe, the system executes the exact V15 fallback.
+
+The formal V26 Stage 3 evaluation completed 100 previously unused scenarios:
+
+- V26 hybrid Teacher and paired V15 both achieved 81 catches, 81 releases, and
+  81 hits within 15 cm.
+- All caught balls were released and all releases hit the 15 cm target.
+- V26 took over in 80 of 81 caught episodes; one episode used exact V15 fallback.
+- All 11 qualification checks passed and `qualified_hybrid_teacher=true`.
+- Mean catch-to-release time fell from 14.613 s to 8.520 s in paired successful
+  episodes. Catch-impact reduction remains a separate future optimization goal.
+
+Stage 4 is now ready to collect at least 1,000 independent post-catch contexts
+for compact Actor distillation. From PowerShell:
+
+```powershell
+Set-Location "RL PPO"
+.\START_V26_TWIN_MPC_PPO.ps1 -Mode collect -Workers 8
+```
+
+The collection is resumable. Formal completion requires
+`teacher_runs/v26_twin_mpc_ppo/stage4_dataset/collection_report.json` with
+`dataset_ready=true`. Actor distillation and strict on-policy PPO begin only
+after that gate passes.
+
+Key documentation:
+
+- [`RL PPO/RL_PPO_SYSTEM_TRAINING_MASTER_SUMMARY.md`](RL%20PPO/RL_PPO_SYSTEM_TRAINING_MASTER_SUMMARY.md) — complete V10–V26 history, formal results, current commands, and roadmap.
+- [`RL PPO/V26_STAGE0_STAGE1_RUN_GUIDE.md`](RL%20PPO/V26_STAGE0_STAGE1_RUN_GUIDE.md) — V26 Stage 0–4 execution guide.
+- [`RL PPO/V26_TWIN_MPC_PPO_IMPROVEMENT_PLAN.md`](RL%20PPO/V26_TWIN_MPC_PPO_IMPROVEMENT_PLAN.md) — V26 design, acceptance gates, Actor plan, and PPO plan.
+
+Clone with submodules so the supporting dynamics and MJX workspaces are
+available:
+
+```bash
+git clone --recurse-submodules https://github.com/naikewu/UMArm_Ball_catch_throw_RL.git
+```
+
+## Hardware and control workspace
 
 The working folder for the large ceiling-hung UMArm: a 24-actuator pneumatic arm on a
 1 Mbit/s CAN bus, tracked by an OptiTrack/Motive volume it shares with the smaller

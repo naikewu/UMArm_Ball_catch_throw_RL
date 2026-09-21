@@ -1,0 +1,227 @@
+{
+  "schema": "can_v15_terminal_twin_mpc_v26",
+  "source_hash": "06d8fc9bf61dcb9d6c4ab957c3f1e9bbaacb878629e9bfe1987ceb01a3add952",
+  "kind": "terminal_twin_oracle",
+  "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+  "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d",
+  "verification_sha256": "432e43454dc11734e47a1b7db6d2440a53cb772f15850e9804e22e0cc94137a1",
+  "manifest": {
+    "schema": "can_generalized_teacher_v14",
+    "design": "split_latin_hypercube_reachable_v1",
+    "design_seed": 20261201,
+    "first_seed": 33000001,
+    "episodes": 5,
+    "train_episodes": 4,
+    "validation_episodes": 1,
+    "parameter_ranges": {
+      "launch_speed": [
+        4.5,
+        5.5
+      ],
+      "launch_distance": [
+        1.7,
+        2.3
+      ],
+      "target_distance": [
+        1.3,
+        1.7
+      ],
+      "target_azimuth": [
+        10.0,
+        30.0
+      ]
+    },
+    "fixed": {
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "orbit_radius": 0.62,
+      "launch_angle_jitter_deg": 3.0,
+      "launch_position_jitter_m": 0.04,
+      "authority": 0.25
+    },
+    "scenarios": [
+      {
+        "scenario_id": 0,
+        "seed": 33000001,
+        "split": "train",
+        "launch_speed": 5.347138722,
+        "launch_distance": 2.074339321,
+        "target_distance": 1.692953892,
+        "target_azimuth": 17.087535743,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 1,
+        "seed": 33000002,
+        "split": "train",
+        "launch_speed": 4.838328988,
+        "launch_distance": 1.728194069,
+        "target_distance": 1.451377681,
+        "target_azimuth": 13.583833696,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 2,
+        "seed": 33000003,
+        "split": "train",
+        "launch_speed": 5.155771207,
+        "launch_distance": 1.925340112,
+        "target_distance": 1.5203371,
+        "target_azimuth": 22.663449174,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 3,
+        "seed": 33000004,
+        "split": "train",
+        "launch_speed": 4.538729407,
+        "launch_distance": 2.162185261,
+        "target_distance": 1.351953321,
+        "target_azimuth": 26.471527779,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 4,
+        "seed": 33000005,
+        "split": "validation",
+        "launch_speed": 4.877936292,
+        "launch_distance": 1.795789069,
+        "target_distance": 1.330575786,
+        "target_azimuth": 26.311252259,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    ],
+    "reachability_constraint": {
+      "grasp_height_m": 0.3145409999999999,
+      "launch_height_m": 0.5,
+      "safety_distance_margin_m": 0.03,
+      "adjusted_scenarios": []
+    },
+    "manifest_sha256": "dca19e56736e03633c4c90eafe31ce954d1c7d32b71504f3c0033e822f5090ca"
+  },
+  "dynamic": {
+    "decision_interval_s": 0.5,
+    "force_step": 0.05,
+    "radius_step": 0.0225,
+    "release_tolerance_m": 0.08,
+    "preview_horizon_s": 2.0
+  },
+  "fixed_actions": [
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.09
+    ],
+    [
+      1.0,
+      1.18
+    ],
+    [
+      1.2,
+      1.0
+    ],
+    [
+      1.2,
+      1.09
+    ],
+    [
+      1.2,
+      1.18
+    ],
+    [
+      1.4,
+      1.0
+    ],
+    [
+      1.4,
+      1.09
+    ],
+    [
+      1.4,
+      1.18
+    ]
+  ],
+  "oracle_scope": "privileged_best_of_nine_fixed_terminal_trajectories",
+  "purpose": "prove_force_radius_action_space_reachability_before_dynamic_MPC",
+  "smoke": true,
+  "baseline": {
+    "episodes": 5,
+    "captured": 5,
+    "captured_rate": 1.0,
+    "released": 5,
+    "released_rate": 1.0,
+    "hit15": 5,
+    "hit15_rate": 1.0,
+    "hit30": 5,
+    "hit30_rate": 1.0,
+    "mean_landing_error_m": 0.05398436437973999,
+    "mean_weld_peak_n": 370.285851664166,
+    "mean_impact_weld_impulse_ns": 2.9783788252318315,
+    "mean_relative_capture_speed_m_s": 4.274349506679817,
+    "mean_pressure_integral_psi_s": 267.1206731687792,
+    "mean_contact_impulse_ns": 0.1301218639417,
+    "max_contact_peak_n": 215.09623519223638
+  },
+  "static_oracle": {
+    "episodes": 5,
+    "captured": 5,
+    "captured_rate": 1.0,
+    "released": 5,
+    "released_rate": 1.0,
+    "hit15": 5,
+    "hit15_rate": 1.0,
+    "hit30": 5,
+    "hit30_rate": 1.0,
+    "mean_landing_error_m": 0.04118275236595225,
+    "mean_weld_peak_n": 370.285851664166,
+    "mean_impact_weld_impulse_ns": 2.978681707116503,
+    "mean_relative_capture_speed_m_s": 4.274349506679817,
+    "mean_pressure_integral_psi_s": 171.5079195554907,
+    "mean_contact_impulse_ns": 0.17402114320986273,
+    "max_contact_peak_n": 215.09623519223638
+  },
+  "static_rates": {
+    "release_given_capture": 1.0,
+    "hit15_given_release": 1.0
+  },
+  "safe_positive": 4,
+  "captured_contexts": 5,
+  "safe_positive_fraction": 0.8,
+  "checks": {
+    "capture_nonregression": true,
+    "release_given_capture": true,
+    "hit15_given_release": true,
+    "safe_positive_fraction": true,
+    "safety": true
+  },
+  "action_space_feasible": true,
+  "episodes_completed": 5
+}

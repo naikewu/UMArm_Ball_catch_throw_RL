@@ -1,0 +1,155 @@
+{
+  "schema": "can_soft_teacher_v13",
+  "source_hash": "3e81defaf04a6ea91f39666c4024be9c716f60159803c6fa515dced4be7725f8",
+  "selected": "baseline",
+  "recipe": {
+    "match": 0.3,
+    "acceleration_s": 0.4,
+    "pressure_drop_psi": 0.0,
+    "soft_pre_s": 0.2,
+    "soft_post_s": 0.25,
+    "pressure_ramp_s": 0.1,
+    "deceleration_s": 0.3,
+    "return_s": 1.0,
+    "brake_kd": 8.0,
+    "catch_gain_scale": 1.0
+  },
+  "improved": false,
+  "screen_seeds": [
+    40001,
+    40002,
+    40003,
+    40004,
+    40005,
+    40006,
+    40007,
+    40008,
+    40009,
+    40010,
+    40011,
+    40012
+  ],
+  "validation_seeds": [
+    50001,
+    50002,
+    50003,
+    50004,
+    50005,
+    50006,
+    50007,
+    50008,
+    50009,
+    50010,
+    50011,
+    50012,
+    50013,
+    50014,
+    50015,
+    50016,
+    50017,
+    50018,
+    50019,
+    50020,
+    50021,
+    50022,
+    50023,
+    50024
+  ],
+  "validation_episodes": 24,
+  "comparisons": {
+    "baseline": {
+      "summary": {
+        "episodes": 24,
+        "captured": 24,
+        "released": 24,
+        "hit15": 24,
+        "mean_error_m": 0.0715863478456276,
+        "mean_weld_n": 422.0008291153278,
+        "p95_weld_n": 471.9519500440575,
+        "mean_contact_impulse_ns": 0.02159234974694226,
+        "mean_impact_impulse_ns": 2.9411863098351247,
+        "mean_relative_speed_m_s": 4.710561511069226,
+        "mean_buffer_m": 0.5474381088655391,
+        "mean_pressure_psi_s": 263.75207326437777,
+        "max_contact_peak_n": 186.8845991564573
+      },
+      "ratios": {
+        "weld_peak_n": 1.0,
+        "impact_weld_impulse_ns": 1.0,
+        "pressure_integral_psi_s": 1.0
+      },
+      "paired_successes": 24,
+      "lost_hit_seeds": [],
+      "eligible": true,
+      "improved": false,
+      "quality_score": 1.0,
+      "reasons": []
+    },
+    "buffer50": {
+      "summary": {
+        "episodes": 24,
+        "captured": 24,
+        "released": 24,
+        "hit15": 24,
+        "mean_error_m": 0.0736143521647807,
+        "mean_weld_n": 422.0008291153278,
+        "p95_weld_n": 471.9519500440575,
+        "mean_contact_impulse_ns": 0.02159234974694226,
+        "mean_impact_impulse_ns": 2.9411863098351247,
+        "mean_relative_speed_m_s": 4.710561511069226,
+        "mean_buffer_m": 0.5660205437189304,
+        "mean_pressure_psi_s": 265.19984116428276,
+        "max_contact_peak_n": 186.8845991564573
+      },
+      "ratios": {
+        "weld_peak_n": 1.0,
+        "impact_weld_impulse_ns": 1.0,
+        "pressure_integral_psi_s": 1.0054891242445467
+      },
+      "paired_successes": 24,
+      "lost_hit_seeds": [],
+      "eligible": true,
+      "improved": false,
+      "quality_score": 1.0010978248489093,
+      "reasons": []
+    },
+    "soft2_gain85": {
+      "summary": {
+        "episodes": 24,
+        "captured": 23,
+        "released": 23,
+        "hit15": 22,
+        "mean_error_m": 0.06650422407884865,
+        "mean_weld_n": 415.9828977697018,
+        "p95_weld_n": 454.1915517099663,
+        "mean_contact_impulse_ns": 0.010489698455594849,
+        "mean_impact_impulse_ns": 2.951523003430282,
+        "mean_relative_speed_m_s": 4.817421458512303,
+        "mean_buffer_m": 0.5308440342535475,
+        "mean_pressure_psi_s": 262.33408650651256,
+        "max_contact_peak_n": 241.2630644787081
+      },
+      "ratios": {
+        "weld_peak_n": 0.9717313728343797,
+        "impact_weld_impulse_ns": 1.0000759931791552,
+        "pressure_integral_psi_s": 0.9981400783251702
+      },
+      "paired_successes": 23,
+      "lost_hit_seeds": [
+        50011,
+        50016
+      ],
+      "eligible": false,
+      "improved": false,
+      "quality_score": 0.9855165000359705,
+      "reasons": [
+        "captured decreased",
+        "released decreased",
+        "hit15 decreased",
+        "lost baseline hit seeds",
+        "contact peak increased by more than 10 N"
+      ]
+    }
+  },
+  "selection_note": "exploratory validation; final test must use new seeds"
+}

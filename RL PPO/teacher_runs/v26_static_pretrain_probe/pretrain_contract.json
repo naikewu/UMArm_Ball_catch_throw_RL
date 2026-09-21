@@ -1,0 +1,70 @@
+{
+  "schema": "can_v15_static_terminal_selector_v26",
+  "source_hash": "7034a5a8a09163fc2192809d67b9712b8b40debfa32581af8bf249d48933328b",
+  "kind": "static_terminal_pretrain",
+  "oracle_sha256": "8d26227f58881e88dfdc613eb62e4d9afaac935cf6b1613e4b8baaea620f4b6a",
+  "oracle_source_hash": "06d8fc9bf61dcb9d6c4ab957c3f1e9bbaacb878629e9bfe1987ceb01a3add952",
+  "inventory_sha256": "ce675c3afc74a0dd4794d39e20f6eab46247a53104d427af70bbbf8c7ff1ea97",
+  "old_data": {
+    "inventory_sha256": "ce675c3afc74a0dd4794d39e20f6eab46247a53104d427af70bbbf8c7ff1ea97",
+    "inventory": {
+      "sources": [
+        {
+          "directory": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_v1",
+          "scenarios": 40,
+          "actions": 9,
+          "expected_rows": 400
+        },
+        {
+          "directory": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_increment_v2",
+          "scenarios": 80,
+          "actions": 9,
+          "expected_rows": 800
+        }
+      ],
+      "expected_rows": 1200,
+      "completed_rows": 1200,
+      "independent_scenarios": 120,
+      "captured_contexts": 98,
+      "action_outcomes": 1080,
+      "baseline_outcomes": 120,
+      "action_released": 354,
+      "action_hit15": 341,
+      "unreleased_min_predicted_error_bins": {
+        "le_4cm": 0,
+        "4_to_6cm": 120,
+        "6_to_8cm": 58,
+        "8_to_15cm": 113,
+        "over_15cm": 237
+      },
+      "baseline_captured": 98,
+      "complete": true
+    },
+    "sweep_contracts": [
+      {
+        "path": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_v1\\sweep_contract.json",
+        "sha256": "46b8c795826f21a7b05bacf92cf505bf52ce6bac1fa2228c57696456db76a42a"
+      },
+      {
+        "path": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_increment_v2\\sweep_contract.json",
+        "sha256": "d6bdcb2253ad090be8c2109dfe959817c8d0e6ca1c71b8d8d7714713d75d38bf"
+      }
+    ],
+    "observed_rows": 1080,
+    "observed_baselines": 120,
+    "captured_contexts": 98,
+    "train_contexts": 79,
+    "validation_contexts": 19,
+    "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+    "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d"
+  },
+  "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+  "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d",
+  "old_train_contexts": 79,
+  "old_validation_contexts": 19,
+  "oracle_train_contexts": 136,
+  "oracle_validation_contexts": 36,
+  "hidden": 32,
+  "epochs": 400,
+  "action_semantics": "one_postcatch_choice_from_fixed_3x3_force_radius_grid"
+}

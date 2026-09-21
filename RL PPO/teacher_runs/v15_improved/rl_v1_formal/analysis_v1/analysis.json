@@ -1,0 +1,2075 @@
+{
+  "training": {
+    "completed_updates": 100,
+    "total_training_episodes": 800,
+    "best_update": 60,
+    "best_is_bc_initialization": false,
+    "elapsed_this_invocation_s": 3530.633392600008
+  },
+  "decision_steps": 349142,
+  "active_decision_steps": 340911,
+  "kl_early_stops": [
+    6,
+    13,
+    90,
+    95
+  ],
+  "training_captured": 691,
+  "training_hit15": 683,
+  "validation_best": {
+    "episodes": 80,
+    "paired_hit15": 68,
+    "success": {
+      "captured": {
+        "bc_count": 70,
+        "rl_count": 70,
+        "lost": 0,
+        "gained": 0,
+        "lost_seeds": [],
+        "gained_seeds": [],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          0.0,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      },
+      "released": {
+        "bc_count": 70,
+        "rl_count": 70,
+        "lost": 0,
+        "gained": 0,
+        "lost_seeds": [],
+        "gained_seeds": [],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          0.0,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      },
+      "hit15": {
+        "bc_count": 69,
+        "rl_count": 69,
+        "lost": 1,
+        "gained": 1,
+        "lost_seeds": [
+          2000007
+        ],
+        "gained_seeds": [
+          2000078
+        ],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          -0.0375,
+          0.0375
+        ],
+        "mcnemar_exact_p": 1.0
+      },
+      "hit30": {
+        "bc_count": 70,
+        "rl_count": 70,
+        "lost": 0,
+        "gained": 0,
+        "lost_seeds": [],
+        "gained_seeds": [],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          0.0,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      }
+    },
+    "quality_population": "same scenarios where both policies hit15",
+    "caveat": "paired percentile bootstrap, conditional on common successes; not a proof of equivalence",
+    "metrics": {
+      "weld_peak_n": {
+        "bc_mean": 396.8227220763808,
+        "rl_mean": 396.634064751349,
+        "mean_delta": -0.1886573250317888,
+        "percent_change": -0.04754196635833319,
+        "paired_delta_ci95": [
+          -2.7498378930911285,
+          2.610738591049063
+        ],
+        "bc_p95": 504.8556081904683,
+        "rl_p95": 504.9783722761023,
+        "bc_max": 575.1419424655137,
+        "rl_max": 575.5766223835963,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "impact_weld_impulse_ns": {
+        "bc_mean": 3.0636893056406027,
+        "rl_mean": 3.0846440427224167,
+        "mean_delta": 0.020954737081814195,
+        "percent_change": 0.6839706964813175,
+        "paired_delta_ci95": [
+          0.006879907301560907,
+          0.038471784208862436
+        ],
+        "bc_p95": 3.59899354402598,
+        "rl_p95": 3.606017311488964,
+        "bc_max": 3.850842075529274,
+        "rl_max": 3.857782486898469,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "relative_capture_speed_m_s": {
+        "bc_mean": 4.6707893699216285,
+        "rl_mean": 4.676934799599093,
+        "mean_delta": 0.006145429677465401,
+        "percent_change": 0.1315715437103293,
+        "paired_delta_ci95": [
+          -0.008951211477697646,
+          0.03451005781317926
+        ],
+        "bc_p95": 5.4012011619808495,
+        "rl_p95": 5.3910300450881214,
+        "bc_max": 5.735381945423039,
+        "rl_max": 5.724156734248983,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "pressure_integral_psi_s": {
+        "bc_mean": 264.79977724927585,
+        "rl_mean": 264.51599232408114,
+        "mean_delta": -0.28378492519481735,
+        "percent_change": -0.10716962383527928,
+        "paired_delta_ci95": [
+          -0.8205530283533917,
+          -0.006691143433350573
+        ],
+        "bc_p95": 282.1902556930608,
+        "rl_p95": 275.86752412510424,
+        "bc_max": 289.8896643790192,
+        "rl_max": 289.82924739633523,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "contact_impulse_ns": {
+        "bc_mean": 0.025616039184539918,
+        "rl_mean": 0.01576383096298632,
+        "mean_delta": -0.009852208221553598,
+        "percent_change": -38.46109131305403,
+        "paired_delta_ci95": [
+          -0.020543005356048697,
+          -0.001605386623430619
+        ],
+        "bc_p95": 0.1912766932343036,
+        "rl_p95": 0.0,
+        "bc_max": 0.5252871444843337,
+        "rl_max": 0.5364572209983138,
+        "bc_nonzero": 6,
+        "rl_nonzero": 3
+      },
+      "impact_weld_peak_n": {
+        "bc_mean": 396.8227220763808,
+        "rl_mean": 396.634064751349,
+        "mean_delta": -0.1886573250317888,
+        "percent_change": -0.04754196635833319,
+        "paired_delta_ci95": [
+          -2.7498378930911285,
+          2.610738591049063
+        ],
+        "bc_p95": 504.8556081904683,
+        "rl_p95": 504.9783722761023,
+        "bc_max": 575.1419424655137,
+        "rl_max": 575.5766223835963,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "contact_peak_n": {
+        "bc_mean": 18.189407104698095,
+        "rl_mean": 10.025820210648902,
+        "mean_delta": -8.16358689404919,
+        "percent_change": -44.88099500472801,
+        "paired_delta_ci95": [
+          -18.740061277211417,
+          0.0832347040734948
+        ],
+        "bc_p95": 183.21675762745943,
+        "rl_p95": 0.0,
+        "bc_max": 289.6774652868188,
+        "rl_max": 293.095508462775,
+        "bc_nonzero": 6,
+        "rl_nonzero": 3
+      },
+      "weld_impulse_ns": {
+        "bc_mean": 107.75818149392619,
+        "rl_mean": 107.54589802372544,
+        "mean_delta": -0.212283470200763,
+        "percent_change": -0.196999863265801,
+        "paired_delta_ci95": [
+          -0.683548674170813,
+          0.03319719407288189
+        ],
+        "bc_p95": 122.53803020749595,
+        "rl_p95": 117.83080643356637,
+        "bc_max": 128.9588644319932,
+        "rl_max": 128.9150068391546,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "buffer_displacement_m": {
+        "bc_mean": 0.5263678582819092,
+        "rl_mean": 0.527485099860511,
+        "mean_delta": 0.0011172415786016724,
+        "percent_change": 0.21225490140079906,
+        "paired_delta_ci95": [
+          0.0006992784418509861,
+          0.001508681775719983
+        ],
+        "bc_p95": 0.6282295973032953,
+        "rl_p95": 0.6311896944929489,
+        "bc_max": 0.646427823107443,
+        "rl_max": 0.6483971561094338,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "pressure_variation_psi": {
+        "bc_mean": 1238.1386073975782,
+        "rl_mean": 1237.2412669768034,
+        "mean_delta": -0.8973404207748572,
+        "percent_change": -0.07247495679508775,
+        "paired_delta_ci95": [
+          -2.7295240122444513,
+          0.08271261195868389
+        ],
+        "bc_p95": 1285.434714002374,
+        "rl_p95": 1285.5349103558337,
+        "bc_max": 1317.9557685267384,
+        "rl_max": 1317.9357990206775,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "landing_error_m": {
+        "bc_mean": 0.054398996436994106,
+        "rl_mean": 0.05386877430961062,
+        "mean_delta": -0.0005302221273834769,
+        "percent_change": -0.9746910092313876,
+        "paired_delta_ci95": [
+          -0.003641395554019523,
+          0.0024410462074141155
+        ],
+        "bc_p95": 0.11129402237381084,
+        "rl_p95": 0.11121886483397714,
+        "bc_max": 0.14205551825293133,
+        "rl_max": 0.14223223867087276,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      }
+    },
+    "quality_components": {
+      "weld_peak_n": {
+        "weight": 0.3,
+        "ratio": 0.9995245803376147,
+        "improvement_percentage_points": 0.014262589871558706
+      },
+      "impact_weld_impulse_ns": {
+        "weight": 0.25,
+        "ratio": 1.0068397047323072,
+        "improvement_percentage_points": -0.17099261830768042
+      },
+      "relative_capture_speed_m_s": {
+        "weight": 0.25,
+        "ratio": 1.0013157151554133,
+        "improvement_percentage_points": -0.03289287888533221
+      },
+      "pressure_integral_psi_s": {
+        "weight": 0.15,
+        "ratio": 0.9989283037656944,
+        "improvement_percentage_points": 0.016075443514583787
+      },
+      "contact_impulse_ns": {
+        "weight": 0.05,
+        "ratio": 0.6154041007401244,
+        "improvement_percentage_points": 1.9229794962993778
+      }
+    },
+    "quality_score": 0.9825056796750749,
+    "quality_score_ci95": [
+      0.9501210617373166,
+      0.9961669294059327
+    ],
+    "all_episode_contact_max_bc": 289.6774652868188,
+    "all_episode_contact_max_rl": 293.095508462775
+  },
+  "validation_latest": {
+    "episodes": 80,
+    "paired_hit15": 68,
+    "success": {
+      "captured": {
+        "bc_count": 70,
+        "rl_count": 70,
+        "lost": 0,
+        "gained": 0,
+        "lost_seeds": [],
+        "gained_seeds": [],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          0.0,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      },
+      "released": {
+        "bc_count": 70,
+        "rl_count": 70,
+        "lost": 0,
+        "gained": 0,
+        "lost_seeds": [],
+        "gained_seeds": [],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          0.0,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      },
+      "hit15": {
+        "bc_count": 69,
+        "rl_count": 68,
+        "lost": 1,
+        "gained": 0,
+        "lost_seeds": [
+          2000007
+        ],
+        "gained_seeds": [],
+        "delta_rate": -0.0125,
+        "paired_bootstrap_delta_ci95": [
+          -0.0375,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      },
+      "hit30": {
+        "bc_count": 70,
+        "rl_count": 70,
+        "lost": 0,
+        "gained": 0,
+        "lost_seeds": [],
+        "gained_seeds": [],
+        "delta_rate": 0.0,
+        "paired_bootstrap_delta_ci95": [
+          0.0,
+          0.0
+        ],
+        "mcnemar_exact_p": 1.0
+      }
+    },
+    "quality_population": "same scenarios where both policies hit15",
+    "caveat": "paired percentile bootstrap, conditional on common successes; not a proof of equivalence",
+    "metrics": {
+      "weld_peak_n": {
+        "bc_mean": 396.8227220763808,
+        "rl_mean": 394.9181828648609,
+        "mean_delta": -1.9045392115198903,
+        "percent_change": -0.47994711632296516,
+        "paired_delta_ci95": [
+          -6.060547973805217,
+          1.5072806607235887
+        ],
+        "bc_p95": 504.8556081904683,
+        "rl_p95": 504.5952136221815,
+        "bc_max": 575.1419424655137,
+        "rl_max": 575.2215213091077,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "impact_weld_impulse_ns": {
+        "bc_mean": 3.0636893056406027,
+        "rl_mean": 3.0593683633978013,
+        "mean_delta": -0.004320942242801133,
+        "percent_change": -0.14103722054472634,
+        "paired_delta_ci95": [
+          -0.026366093442981475,
+          0.013973686322572029
+        ],
+        "bc_p95": 3.59899354402598,
+        "rl_p95": 3.6006453753924847,
+        "bc_max": 3.850842075529274,
+        "rl_max": 3.853427405025429,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "relative_capture_speed_m_s": {
+        "bc_mean": 4.6707893699216285,
+        "rl_mean": 4.648642858989765,
+        "mean_delta": -0.02214651093186321,
+        "percent_change": -0.47414921071970983,
+        "paired_delta_ci95": [
+          -0.055474892858283165,
+          -0.004796448221677474
+        ],
+        "bc_p95": 5.4012011619808495,
+        "rl_p95": 5.392762353231435,
+        "bc_max": 5.735381945423039,
+        "rl_max": 5.7266597262469565,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "pressure_integral_psi_s": {
+        "bc_mean": 264.79977724927585,
+        "rl_mean": 264.9502583671098,
+        "mean_delta": 0.15048111783393048,
+        "percent_change": 0.05682826450881251,
+        "paired_delta_ci95": [
+          -0.07047761020980191,
+          0.5785999919791855
+        ],
+        "bc_p95": 282.1902556930608,
+        "rl_p95": 282.1221378536784,
+        "bc_max": 289.8896643790192,
+        "rl_max": 289.79312442955234,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "contact_impulse_ns": {
+        "bc_mean": 0.025616039184539918,
+        "rl_mean": 0.025347060394843413,
+        "mean_delta": -0.00026897878969650975,
+        "percent_change": -1.0500405146898872,
+        "paired_delta_ci95": [
+          -0.011278182835462225,
+          0.010700795138082145
+        ],
+        "bc_p95": 0.1912766932343036,
+        "rl_p95": 0.19546289822704868,
+        "bc_max": 0.5252871444843337,
+        "rl_max": 0.6824253126526667,
+        "bc_nonzero": 6,
+        "rl_nonzero": 5
+      },
+      "impact_weld_peak_n": {
+        "bc_mean": 396.8227220763808,
+        "rl_mean": 394.9181828648609,
+        "mean_delta": -1.9045392115198903,
+        "percent_change": -0.47994711632296516,
+        "paired_delta_ci95": [
+          -6.060547973805217,
+          1.5072806607235887
+        ],
+        "bc_p95": 504.8556081904683,
+        "rl_p95": 504.5952136221815,
+        "bc_max": 575.1419424655137,
+        "rl_max": 575.2215213091077,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "contact_peak_n": {
+        "bc_mean": 18.189407104698095,
+        "rl_mean": 15.47162482574829,
+        "mean_delta": -2.7177822789498074,
+        "percent_change": -14.941566062633438,
+        "paired_delta_ci95": [
+          -11.872200895949213,
+          6.81181988580734
+        ],
+        "bc_p95": 183.21675762745943,
+        "rl_p95": 178.88895344120868,
+        "bc_max": 289.6774652868188,
+        "rl_max": 274.9346784254671,
+        "bc_nonzero": 6,
+        "rl_nonzero": 5
+      },
+      "weld_impulse_ns": {
+        "bc_mean": 107.75818149392619,
+        "rl_mean": 107.91398767928351,
+        "mean_delta": 0.1558061853573161,
+        "percent_change": 0.14458872931712996,
+        "paired_delta_ci95": [
+          -0.03394343900669264,
+          0.5142013887440313
+        ],
+        "bc_p95": 122.53803020749595,
+        "rl_p95": 122.54611675120336,
+        "bc_max": 128.9588644319932,
+        "rl_max": 128.8818415091411,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "buffer_displacement_m": {
+        "bc_mean": 0.5263678582819092,
+        "rl_mean": 0.5272670542942939,
+        "mean_delta": 0.0008991960123844823,
+        "percent_change": 0.170830341981687,
+        "paired_delta_ci95": [
+          0.0005724053313335069,
+          0.001221101319828089
+        ],
+        "bc_p95": 0.6282295973032953,
+        "rl_p95": 0.6294458615197208,
+        "bc_max": 0.646427823107443,
+        "rl_max": 0.6477775069583849,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "pressure_variation_psi": {
+        "bc_mean": 1238.1386073975782,
+        "rl_mean": 1238.821869627725,
+        "mean_delta": 0.6832622301469488,
+        "percent_change": 0.05518463167728527,
+        "paired_delta_ci95": [
+          0.06381270980013909,
+          1.7955466952432941
+        ],
+        "bc_p95": 1285.434714002374,
+        "rl_p95": 1285.44548386395,
+        "bc_max": 1317.9557685267384,
+        "rl_max": 1318.164426007282,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      },
+      "landing_error_m": {
+        "bc_mean": 0.054398996436994106,
+        "rl_mean": 0.054555617527780216,
+        "mean_delta": 0.00015662109078612974,
+        "percent_change": 0.2879117282384325,
+        "paired_delta_ci95": [
+          -0.00327497003256837,
+          0.0039002643159122517
+        ],
+        "bc_p95": 0.11129402237381084,
+        "rl_p95": 0.1017945290918791,
+        "bc_max": 0.14205551825293133,
+        "rl_max": 0.13875178892733422,
+        "bc_nonzero": 68,
+        "rl_nonzero": 68
+      }
+    },
+    "quality_components": {
+      "weld_peak_n": {
+        "weight": 0.3,
+        "ratio": 0.9952005288488651,
+        "improvement_percentage_points": 0.14398413453404646
+      },
+      "impact_weld_impulse_ns": {
+        "weight": 0.25,
+        "ratio": 0.9985896282549035,
+        "improvement_percentage_points": 0.03525929362741265
+      },
+      "relative_capture_speed_m_s": {
+        "weight": 0.25,
+        "ratio": 0.99525850890794,
+        "improvement_percentage_points": 0.11853727730150032
+      },
+      "pressure_integral_psi_s": {
+        "weight": 0.15,
+        "ratio": 1.000568282642942,
+        "improvement_percentage_points": -0.00852423964413096
+      },
+      "contact_impulse_ns": {
+        "weight": 0.05,
+        "ratio": 0.9895000047523511,
+        "improvement_percentage_points": 0.05249997623824443
+      }
+    },
+    "quality_score": 0.9965824355794293,
+    "quality_score_ci95": [
+      0.9714671166520712,
+      1.0244987445308655
+    ],
+    "all_episode_contact_max_bc": 289.6774652868188,
+    "all_episode_contact_max_rl": 274.9346784254671
+  },
+  "validations": [
+    {
+      "update": 0,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 69,
+        "hit15_rate": 0.8625,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.05591338560899991,
+        "mean_weld_peak_n": 345.64700786041215,
+        "mean_impact_weld_impulse_ns": 2.670845541553829,
+        "mean_relative_capture_speed_m_s": 4.663942576729012,
+        "mean_pressure_integral_psi_s": 237.26704133589243,
+        "mean_contact_impulse_ns": 0.05800130358477429,
+        "max_contact_peak_n": 289.6774652868188
+      },
+      "quality_score": 1.0,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 10,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 68,
+        "hit15_rate": 0.85,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.05757188720536026,
+        "mean_weld_peak_n": 346.8012791978391,
+        "mean_impact_weld_impulse_ns": 2.6868643603461804,
+        "mean_relative_capture_speed_m_s": 4.675775702709642,
+        "mean_pressure_integral_psi_s": 237.16448424397745,
+        "mean_contact_impulse_ns": 0.05016168054965886,
+        "max_contact_peak_n": 290.9723881604282
+      },
+      "quality_score": 0.9902870644087806,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 20,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 68,
+        "hit15_rate": 0.85,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.055189129227773484,
+        "mean_weld_peak_n": 344.0298189087016,
+        "mean_impact_weld_impulse_ns": 2.673381459885781,
+        "mean_relative_capture_speed_m_s": 4.657058197468774,
+        "mean_pressure_integral_psi_s": 237.14208061330018,
+        "mean_contact_impulse_ns": 0.05534592781822427,
+        "max_contact_peak_n": 289.70276349739333
+      },
+      "quality_score": 0.9972894596311991,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 30,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 69,
+        "hit15_rate": 0.8625,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.054756986135067666,
+        "mean_weld_peak_n": 343.6854315687057,
+        "mean_impact_weld_impulse_ns": 2.6799792667910056,
+        "mean_relative_capture_speed_m_s": 4.655217511727089,
+        "mean_pressure_integral_psi_s": 237.1988393953432,
+        "mean_contact_impulse_ns": 0.05642872513012771,
+        "max_contact_peak_n": 294.415088099163
+      },
+      "quality_score": 0.9999162009252706,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 40,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 69,
+        "hit15_rate": 0.8625,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.050836077298519716,
+        "mean_weld_peak_n": 342.9621813065784,
+        "mean_impact_weld_impulse_ns": 2.67469153344402,
+        "mean_relative_capture_speed_m_s": 4.6530600786696,
+        "mean_pressure_integral_psi_s": 237.01584756254687,
+        "mean_contact_impulse_ns": 0.05554776032667121,
+        "max_contact_peak_n": 291.3558864815922
+      },
+      "quality_score": 0.9958010044836161,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 50,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 69,
+        "hit15_rate": 0.8625,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.05355345486005795,
+        "mean_weld_peak_n": 344.50109176774424,
+        "mean_impact_weld_impulse_ns": 2.683197005913889,
+        "mean_relative_capture_speed_m_s": 4.658086429318676,
+        "mean_pressure_integral_psi_s": 236.98886710003435,
+        "mean_contact_impulse_ns": 0.05193313628391445,
+        "max_contact_peak_n": 273.97493695339665
+      },
+      "quality_score": 0.9885752661884405,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 60,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 69,
+        "hit15_rate": 0.8625,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.056536955561214165,
+        "mean_weld_peak_n": 346.08595025902724,
+        "mean_impact_weld_impulse_ns": 2.6925291599101686,
+        "mean_relative_capture_speed_m_s": 4.674762965149118,
+        "mean_pressure_integral_psi_s": 236.8185760835817,
+        "mean_contact_impulse_ns": 0.04787274716219469,
+        "max_contact_peak_n": 293.095508462775
+      },
+      "quality_score": 0.982505679675075,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.7
+    },
+    {
+      "update": 70,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 67,
+        "hit15_rate": 0.8375,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.05768569320032361,
+        "mean_weld_peak_n": 345.4588525039521,
+        "mean_impact_weld_impulse_ns": 2.6877945753540176,
+        "mean_relative_capture_speed_m_s": 4.662101699181057,
+        "mean_pressure_integral_psi_s": 236.96680017780946,
+        "mean_contact_impulse_ns": 0.05221556789585678,
+        "max_contact_peak_n": 272.60876366554817
+      },
+      "quality_score": 0.994242406031748,
+      "eligible": false,
+      "worst_parameter_bin_hit15_rate": 0.6
+    },
+    {
+      "update": 80,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 68,
+        "hit15_rate": 0.85,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.05607322323901963,
+        "mean_weld_peak_n": 344.64955579776586,
+        "mean_impact_weld_impulse_ns": 2.68152038794118,
+        "mean_relative_capture_speed_m_s": 4.66073622055073,
+        "mean_pressure_integral_psi_s": 236.7780409516319,
+        "mean_contact_impulse_ns": 0.05234262357435619,
+        "max_contact_peak_n": 279.00805434012506
+      },
+      "quality_score": 0.9888457713971467,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 90,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 68,
+        "hit15_rate": 0.85,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.0579773846365793,
+        "mean_weld_peak_n": 345.7472253956068,
+        "mean_impact_weld_impulse_ns": 2.6783328134904725,
+        "mean_relative_capture_speed_m_s": 4.66543371450603,
+        "mean_pressure_integral_psi_s": 237.246666147408,
+        "mean_contact_impulse_ns": 0.05330018489124737,
+        "max_contact_peak_n": 295.11860301999803
+      },
+      "quality_score": 0.9941586832626245,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    },
+    {
+      "update": 100,
+      "summary": {
+        "episodes": 80,
+        "captured": 70,
+        "captured_rate": 0.875,
+        "released": 70,
+        "released_rate": 0.875,
+        "hit15": 68,
+        "hit15_rate": 0.85,
+        "hit30": 70,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.05792701626383596,
+        "mean_weld_peak_n": 344.654921146907,
+        "mean_impact_weld_impulse_ns": 2.67098256928424,
+        "mean_relative_capture_speed_m_s": 4.6474505564865956,
+        "mean_pressure_integral_psi_s": 237.18211303644503,
+        "mean_contact_impulse_ns": 0.05692364980621486,
+        "max_contact_peak_n": 274.9346784254671
+      },
+      "quality_score": 0.9965824355794294,
+      "eligible": true,
+      "worst_parameter_bin_hit15_rate": 0.65
+    }
+  ],
+  "training_groups": {
+    "full_range": {
+      "episodes": 600,
+      "captured": 510,
+      "hit15": 504
+    },
+    "mid_speed": {
+      "episodes": 200,
+      "captured": 181,
+      "hit15": 179
+    }
+  },
+  "training_quarters": [
+    {
+      "start": 1,
+      "end": 25,
+      "episodes": 200,
+      "hit15": 172,
+      "captured": 174,
+      "metric_means": {
+        "value_loss": 10.252437587775669,
+        "anchor_kl": 0.027513902189320132,
+        "approx_kl": 0.002300484097147661,
+        "bc_loss": 0.000254891475893108
+      },
+      "mean_task_return": 41.393624425782676,
+      "mean_quality_penalty": 2.242137237876018
+    },
+    {
+      "start": 26,
+      "end": 50,
+      "episodes": 200,
+      "hit15": 176,
+      "captured": 177,
+      "metric_means": {
+        "value_loss": 6.668878219318021,
+        "anchor_kl": 0.04188754038599916,
+        "approx_kl": 0.0018190255399993327,
+        "bc_loss": 0.00027086146431075527
+      },
+      "mean_task_return": 42.40549754037292,
+      "mean_quality_penalty": 2.2831974556129184
+    },
+    {
+      "start": 51,
+      "end": 75,
+      "episodes": 200,
+      "hit15": 169,
+      "captured": 170,
+      "metric_means": {
+        "value_loss": 5.018892212453145,
+        "anchor_kl": 0.05653505630172941,
+        "approx_kl": 0.002049794341608181,
+        "bc_loss": 0.0002780570140541471
+      },
+      "mean_task_return": 40.35275476728228,
+      "mean_quality_penalty": 2.1609686436816724
+    },
+    {
+      "start": 76,
+      "end": 100,
+      "episodes": 200,
+      "hit15": 166,
+      "captured": 170,
+      "metric_means": {
+        "value_loss": 4.995413780487231,
+        "anchor_kl": 0.05190337017939197,
+        "approx_kl": 0.0025156810748969056,
+        "bc_loss": 0.00027158535991211484
+      },
+      "mean_task_return": 40.039143997788294,
+      "mean_quality_penalty": 2.1957016087710297
+    }
+  ],
+  "quality_cost_mean_successes": {
+    "weld_peak": 0.7767832084830858,
+    "impact_impulse": 0.609291583580509,
+    "relative_speed": 0.7424757363156345,
+    "pressure": 0.39336753874674124,
+    "contact_impulse": 0.01645783379233109
+  },
+  "gae_direct_trace_factor_14s": 0.00013566157217055573,
+  "independent_evaluation": {
+    "selected_update": 60,
+    "episodes": 200,
+    "summaries": {
+      "teacher": {
+        "episodes": 200,
+        "captured": 175,
+        "captured_rate": 0.875,
+        "released": 175,
+        "released_rate": 0.875,
+        "hit15": 173,
+        "hit15_rate": 0.865,
+        "hit30": 175,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.04953326472214546,
+        "mean_weld_peak_n": 342.91926137576115,
+        "mean_impact_weld_impulse_ns": 2.676170332204739,
+        "mean_relative_capture_speed_m_s": 4.644806090802805,
+        "mean_pressure_integral_psi_s": 237.17198151526594,
+        "mean_contact_impulse_ns": 0.08324464913584274,
+        "max_contact_peak_n": 275.379666039689
+      },
+      "bc": {
+        "episodes": 200,
+        "captured": 175,
+        "captured_rate": 0.875,
+        "released": 175,
+        "released_rate": 0.875,
+        "hit15": 172,
+        "hit15_rate": 0.86,
+        "hit30": 175,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.04722605417449902,
+        "mean_weld_peak_n": 341.25479335648345,
+        "mean_impact_weld_impulse_ns": 2.6659958275977265,
+        "mean_relative_capture_speed_m_s": 4.649166835386985,
+        "mean_pressure_integral_psi_s": 237.19569122494505,
+        "mean_contact_impulse_ns": 0.0862081832821068,
+        "max_contact_peak_n": 286.37636913246706
+      },
+      "rl": {
+        "episodes": 200,
+        "captured": 173,
+        "captured_rate": 0.865,
+        "released": 173,
+        "released_rate": 0.865,
+        "hit15": 169,
+        "hit15_rate": 0.845,
+        "hit30": 173,
+        "hit30_rate": 0.865,
+        "mean_landing_error_m": 0.05030665583218438,
+        "mean_weld_peak_n": 339.1377976974211,
+        "mean_impact_weld_impulse_ns": 2.647014301594729,
+        "mean_relative_capture_speed_m_s": 4.6401846354659675,
+        "mean_pressure_integral_psi_s": 234.71098258536404,
+        "mean_contact_impulse_ns": 0.09238858581586369,
+        "max_contact_peak_n": 268.3149781400385
+      }
+    },
+    "rl_vs_bc": {
+      "summary": {
+        "episodes": 200,
+        "captured": 173,
+        "captured_rate": 0.865,
+        "released": 173,
+        "released_rate": 0.865,
+        "hit15": 169,
+        "hit15_rate": 0.845,
+        "hit30": 173,
+        "hit30_rate": 0.865,
+        "mean_landing_error_m": 0.05030665583218438,
+        "mean_weld_peak_n": 339.1377976974211,
+        "mean_impact_weld_impulse_ns": 2.647014301594729,
+        "mean_relative_capture_speed_m_s": 4.6401846354659675,
+        "mean_pressure_integral_psi_s": 234.71098258536404,
+        "mean_contact_impulse_ns": 0.09238858581586369,
+        "max_contact_peak_n": 268.3149781400385
+      },
+      "baseline": {
+        "episodes": 200,
+        "captured": 175,
+        "captured_rate": 0.875,
+        "released": 175,
+        "released_rate": 0.875,
+        "hit15": 172,
+        "hit15_rate": 0.86,
+        "hit30": 175,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.04722605417449902,
+        "mean_weld_peak_n": 341.25479335648345,
+        "mean_impact_weld_impulse_ns": 2.6659958275977265,
+        "mean_relative_capture_speed_m_s": 4.649166835386985,
+        "mean_pressure_integral_psi_s": 237.19569122494505,
+        "mean_contact_impulse_ns": 0.0862081832821068,
+        "max_contact_peak_n": 286.37636913246706
+      },
+      "checks": {
+        "captured_drop_le_2pp": true,
+        "released_drop_le_2pp": true,
+        "hit15_drop_le_2pp": true,
+        "landing_guard": true,
+        "paired_successes": true,
+        "weld_peak_n_guard": true,
+        "impact_weld_impulse_ns_guard": true,
+        "pressure_integral_psi_s_guard": true,
+        "p95_weld_guard": true,
+        "contact_guard": true
+      },
+      "eligible": true,
+      "paired_hit15": 167,
+      "paired_quality_ratios": {
+        "weld_peak_n": 1.0038818438452806,
+        "impact_weld_impulse_ns": 1.0063705851206959,
+        "relative_capture_speed_m_s": 0.9974596346025375,
+        "pressure_integral_psi_s": 0.9985122740039092,
+        "contact_impulse_ns": 1.074367269777332
+      },
+      "quality_score": 1.0056173126738455,
+      "quality_improved": false,
+      "parameter_bins": {
+        "launch_speed": [
+          {
+            "low": 4.5,
+            "high": 4.75,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 41,
+            "hit15_rate": 0.82,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05544280192599384,
+            "mean_weld_peak_n": 300.08549294453826,
+            "mean_impact_weld_impulse_ns": 2.460157241853474,
+            "mean_relative_capture_speed_m_s": 4.329022037496999,
+            "mean_pressure_integral_psi_s": 230.57853153740564,
+            "mean_contact_impulse_ns": 0.1816008845974002,
+            "max_contact_peak_n": 226.1192233463837
+          },
+          {
+            "low": 4.75,
+            "high": 5.0,
+            "episodes": 50,
+            "captured": 45,
+            "captured_rate": 0.9,
+            "released": 45,
+            "released_rate": 0.9,
+            "hit15": 44,
+            "hit15_rate": 0.88,
+            "hit30": 45,
+            "hit30_rate": 0.9,
+            "mean_landing_error_m": 0.04649298760384568,
+            "mean_weld_peak_n": 334.1134497721895,
+            "mean_impact_weld_impulse_ns": 2.73011548581869,
+            "mean_relative_capture_speed_m_s": 4.596371504709635,
+            "mean_pressure_integral_psi_s": 243.3373916617392,
+            "mean_contact_impulse_ns": 0.04609249085027649,
+            "max_contact_peak_n": 224.81900677169338
+          },
+          {
+            "low": 5.0,
+            "high": 5.25,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 44,
+            "hit15_rate": 0.88,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.04523138014377042,
+            "mean_weld_peak_n": 356.99177820277475,
+            "mean_impact_weld_impulse_ns": 2.7189533875257133,
+            "mean_relative_capture_speed_m_s": 4.750044819187898,
+            "mean_pressure_integral_psi_s": 237.95251300261944,
+            "mean_contact_impulse_ns": 0.11533621554737955,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 5.25,
+            "high": 5.5,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 40,
+            "hit15_rate": 0.8,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05457353832326675,
+            "mean_weld_peak_n": 365.3604698701818,
+            "mean_impact_weld_impulse_ns": 2.6788310911810385,
+            "mean_relative_capture_speed_m_s": 4.883198252488982,
+            "mean_pressure_integral_psi_s": 226.97549413969193,
+            "mean_contact_impulse_ns": 0.026524752268398517,
+            "max_contact_peak_n": 268.3149781400385
+          }
+        ],
+        "launch_distance": [
+          {
+            "low": 1.7,
+            "high": 1.8499999999999999,
+            "episodes": 50,
+            "captured": 43,
+            "captured_rate": 0.86,
+            "released": 43,
+            "released_rate": 0.86,
+            "hit15": 42,
+            "hit15_rate": 0.84,
+            "hit30": 43,
+            "hit30_rate": 0.86,
+            "mean_landing_error_m": 0.05224580583831257,
+            "mean_weld_peak_n": 343.2967902675544,
+            "mean_impact_weld_impulse_ns": 2.6583319587126066,
+            "mean_relative_capture_speed_m_s": 4.703595937612404,
+            "mean_pressure_integral_psi_s": 232.48107727578932,
+            "mean_contact_impulse_ns": 0.03265187096318037,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 1.8499999999999999,
+            "high": 2.0,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 40,
+            "hit15_rate": 0.8,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.059087535523880706,
+            "mean_weld_peak_n": 328.59066180967216,
+            "mean_impact_weld_impulse_ns": 2.5253387571665207,
+            "mean_relative_capture_speed_m_s": 4.5815825253044675,
+            "mean_pressure_integral_psi_s": 228.8417514828366,
+            "mean_contact_impulse_ns": 0.06092440571397886,
+            "max_contact_peak_n": 268.3149781400385
+          },
+          {
+            "low": 2.0,
+            "high": 2.15,
+            "episodes": 50,
+            "captured": 45,
+            "captured_rate": 0.9,
+            "released": 45,
+            "released_rate": 0.9,
+            "hit15": 44,
+            "hit15_rate": 0.88,
+            "hit30": 45,
+            "hit30_rate": 0.9,
+            "mean_landing_error_m": 0.045127942194107956,
+            "mean_weld_peak_n": 353.7880053483332,
+            "mean_impact_weld_impulse_ns": 2.746786559565463,
+            "mean_relative_capture_speed_m_s": 4.680068007333156,
+            "mean_pressure_integral_psi_s": 242.81296393701177,
+            "mean_contact_impulse_ns": 0.10072135693678476,
+            "max_contact_peak_n": 201.87104775105973
+          },
+          {
+            "low": 2.15,
+            "high": 2.3,
+            "episodes": 50,
+            "captured": 43,
+            "captured_rate": 0.86,
+            "released": 43,
+            "released_rate": 0.86,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 43,
+            "hit30_rate": 0.86,
+            "mean_landing_error_m": 0.045210416678665356,
+            "mean_weld_peak_n": 330.87573336412476,
+            "mean_impact_weld_impulse_ns": 2.657599930934324,
+            "mean_relative_capture_speed_m_s": 4.592274191290681,
+            "mean_pressure_integral_psi_s": 234.70813764581845,
+            "mean_contact_impulse_ns": 0.17525670964951076,
+            "max_contact_peak_n": 224.81900677169338
+          }
+        ],
+        "target_distance": [
+          {
+            "low": 1.3,
+            "high": 1.4,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.050475321992798736,
+            "mean_weld_peak_n": 344.17496984415425,
+            "mean_impact_weld_impulse_ns": 2.660121551305666,
+            "mean_relative_capture_speed_m_s": 4.62081611294527,
+            "mean_pressure_integral_psi_s": 237.1779604647341,
+            "mean_contact_impulse_ns": 0.08995097810405181,
+            "max_contact_peak_n": 268.3149781400385
+          },
+          {
+            "low": 1.4,
+            "high": 1.5,
+            "episodes": 50,
+            "captured": 45,
+            "captured_rate": 0.9,
+            "released": 45,
+            "released_rate": 0.9,
+            "hit15": 45,
+            "hit15_rate": 0.9,
+            "hit30": 45,
+            "hit30_rate": 0.9,
+            "mean_landing_error_m": 0.04690074592983352,
+            "mean_weld_peak_n": 356.1951072372371,
+            "mean_impact_weld_impulse_ns": 2.758830397047043,
+            "mean_relative_capture_speed_m_s": 4.600857006566172,
+            "mean_pressure_integral_psi_s": 242.12516555706762,
+            "mean_contact_impulse_ns": 0.12193246359859752,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 1.5,
+            "high": 1.6,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 40,
+            "hit15_rate": 0.8,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05877081161848391,
+            "mean_weld_peak_n": 322.0531981671478,
+            "mean_impact_weld_impulse_ns": 2.5643205996110674,
+            "mean_relative_capture_speed_m_s": 4.630833946964324,
+            "mean_pressure_integral_psi_s": 228.69806843558985,
+            "mean_contact_impulse_ns": 0.061639834782324814,
+            "max_contact_peak_n": 210.46879073352287
+          },
+          {
+            "low": 1.6,
+            "high": 1.7,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 41,
+            "hit15_rate": 0.82,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.04531499134442669,
+            "mean_weld_peak_n": 334.12791554114534,
+            "mean_impact_weld_impulse_ns": 2.6047846584151375,
+            "mean_relative_capture_speed_m_s": 4.711962902334311,
+            "mean_pressure_integral_psi_s": 230.8427358840646,
+            "mean_contact_impulse_ns": 0.09603106677848063,
+            "max_contact_peak_n": 256.8819019588306
+          }
+        ],
+        "target_azimuth": [
+          {
+            "low": 10.0,
+            "high": 15.0,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 41,
+            "hit15_rate": 0.82,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05682973662455269,
+            "mean_weld_peak_n": 327.86143333094196,
+            "mean_impact_weld_impulse_ns": 2.5534421955480493,
+            "mean_relative_capture_speed_m_s": 4.632362267076146,
+            "mean_pressure_integral_psi_s": 229.28834787437845,
+            "mean_contact_impulse_ns": 0.09957415972337542,
+            "max_contact_peak_n": 256.8819019588306
+          },
+          {
+            "low": 15.0,
+            "high": 20.0,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.04891055456007474,
+            "mean_weld_peak_n": 340.0727246879079,
+            "mean_impact_weld_impulse_ns": 2.670053365705745,
+            "mean_relative_capture_speed_m_s": 4.581041138161861,
+            "mean_pressure_integral_psi_s": 238.81858128745716,
+            "mean_contact_impulse_ns": 0.09995254321357841,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 20.0,
+            "high": 25.0,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.04704783653027488,
+            "mean_weld_peak_n": 345.6641473052852,
+            "mean_impact_weld_impulse_ns": 2.7142241526230304,
+            "mean_relative_capture_speed_m_s": 4.645846251254635,
+            "mean_pressure_integral_psi_s": 238.39184137669355,
+            "mean_contact_impulse_ns": 0.07506233762867041,
+            "max_contact_peak_n": 211.1660823211505
+          },
+          {
+            "low": 25.0,
+            "high": 30.0,
+            "episodes": 50,
+            "captured": 43,
+            "captured_rate": 0.86,
+            "released": 43,
+            "released_rate": 0.86,
+            "hit15": 42,
+            "hit15_rate": 0.84,
+            "hit30": 43,
+            "hit30_rate": 0.86,
+            "mean_landing_error_m": 0.04869844913398378,
+            "mean_weld_peak_n": 342.95288546554934,
+            "mean_impact_weld_impulse_ns": 2.6503374925020893,
+            "mean_relative_capture_speed_m_s": 4.702550734513683,
+            "mean_pressure_integral_psi_s": 232.34515980292701,
+            "mean_contact_impulse_ns": 0.09496530269783053,
+            "max_contact_peak_n": 268.3149781400385
+          }
+        ]
+      },
+      "worst_parameter_bin_hit15_rate": 0.8,
+      "absolute_generalization_pass": true
+    },
+    "rl_vs_teacher": {
+      "summary": {
+        "episodes": 200,
+        "captured": 173,
+        "captured_rate": 0.865,
+        "released": 173,
+        "released_rate": 0.865,
+        "hit15": 169,
+        "hit15_rate": 0.845,
+        "hit30": 173,
+        "hit30_rate": 0.865,
+        "mean_landing_error_m": 0.05030665583218438,
+        "mean_weld_peak_n": 339.1377976974211,
+        "mean_impact_weld_impulse_ns": 2.647014301594729,
+        "mean_relative_capture_speed_m_s": 4.6401846354659675,
+        "mean_pressure_integral_psi_s": 234.71098258536404,
+        "mean_contact_impulse_ns": 0.09238858581586369,
+        "max_contact_peak_n": 268.3149781400385
+      },
+      "baseline": {
+        "episodes": 200,
+        "captured": 175,
+        "captured_rate": 0.875,
+        "released": 175,
+        "released_rate": 0.875,
+        "hit15": 173,
+        "hit15_rate": 0.865,
+        "hit30": 175,
+        "hit30_rate": 0.875,
+        "mean_landing_error_m": 0.04953326472214546,
+        "mean_weld_peak_n": 342.91926137576115,
+        "mean_impact_weld_impulse_ns": 2.676170332204739,
+        "mean_relative_capture_speed_m_s": 4.644806090802805,
+        "mean_pressure_integral_psi_s": 237.17198151526594,
+        "mean_contact_impulse_ns": 0.08324464913584274,
+        "max_contact_peak_n": 275.379666039689
+      },
+      "checks": {
+        "captured_drop_le_2pp": true,
+        "released_drop_le_2pp": true,
+        "hit15_drop_le_2pp": true,
+        "landing_guard": true,
+        "paired_successes": true,
+        "weld_peak_n_guard": true,
+        "impact_weld_impulse_ns_guard": true,
+        "pressure_integral_psi_s_guard": true,
+        "p95_weld_guard": true,
+        "contact_guard": true
+      },
+      "eligible": true,
+      "paired_hit15": 169,
+      "paired_quality_ratios": {
+        "weld_peak_n": 1.0010359855373632,
+        "impact_weld_impulse_ns": 1.0032370199857144,
+        "relative_capture_speed_m_s": 0.9984493215226545,
+        "pressure_integral_psi_s": 0.9989842175598161,
+        "contact_impulse_ns": 1.074155840830291
+      },
+      "quality_score": 1.004287805713788,
+      "quality_improved": false,
+      "parameter_bins": {
+        "launch_speed": [
+          {
+            "low": 4.5,
+            "high": 4.75,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 41,
+            "hit15_rate": 0.82,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05544280192599384,
+            "mean_weld_peak_n": 300.08549294453826,
+            "mean_impact_weld_impulse_ns": 2.460157241853474,
+            "mean_relative_capture_speed_m_s": 4.329022037496999,
+            "mean_pressure_integral_psi_s": 230.57853153740564,
+            "mean_contact_impulse_ns": 0.1816008845974002,
+            "max_contact_peak_n": 226.1192233463837
+          },
+          {
+            "low": 4.75,
+            "high": 5.0,
+            "episodes": 50,
+            "captured": 45,
+            "captured_rate": 0.9,
+            "released": 45,
+            "released_rate": 0.9,
+            "hit15": 44,
+            "hit15_rate": 0.88,
+            "hit30": 45,
+            "hit30_rate": 0.9,
+            "mean_landing_error_m": 0.04649298760384568,
+            "mean_weld_peak_n": 334.1134497721895,
+            "mean_impact_weld_impulse_ns": 2.73011548581869,
+            "mean_relative_capture_speed_m_s": 4.596371504709635,
+            "mean_pressure_integral_psi_s": 243.3373916617392,
+            "mean_contact_impulse_ns": 0.04609249085027649,
+            "max_contact_peak_n": 224.81900677169338
+          },
+          {
+            "low": 5.0,
+            "high": 5.25,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 44,
+            "hit15_rate": 0.88,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.04523138014377042,
+            "mean_weld_peak_n": 356.99177820277475,
+            "mean_impact_weld_impulse_ns": 2.7189533875257133,
+            "mean_relative_capture_speed_m_s": 4.750044819187898,
+            "mean_pressure_integral_psi_s": 237.95251300261944,
+            "mean_contact_impulse_ns": 0.11533621554737955,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 5.25,
+            "high": 5.5,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 40,
+            "hit15_rate": 0.8,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05457353832326675,
+            "mean_weld_peak_n": 365.3604698701818,
+            "mean_impact_weld_impulse_ns": 2.6788310911810385,
+            "mean_relative_capture_speed_m_s": 4.883198252488982,
+            "mean_pressure_integral_psi_s": 226.97549413969193,
+            "mean_contact_impulse_ns": 0.026524752268398517,
+            "max_contact_peak_n": 268.3149781400385
+          }
+        ],
+        "launch_distance": [
+          {
+            "low": 1.7,
+            "high": 1.8499999999999999,
+            "episodes": 50,
+            "captured": 43,
+            "captured_rate": 0.86,
+            "released": 43,
+            "released_rate": 0.86,
+            "hit15": 42,
+            "hit15_rate": 0.84,
+            "hit30": 43,
+            "hit30_rate": 0.86,
+            "mean_landing_error_m": 0.05224580583831257,
+            "mean_weld_peak_n": 343.2967902675544,
+            "mean_impact_weld_impulse_ns": 2.6583319587126066,
+            "mean_relative_capture_speed_m_s": 4.703595937612404,
+            "mean_pressure_integral_psi_s": 232.48107727578932,
+            "mean_contact_impulse_ns": 0.03265187096318037,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 1.8499999999999999,
+            "high": 2.0,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 40,
+            "hit15_rate": 0.8,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.059087535523880706,
+            "mean_weld_peak_n": 328.59066180967216,
+            "mean_impact_weld_impulse_ns": 2.5253387571665207,
+            "mean_relative_capture_speed_m_s": 4.5815825253044675,
+            "mean_pressure_integral_psi_s": 228.8417514828366,
+            "mean_contact_impulse_ns": 0.06092440571397886,
+            "max_contact_peak_n": 268.3149781400385
+          },
+          {
+            "low": 2.0,
+            "high": 2.15,
+            "episodes": 50,
+            "captured": 45,
+            "captured_rate": 0.9,
+            "released": 45,
+            "released_rate": 0.9,
+            "hit15": 44,
+            "hit15_rate": 0.88,
+            "hit30": 45,
+            "hit30_rate": 0.9,
+            "mean_landing_error_m": 0.045127942194107956,
+            "mean_weld_peak_n": 353.7880053483332,
+            "mean_impact_weld_impulse_ns": 2.746786559565463,
+            "mean_relative_capture_speed_m_s": 4.680068007333156,
+            "mean_pressure_integral_psi_s": 242.81296393701177,
+            "mean_contact_impulse_ns": 0.10072135693678476,
+            "max_contact_peak_n": 201.87104775105973
+          },
+          {
+            "low": 2.15,
+            "high": 2.3,
+            "episodes": 50,
+            "captured": 43,
+            "captured_rate": 0.86,
+            "released": 43,
+            "released_rate": 0.86,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 43,
+            "hit30_rate": 0.86,
+            "mean_landing_error_m": 0.045210416678665356,
+            "mean_weld_peak_n": 330.87573336412476,
+            "mean_impact_weld_impulse_ns": 2.657599930934324,
+            "mean_relative_capture_speed_m_s": 4.592274191290681,
+            "mean_pressure_integral_psi_s": 234.70813764581845,
+            "mean_contact_impulse_ns": 0.17525670964951076,
+            "max_contact_peak_n": 224.81900677169338
+          }
+        ],
+        "target_distance": [
+          {
+            "low": 1.3,
+            "high": 1.4,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.050475321992798736,
+            "mean_weld_peak_n": 344.17496984415425,
+            "mean_impact_weld_impulse_ns": 2.660121551305666,
+            "mean_relative_capture_speed_m_s": 4.62081611294527,
+            "mean_pressure_integral_psi_s": 237.1779604647341,
+            "mean_contact_impulse_ns": 0.08995097810405181,
+            "max_contact_peak_n": 268.3149781400385
+          },
+          {
+            "low": 1.4,
+            "high": 1.5,
+            "episodes": 50,
+            "captured": 45,
+            "captured_rate": 0.9,
+            "released": 45,
+            "released_rate": 0.9,
+            "hit15": 45,
+            "hit15_rate": 0.9,
+            "hit30": 45,
+            "hit30_rate": 0.9,
+            "mean_landing_error_m": 0.04690074592983352,
+            "mean_weld_peak_n": 356.1951072372371,
+            "mean_impact_weld_impulse_ns": 2.758830397047043,
+            "mean_relative_capture_speed_m_s": 4.600857006566172,
+            "mean_pressure_integral_psi_s": 242.12516555706762,
+            "mean_contact_impulse_ns": 0.12193246359859752,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 1.5,
+            "high": 1.6,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 40,
+            "hit15_rate": 0.8,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05877081161848391,
+            "mean_weld_peak_n": 322.0531981671478,
+            "mean_impact_weld_impulse_ns": 2.5643205996110674,
+            "mean_relative_capture_speed_m_s": 4.630833946964324,
+            "mean_pressure_integral_psi_s": 228.69806843558985,
+            "mean_contact_impulse_ns": 0.061639834782324814,
+            "max_contact_peak_n": 210.46879073352287
+          },
+          {
+            "low": 1.6,
+            "high": 1.7,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 41,
+            "hit15_rate": 0.82,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.04531499134442669,
+            "mean_weld_peak_n": 334.12791554114534,
+            "mean_impact_weld_impulse_ns": 2.6047846584151375,
+            "mean_relative_capture_speed_m_s": 4.711962902334311,
+            "mean_pressure_integral_psi_s": 230.8427358840646,
+            "mean_contact_impulse_ns": 0.09603106677848063,
+            "max_contact_peak_n": 256.8819019588306
+          }
+        ],
+        "target_azimuth": [
+          {
+            "low": 10.0,
+            "high": 15.0,
+            "episodes": 50,
+            "captured": 42,
+            "captured_rate": 0.84,
+            "released": 42,
+            "released_rate": 0.84,
+            "hit15": 41,
+            "hit15_rate": 0.82,
+            "hit30": 42,
+            "hit30_rate": 0.84,
+            "mean_landing_error_m": 0.05682973662455269,
+            "mean_weld_peak_n": 327.86143333094196,
+            "mean_impact_weld_impulse_ns": 2.5534421955480493,
+            "mean_relative_capture_speed_m_s": 4.632362267076146,
+            "mean_pressure_integral_psi_s": 229.28834787437845,
+            "mean_contact_impulse_ns": 0.09957415972337542,
+            "max_contact_peak_n": 256.8819019588306
+          },
+          {
+            "low": 15.0,
+            "high": 20.0,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.04891055456007474,
+            "mean_weld_peak_n": 340.0727246879079,
+            "mean_impact_weld_impulse_ns": 2.670053365705745,
+            "mean_relative_capture_speed_m_s": 4.581041138161861,
+            "mean_pressure_integral_psi_s": 238.81858128745716,
+            "mean_contact_impulse_ns": 0.09995254321357841,
+            "max_contact_peak_n": 235.55674884840496
+          },
+          {
+            "low": 20.0,
+            "high": 25.0,
+            "episodes": 50,
+            "captured": 44,
+            "captured_rate": 0.88,
+            "released": 44,
+            "released_rate": 0.88,
+            "hit15": 43,
+            "hit15_rate": 0.86,
+            "hit30": 44,
+            "hit30_rate": 0.88,
+            "mean_landing_error_m": 0.04704783653027488,
+            "mean_weld_peak_n": 345.6641473052852,
+            "mean_impact_weld_impulse_ns": 2.7142241526230304,
+            "mean_relative_capture_speed_m_s": 4.645846251254635,
+            "mean_pressure_integral_psi_s": 238.39184137669355,
+            "mean_contact_impulse_ns": 0.07506233762867041,
+            "max_contact_peak_n": 211.1660823211505
+          },
+          {
+            "low": 25.0,
+            "high": 30.0,
+            "episodes": 50,
+            "captured": 43,
+            "captured_rate": 0.86,
+            "released": 43,
+            "released_rate": 0.86,
+            "hit15": 42,
+            "hit15_rate": 0.84,
+            "hit30": 43,
+            "hit30_rate": 0.86,
+            "mean_landing_error_m": 0.04869844913398378,
+            "mean_weld_peak_n": 342.95288546554934,
+            "mean_impact_weld_impulse_ns": 2.6503374925020893,
+            "mean_relative_capture_speed_m_s": 4.702550734513683,
+            "mean_pressure_integral_psi_s": 232.34515980292701,
+            "mean_contact_impulse_ns": 0.09496530269783053,
+            "max_contact_peak_n": 268.3149781400385
+          }
+        ]
+      },
+      "worst_parameter_bin_hit15_rate": 0.8,
+      "absolute_generalization_pass": true
+    }
+  },
+  "independent_paired": {
+    "episodes": 200,
+    "paired_hit15": 167,
+    "success": {
+      "captured": {
+        "bc_count": 175,
+        "rl_count": 173,
+        "lost": 3,
+        "gained": 1,
+        "lost_seeds": [
+          3000125,
+          3000132,
+          3000161
+        ],
+        "gained_seeds": [
+          3000162
+        ],
+        "delta_rate": -0.01,
+        "paired_bootstrap_delta_ci95": [
+          -0.03,
+          0.01
+        ],
+        "mcnemar_exact_p": 0.625
+      },
+      "released": {
+        "bc_count": 175,
+        "rl_count": 173,
+        "lost": 3,
+        "gained": 1,
+        "lost_seeds": [
+          3000125,
+          3000132,
+          3000161
+        ],
+        "gained_seeds": [
+          3000162
+        ],
+        "delta_rate": -0.01,
+        "paired_bootstrap_delta_ci95": [
+          -0.03,
+          0.01
+        ],
+        "mcnemar_exact_p": 0.625
+      },
+      "hit15": {
+        "bc_count": 172,
+        "rl_count": 169,
+        "lost": 5,
+        "gained": 2,
+        "lost_seeds": [
+          3000125,
+          3000127,
+          3000132,
+          3000161,
+          3000176
+        ],
+        "gained_seeds": [
+          3000162,
+          3000170
+        ],
+        "delta_rate": -0.015,
+        "paired_bootstrap_delta_ci95": [
+          -0.04,
+          0.01
+        ],
+        "mcnemar_exact_p": 0.453125
+      },
+      "hit30": {
+        "bc_count": 175,
+        "rl_count": 173,
+        "lost": 3,
+        "gained": 1,
+        "lost_seeds": [
+          3000125,
+          3000132,
+          3000161
+        ],
+        "gained_seeds": [
+          3000162
+        ],
+        "delta_rate": -0.01,
+        "paired_bootstrap_delta_ci95": [
+          -0.03,
+          0.01
+        ],
+        "mcnemar_exact_p": 0.625
+      }
+    },
+    "quality_population": "same scenarios where both policies hit15",
+    "caveat": "paired percentile bootstrap, conditional on common successes; not a proof of equivalence",
+    "metrics": {
+      "weld_peak_n": {
+        "bc_mean": 389.24277649604176,
+        "rl_mean": 390.75375617618505,
+        "mean_delta": 1.510979680143292,
+        "percent_change": 0.3881843855254363,
+        "paired_delta_ci95": [
+          -0.9525427007899535,
+          4.423917244985631
+        ],
+        "bc_p95": 495.42637595234504,
+        "rl_p95": 493.47060298872725,
+        "bc_max": 550.4377962171926,
+        "rl_max": 550.8139897637757,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "impact_weld_impulse_ns": {
+        "bc_mean": 3.0333672812150265,
+        "rl_mean": 3.052691612052926,
+        "mean_delta": 0.019324330837899778,
+        "percent_change": 0.6370587220865254,
+        "paired_delta_ci95": [
+          0.004053482191453632,
+          0.03596101262477044
+        ],
+        "bc_p95": 3.64738314739413,
+        "rl_p95": 3.6955294503019083,
+        "bc_max": 4.16259823840561,
+        "rl_max": 4.148724915323185,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "relative_capture_speed_m_s": {
+        "bc_mean": 4.64094627525478,
+        "rl_mean": 4.629156573385275,
+        "mean_delta": -0.011789701869505476,
+        "percent_change": -0.25403659448434146,
+        "paired_delta_ci95": [
+          -0.050880173664517456,
+          0.015434018414038594
+        ],
+        "bc_p95": 5.290364672680386,
+        "rl_p95": 5.277717469167054,
+        "bc_max": 5.667601967490977,
+        "rl_max": 5.658142405283544,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "pressure_integral_psi_s": {
+        "bc_mean": 265.2359390302432,
+        "rl_mean": 264.8413406271624,
+        "mean_delta": -0.3945984030806967,
+        "percent_change": -0.1487726001700551,
+        "paired_delta_ci95": [
+          -1.013355753549876,
+          0.1627956647498301
+        ],
+        "bc_p95": 275.35941062330636,
+        "rl_p95": 275.1064315097135,
+        "bc_max": 291.5816379133535,
+        "rl_max": 291.5324430765193,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "contact_impulse_ns": {
+        "bc_mean": 0.03660310321814913,
+        "rl_mean": 0.039325250437130525,
+        "mean_delta": 0.0027221472189814036,
+        "percent_change": 7.43693014976845,
+        "paired_delta_ci95": [
+          -0.0073867353676310065,
+          0.015826978975709272
+        ],
+        "bc_p95": 0.27730254869341525,
+        "rl_p95": 0.2547900353294036,
+        "bc_max": 0.979544514764919,
+        "rl_max": 0.9056525128899806,
+        "bc_nonzero": 19,
+        "rl_nonzero": 21
+      },
+      "impact_weld_peak_n": {
+        "bc_mean": 389.24277649604176,
+        "rl_mean": 390.75375617618505,
+        "mean_delta": 1.510979680143292,
+        "percent_change": 0.3881843855254363,
+        "paired_delta_ci95": [
+          -0.9525427007899535,
+          4.423917244985631
+        ],
+        "bc_p95": 495.42637595234504,
+        "rl_p95": 493.47060298872725,
+        "bc_max": 550.4377962171926,
+        "rl_max": 550.8139897637757,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "contact_peak_n": {
+        "bc_mean": 22.523253810099334,
+        "rl_mean": 24.111879070663324,
+        "mean_delta": 1.5886252605639897,
+        "percent_change": 7.053267143185393,
+        "paired_delta_ci95": [
+          -4.025680146830512,
+          7.348016382624036
+        ],
+        "bc_p95": 195.96651084652797,
+        "rl_p95": 198.68206111435168,
+        "bc_max": 262.45871075911407,
+        "rl_max": 268.3149781400385,
+        "bc_nonzero": 19,
+        "rl_nonzero": 21
+      },
+      "weld_impulse_ns": {
+        "bc_mean": 108.03685194956039,
+        "rl_mean": 107.7292518172067,
+        "mean_delta": -0.3076001323536937,
+        "percent_change": -0.28471778546202975,
+        "paired_delta_ci95": [
+          -0.8250285797227666,
+          0.15994375319279944
+        ],
+        "bc_p95": 117.43196013565134,
+        "rl_p95": 117.2159098675265,
+        "bc_max": 129.54208914927014,
+        "rl_max": 128.6522319796408,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "buffer_displacement_m": {
+        "bc_mean": 0.5216074596729038,
+        "rl_mean": 0.5227674519161738,
+        "mean_delta": 0.0011599922432701541,
+        "percent_change": 0.22238797044762393,
+        "paired_delta_ci95": [
+          0.0008506130984897679,
+          0.0014609621393399223
+        ],
+        "bc_p95": 0.6244208103007218,
+        "rl_p95": 0.6261679876051984,
+        "bc_max": 0.6743651750390068,
+        "rl_max": 0.6758451458711435,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "pressure_variation_psi": {
+        "bc_mean": 1238.3671949956642,
+        "rl_mean": 1237.4602897511472,
+        "mean_delta": -0.9069052445171385,
+        "percent_change": -0.07323395259353216,
+        "paired_delta_ci95": [
+          -2.981998349822588,
+          0.9411863114115665
+        ],
+        "bc_p95": 1285.5432588673862,
+        "rl_p95": 1280.9874849469397,
+        "bc_max": 1322.633886824258,
+        "rl_max": 1306.393052438811,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      },
+      "landing_error_m": {
+        "bc_mean": 0.04483446370140059,
+        "rl_mean": 0.04736302481593131,
+        "mean_delta": 0.0025285611145307173,
+        "percent_change": 5.639771072920707,
+        "paired_delta_ci95": [
+          -4.751025782222609e-05,
+          0.0054526350589746446
+        ],
+        "bc_p95": 0.09193752147414418,
+        "rl_p95": 0.09113476916108262,
+        "bc_max": 0.13954323455439188,
+        "rl_max": 0.13196070782980404,
+        "bc_nonzero": 167,
+        "rl_nonzero": 167
+      }
+    },
+    "quality_components": {
+      "weld_peak_n": {
+        "weight": 0.3,
+        "ratio": 1.0038818438452815,
+        "improvement_percentage_points": -0.11645531535844356
+      },
+      "impact_weld_impulse_ns": {
+        "weight": 0.25,
+        "ratio": 1.0063705851206959,
+        "improvement_percentage_points": -0.15926462801739705
+      },
+      "relative_capture_speed_m_s": {
+        "weight": 0.25,
+        "ratio": 0.9974596346025375,
+        "improvement_percentage_points": 0.0635091349365624
+      },
+      "pressure_integral_psi_s": {
+        "weight": 0.15,
+        "ratio": 0.9985122740039085,
+        "improvement_percentage_points": 0.022315889941372236
+      },
+      "contact_impulse_ns": {
+        "weight": 0.05,
+        "ratio": 1.0743672697773319,
+        "improvement_percentage_points": -0.3718363488866594
+      }
+    },
+    "quality_score": 1.0056173126738457,
+    "quality_score_ci95": [
+      0.9941595124264179,
+      1.026084236374263
+    ],
+    "all_episode_contact_max_bc": 286.37636913246706,
+    "all_episode_contact_max_rl": 268.3149781400385
+  },
+  "test_seed_disjoint_verified": true
+}

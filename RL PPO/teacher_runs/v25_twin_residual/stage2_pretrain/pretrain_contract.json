@@ -1,0 +1,67 @@
+{
+  "schema": "can_v15_twin_residual_v25",
+  "source_hash": "6ca4971458df52010e03e776690a77af3d04446f7a28454af118bd58db6db0d7",
+  "kind": "twin_preview_pretrain",
+  "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+  "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d",
+  "preview_sha256": "00101b2f99207903780fe406532ad9e71cb23241da0da9aeba264ce0820ef69c",
+  "inventory_sha256": "ce675c3afc74a0dd4794d39e20f6eab46247a53104d427af70bbbf8c7ff1ea97",
+  "old_data": {
+    "inventory_sha256": "ce675c3afc74a0dd4794d39e20f6eab46247a53104d427af70bbbf8c7ff1ea97",
+    "inventory": {
+      "sources": [
+        {
+          "directory": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_v1",
+          "scenarios": 40,
+          "actions": 9,
+          "expected_rows": 400
+        },
+        {
+          "directory": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_increment_v2",
+          "scenarios": 80,
+          "actions": 9,
+          "expected_rows": 800
+        }
+      ],
+      "expected_rows": 1200,
+      "completed_rows": 1200,
+      "independent_scenarios": 120,
+      "captured_contexts": 98,
+      "action_outcomes": 1080,
+      "baseline_outcomes": 120,
+      "action_released": 354,
+      "action_hit15": 341,
+      "unreleased_min_predicted_error_bins": {
+        "le_4cm": 0,
+        "4_to_6cm": 120,
+        "6_to_8cm": 58,
+        "8_to_15cm": 113,
+        "over_15cm": 237
+      },
+      "baseline_captured": 98,
+      "complete": true
+    },
+    "sweep_contracts": [
+      {
+        "path": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_v1\\sweep_contract.json",
+        "sha256": "46b8c795826f21a7b05bacf92cf505bf52ce6bac1fa2228c57696456db76a42a"
+      },
+      {
+        "path": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_increment_v2\\sweep_contract.json",
+        "sha256": "d6bdcb2253ad090be8c2109dfe959817c8d0e6ca1c71b8d8d7714713d75d38bf"
+      }
+    ],
+    "observed_rows": 1080,
+    "observed_baselines": 120,
+    "captured_contexts": 98,
+    "train_contexts": 79,
+    "validation_contexts": 19,
+    "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+    "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d"
+  },
+  "nominal_contexts": 98,
+  "motion_decisions": 940,
+  "hidden": 32,
+  "epochs": 300,
+  "action_semantics": "nine_joint_force_radius_actions_no_release_head"
+}

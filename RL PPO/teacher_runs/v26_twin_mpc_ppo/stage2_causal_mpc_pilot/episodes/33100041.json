@@ -1,0 +1,1078 @@
+{
+  "seed": 33100041,
+  "scenario": {
+    "scenario_id": 40,
+    "seed": 33100041,
+    "split": "train",
+    "launch_speed": 4.85565859,
+    "launch_distance": 1.945512174,
+    "target_distance": 1.493328549,
+    "target_azimuth": 25.486960154,
+    "mass": 0.5,
+    "ball_radius": 0.04,
+    "orbit_radius": 0.62,
+    "launch_angle_jitter_deg": 3.0,
+    "launch_position_jitter_m": 0.04,
+    "authority": 0.25
+  },
+  "result": {
+    "seed": 33100041,
+    "config": {
+      "target_distance": 1.493328549,
+      "orbit_radius": 0.62,
+      "target_azimuth": 25.486960154,
+      "launch_distance": 1.945512174,
+      "launch_speed": 4.85565859,
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "authority": 0.25,
+      "quality_weight": 0.0
+    },
+    "captured": true,
+    "released": true,
+    "hit15": true,
+    "hit30": true,
+    "landing_error_m": 0.03359305724076792,
+    "capture_time": 1.6600000000000001,
+    "release_time": 13.123000000000001,
+    "contact_peak_n": 0.0,
+    "contact_impulse_ns": 0.0,
+    "weld_peak_n": 400.7076346805087,
+    "post_release_contact_n": 0.0,
+    "max_joint_deg": 32.80839701581527,
+    "pressure_integral_psi_s": 220.39823064029505,
+    "pressure_variation_psi": 831.6485237044328,
+    "grip_broken": false,
+    "recipe": {
+      "match": 0.2199999988079071,
+      "acceleration_s": 0.4,
+      "pressure_drop_psi": 0.0,
+      "soft_pre_s": 0.2,
+      "soft_post_s": 0.25,
+      "pressure_ramp_s": 0.1,
+      "deceleration_s": 0.3,
+      "return_s": 1.0,
+      "brake_kd": 8.0,
+      "catch_gain_scale": 1.0
+    },
+    "capture_physics_time": 1.65,
+    "relative_capture_speed_m_s": 4.122080706513577,
+    "weld_impulse_ns": 98.46290493881466,
+    "impact_weld_peak_n": 400.7076346805087,
+    "impact_weld_impulse_ns": 3.4595741073163953,
+    "buffer_displacement_m": 0.5602455388574432,
+    "weld_peak_time": 1.653,
+    "contact_peak_time": null,
+    "improved_recipe": {
+      "catch_aim_mode": "baseline",
+      "catch_match": 0.22,
+      "catch_lead_s": 0.1,
+      "catch_aim_max_m": 0.18,
+      "catch_offset_scale": 1.0,
+      "catch_aim_alpha": 1.0,
+      "catch_ik_iterations": 6,
+      "catch_ik_damping": 0.0001,
+      "catch_q_limit_deg": 36.0,
+      "throw_reference_m": 1.45,
+      "throw_force_base_n": 10.0,
+      "throw_force_gain_n_per_m": 0.0,
+      "throw_force_min_n": 7.0,
+      "throw_force_max_n": 14.0,
+      "throw_radius_base_m": 0.62,
+      "throw_radius_gain_m_per_m": 0.2,
+      "throw_radius_min_m": 0.5,
+      "throw_radius_max_m": 0.74
+    },
+    "throw_force_n": 10.0,
+    "throw_radius_m": 0.6286657098,
+    "interception_q_max_deg": 0.0,
+    "interception_offset_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "landing_xy": [
+      1.439359561955567,
+      0.6558954926759625
+    ],
+    "target_xy": [
+      1.466002653353267,
+      0.6425877386092869
+    ],
+    "release_prediction": {
+      "landing_pred": [
+        1.431719879995574,
+        0.5930931082685413
+      ],
+      "landing_err_pred": 0.06020819696405135,
+      "raw_landing_pred": [
+        1.5113283813085245,
+        0.6940640017883646,
+        0.04
+      ],
+      "raw_landing_err_pred": 0.06858736972326378,
+      "v": 2.782436241616287,
+      "elev_pred": 0.6640922055420221,
+      "due_in_s": 0.022573202937800484,
+      "vent_in_s": 0.0,
+      "depart_pred_s": 0.022573202937800484,
+      "max_feature_z": 1.678983657229807,
+      "feature_age_s": 11.440000000000001,
+      "origin": "v25_twin_residual_safe_release"
+    },
+    "continuous_config": {
+      "blend_s": 0.2,
+      "spinup_s": 1.6,
+      "release_min_s": 2.0,
+      "release_tolerance_m": 0.08,
+      "release_ball_frames": 24,
+      "predict_ball_motion": false,
+      "align_release_clock": true,
+      "release_azimuth_bias_deg": 0.0,
+      "radial_damping": 6.0,
+      "match_offset": 0.0,
+      "pressure_drop_psi": 0.0,
+      "gain_scale": 1.0,
+      "quality_weight": 1.0,
+      "pressure_authority_psi": 1.0,
+      "match_authority": 0.06,
+      "filter_s": 0.05,
+      "pressure_slew_psi_s": 20.0,
+      "buffer_s": 0.3,
+      "buffer_fade_s": 0.1,
+      "governor_start_deg": 26.0,
+      "governor_band_deg": 8.0,
+      "force_start_scale": 0.9,
+      "force_ramp_s": 0.2,
+      "radius_ramp_s": 0.2,
+      "target_force_scale": 1.0,
+      "target_radius_scale": 1.0,
+      "release_joint_deg": 35.0,
+      "release_speed_gain": 1.0,
+      "release_max_s": 18.0,
+      "calibration_age_cap_s": 16.0,
+      "feature_z_limit": 4.5,
+      "release_confirm_ticks": 0,
+      "release_hysteresis_m": 0.01,
+      "release_immediate_m": 0.08,
+      "envelope_force_scale": 1.2,
+      "envelope_radius_scale": 1.0
+    },
+    "orbit_start_time": 1.6600000000000001,
+    "postcatch_low_speed_s": 0.020999999999999908,
+    "longest_postcatch_pause_s": 0.020999999999999908,
+    "catch_to_orbit_s": 0.010000000000000231,
+    "catch_to_release_s": 11.463000000000001,
+    "buffered_config": {
+      "blend_s": 0.2,
+      "spinup_s": 1.6,
+      "release_min_s": 2.0,
+      "release_tolerance_m": 0.08,
+      "release_ball_frames": 24,
+      "predict_ball_motion": false,
+      "align_release_clock": true,
+      "release_azimuth_bias_deg": 0.0,
+      "radial_damping": 6.0,
+      "match_offset": 0.0,
+      "pressure_drop_psi": 0.0,
+      "gain_scale": 1.0,
+      "quality_weight": 1.0,
+      "pressure_authority_psi": 1.0,
+      "match_authority": 0.06,
+      "filter_s": 0.05,
+      "pressure_slew_psi_s": 20.0,
+      "buffer_s": 0.3,
+      "buffer_fade_s": 0.1,
+      "governor_start_deg": 26.0,
+      "governor_band_deg": 8.0,
+      "force_start_scale": 0.9,
+      "force_ramp_s": 0.2,
+      "radius_ramp_s": 0.2,
+      "target_force_scale": 1.0,
+      "target_radius_scale": 1.0,
+      "release_joint_deg": 35.0,
+      "release_speed_gain": 1.0,
+      "release_max_s": 18.0,
+      "calibration_age_cap_s": 16.0,
+      "feature_z_limit": 4.5,
+      "release_confirm_ticks": 0,
+      "release_hysteresis_m": 0.01,
+      "release_immediate_m": 0.08,
+      "envelope_force_scale": 1.2,
+      "envelope_radius_scale": 1.0
+    },
+    "buffer_weld_peak_n": 14.145927123367798,
+    "buffer_weld_impulse_ns": 1.7369356121854296,
+    "action_names": [
+      "match",
+      "catch_pressure",
+      "catch_kp",
+      "catch_kd",
+      "blend",
+      "buffer_pressure",
+      "buffer_kd"
+    ],
+    "safe_continuous_config": {
+      "blend_s": 0.2,
+      "spinup_s": 1.6,
+      "release_min_s": 2.0,
+      "release_tolerance_m": 0.08,
+      "release_ball_frames": 24,
+      "predict_ball_motion": false,
+      "align_release_clock": true,
+      "release_azimuth_bias_deg": 0.0,
+      "radial_damping": 6.0,
+      "match_offset": 0.0,
+      "pressure_drop_psi": 0.0,
+      "gain_scale": 1.0,
+      "quality_weight": 1.0,
+      "pressure_authority_psi": 1.0,
+      "match_authority": 0.06,
+      "filter_s": 0.05,
+      "pressure_slew_psi_s": 20.0,
+      "buffer_s": 0.3,
+      "buffer_fade_s": 0.1,
+      "governor_start_deg": 26.0,
+      "governor_band_deg": 8.0,
+      "force_start_scale": 0.9,
+      "force_ramp_s": 0.2,
+      "radius_ramp_s": 0.2,
+      "target_force_scale": 1.0,
+      "target_radius_scale": 1.0,
+      "release_joint_deg": 35.0,
+      "release_speed_gain": 1.0,
+      "release_max_s": 18.0,
+      "calibration_age_cap_s": 16.0,
+      "feature_z_limit": 4.5,
+      "release_confirm_ticks": 0,
+      "release_hysteresis_m": 0.01,
+      "release_immediate_m": 0.08,
+      "envelope_force_scale": 1.2,
+      "envelope_radius_scale": 1.0
+    },
+    "safety_abort": false,
+    "joint_governor_min": 4.386875909631236e-05,
+    "force_scale_min": 0.9,
+    "radius_scale_min": 0.0032592592592594082,
+    "trajectory_release_config": {
+      "blend_s": 0.2,
+      "spinup_s": 1.6,
+      "release_min_s": 2.0,
+      "release_tolerance_m": 0.08,
+      "release_ball_frames": 24,
+      "predict_ball_motion": false,
+      "align_release_clock": true,
+      "release_azimuth_bias_deg": 0.0,
+      "radial_damping": 6.0,
+      "match_offset": 0.0,
+      "pressure_drop_psi": 0.0,
+      "gain_scale": 1.0,
+      "quality_weight": 1.0,
+      "pressure_authority_psi": 1.0,
+      "match_authority": 0.06,
+      "filter_s": 0.05,
+      "pressure_slew_psi_s": 20.0,
+      "buffer_s": 0.3,
+      "buffer_fade_s": 0.1,
+      "governor_start_deg": 26.0,
+      "governor_band_deg": 8.0,
+      "force_start_scale": 0.9,
+      "force_ramp_s": 0.2,
+      "radius_ramp_s": 0.2,
+      "target_force_scale": 1.0,
+      "target_radius_scale": 1.0,
+      "release_joint_deg": 35.0,
+      "release_speed_gain": 1.0,
+      "release_max_s": 18.0,
+      "calibration_age_cap_s": 16.0,
+      "feature_z_limit": 4.5,
+      "release_confirm_ticks": 0,
+      "release_hysteresis_m": 0.01,
+      "release_immediate_m": 0.08,
+      "envelope_force_scale": 1.2,
+      "envelope_radius_scale": 1.0
+    },
+    "predictive_release": {},
+    "envelope_teacher_config": {
+      "blend_s": 0.2,
+      "spinup_s": 1.6,
+      "release_min_s": 2.0,
+      "release_tolerance_m": 0.08,
+      "release_ball_frames": 24,
+      "predict_ball_motion": false,
+      "align_release_clock": true,
+      "release_azimuth_bias_deg": 0.0,
+      "radial_damping": 6.0,
+      "match_offset": 0.0,
+      "pressure_drop_psi": 0.0,
+      "gain_scale": 1.0,
+      "quality_weight": 1.0,
+      "pressure_authority_psi": 1.0,
+      "match_authority": 0.06,
+      "filter_s": 0.05,
+      "pressure_slew_psi_s": 20.0,
+      "buffer_s": 0.3,
+      "buffer_fade_s": 0.1,
+      "governor_start_deg": 26.0,
+      "governor_band_deg": 8.0,
+      "force_start_scale": 0.9,
+      "force_ramp_s": 0.2,
+      "radius_ramp_s": 0.2,
+      "target_force_scale": 1.0,
+      "target_radius_scale": 1.0,
+      "release_joint_deg": 35.0,
+      "release_speed_gain": 1.0,
+      "release_max_s": 18.0,
+      "calibration_age_cap_s": 16.0,
+      "feature_z_limit": 4.5,
+      "release_confirm_ticks": 0,
+      "release_hysteresis_m": 0.01,
+      "release_immediate_m": 0.08,
+      "envelope_force_scale": 1.2,
+      "envelope_radius_scale": 1.0
+    },
+    "calibrated_release": {
+      "candidate_ticks": 1693,
+      "fresh_ticks": 1693,
+      "allowed_ticks": 1,
+      "blocked_joint_ticks": 0,
+      "blocked_error_ticks": 720,
+      "blocked_ood_ticks": 0,
+      "after_release_window_ticks": 0,
+      "age_clipped_ticks": 0,
+      "valley_wait_ticks": 0,
+      "trigger_best_error_m": 0.06020819696405135,
+      "trigger_mode": "immediate_strict",
+      "scheduled": true,
+      "calibrated_error_m": 0.06020819696405135,
+      "raw_error_m": 0.06858736972326378,
+      "max_feature_z": 4.0500160039414315,
+      "max_feature_z_name": "measured_z",
+      "min_calibrated_error_m": 0.06020819696405135,
+      "raw_error_at_min_m": 0.06858736972326378,
+      "min_error_age_s": 11.440000000000001,
+      "calibrated_landing_at_min": [
+        1.431719879995574,
+        0.5930931082685413
+      ],
+      "raw_landing_at_min": [
+        1.5113283813085245,
+        0.6940640017883646
+      ],
+      "min_error_max_feature_z": 1.678983657229807,
+      "release_age_s": 11.440000000000001,
+      "feature_age_s": 11.440000000000001,
+      "origin": "v25_twin_residual_safe_release",
+      "policy_allow_ticks": 1798,
+      "policy_wait_ticks": 1,
+      "policy_blocked_candidates": 0
+    },
+    "contextual_schema": "can_contextual_trajectory_v23",
+    "trajectory_decision": {
+      "context": [
+        1.4660027027130127,
+        0.6425877213478088,
+        0.006809955462813377,
+        0.0724433958530426,
+        0.06470050662755966,
+        0.058925192803144455,
+        0.0006769874598830938,
+        0.03847628831863403,
+        0.028157945722341537,
+        0.025255104526877403,
+        -0.005425280891358852,
+        -0.061077576130628586,
+        -0.09003665298223495,
+        -0.09023145586252213,
+        0.3873608112335205,
+        0.08886513859033585,
+        0.2900647222995758,
+        0.10208351910114288,
+        0.12546545267105103,
+        0.49932861328125,
+        0.5723121762275696,
+        0.5734670162200928,
+        -0.22314731776714325,
+        0.6337754726409912,
+        0.5166392922401428,
+        0.4453490078449249,
+        -0.03554070368409157,
+        -0.01446983776986599,
+        -0.060323264449834824,
+        -4.513446807861328,
+        -0.03749221935868263,
+        -2.827131509780884,
+        -1.0857386589050293,
+        0.4598951041698456,
+        -0.17192284762859344,
+        19.07672882080078,
+        14.959382057189941,
+        22.79301643371582,
+        30.83011817932129
+      ],
+      "action": [
+        0.0,
+        0.0
+      ],
+      "parameters": {
+        "envelope_force_scale": 1.2,
+        "envelope_radius_scale": 1.09
+      },
+      "time_s": 1.6600000000000001
+    },
+    "contextual_config": {
+      "blend_s": 0.2,
+      "spinup_s": 1.6,
+      "release_min_s": 2.0,
+      "release_tolerance_m": 0.08,
+      "release_ball_frames": 24,
+      "predict_ball_motion": false,
+      "align_release_clock": true,
+      "release_azimuth_bias_deg": 0.0,
+      "radial_damping": 6.0,
+      "match_offset": 0.0,
+      "pressure_drop_psi": 0.0,
+      "gain_scale": 1.0,
+      "quality_weight": 1.0,
+      "pressure_authority_psi": 1.0,
+      "match_authority": 0.06,
+      "filter_s": 0.05,
+      "pressure_slew_psi_s": 20.0,
+      "buffer_s": 0.3,
+      "buffer_fade_s": 0.1,
+      "governor_start_deg": 26.0,
+      "governor_band_deg": 8.0,
+      "force_start_scale": 0.9,
+      "force_ramp_s": 0.2,
+      "radius_ramp_s": 0.2,
+      "target_force_scale": 1.0,
+      "target_radius_scale": 1.0,
+      "release_joint_deg": 35.0,
+      "release_speed_gain": 1.0,
+      "release_max_s": 18.0,
+      "calibration_age_cap_s": 16.0,
+      "feature_z_limit": 4.5,
+      "release_confirm_ticks": 0,
+      "release_hysteresis_m": 0.01,
+      "release_immediate_m": 0.08,
+      "envelope_force_scale": 1.2,
+      "envelope_radius_scale": 1.0
+    },
+    "anchored_dynamic_schema": "can_v15_anchor_dynamic_ppo_v2",
+    "anchored_dynamic_config": {
+      "decision_interval_s": 0.5,
+      "force_step": 0.05,
+      "radius_step": 0.0225,
+      "release_tolerance_m": 0.08
+    },
+    "dynamic_decisions": [
+      {
+        "time_s": 2.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 2.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 3.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 3.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 4.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 4.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 5.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 5.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 6.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 6.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 7.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 7.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 8.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 8.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 9.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 9.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 10.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 10.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 11.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 11.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 12.173333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      },
+      {
+        "time_s": 12.673333333333334,
+        "action": 4,
+        "action_name": "force_+0_radius_+0",
+        "parameters": {
+          "envelope_force_scale": 1.2,
+          "envelope_radius_scale": 1.0
+        }
+      }
+    ],
+    "twin_residual_schema": "can_v15_twin_residual_v25",
+    "twin_residual_config": {
+      "decision_interval_s": 0.5,
+      "force_step": 0.05,
+      "radius_step": 0.0225,
+      "release_tolerance_m": 0.08,
+      "preview_horizon_s": 2.0
+    },
+    "task_return": 49.750360589849734,
+    "quality_penalty": 5.452008730517971,
+    "quality_cost_terms": {
+      "impact_peak": 2.0035381734025437,
+      "impact_impulse": 2.3063827382109303,
+      "capture_speed": 0.8244161413027153,
+      "contact": 0.0,
+      "pause": 0.010499999999999954,
+      "buffer_peak": 0.01768240890420975,
+      "buffer_impulse": 0.2894892686975716
+    },
+    "rl_return": 44.29835185933176
+  },
+  "baseline": {
+    "seed": 33100041,
+    "config": {
+      "target_distance": 1.493328549,
+      "orbit_radius": 0.62,
+      "target_azimuth": 25.486960154,
+      "launch_distance": 1.945512174,
+      "launch_speed": 4.85565859,
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "authority": 0.25,
+      "quality_weight": 0.0
+    },
+    "captured": true,
+    "released": true,
+    "hit15": true,
+    "hit30": true,
+    "landing_error_m": 0.005416717048347267,
+    "capture_time": 1.6600000000000001,
+    "release_time": 16.212,
+    "contact_peak_n": 0.0,
+    "contact_impulse_ns": 0.0,
+    "weld_peak_n": 400.7076346805087,
+    "post_release_contact_n": 0.0,
+    "max_joint_deg": 30.26332546247872,
+    "pressure_integral_psi_s": 268.259858455651,
+    "pressure_variation_psi": 1240.071529496852,
+    "grip_broken": false,
+    "recipe": {
+      "match": 0.22,
+      "acceleration_s": 0.4,
+      "pressure_drop_psi": 0.0,
+      "soft_pre_s": 0.2,
+      "soft_post_s": 0.25,
+      "pressure_ramp_s": 0.1,
+      "deceleration_s": 0.3,
+      "return_s": 1.0,
+      "brake_kd": 8.0,
+      "catch_gain_scale": 1.0
+    },
+    "capture_physics_time": 1.65,
+    "relative_capture_speed_m_s": 4.122080706513577,
+    "weld_impulse_ns": 107.40933929340217,
+    "impact_weld_peak_n": 400.7076346805087,
+    "impact_weld_impulse_ns": 3.458575053217642,
+    "buffer_displacement_m": 0.4678888253260951,
+    "weld_peak_time": 1.653,
+    "contact_peak_time": null,
+    "improved_recipe": {
+      "catch_aim_mode": "baseline",
+      "catch_match": 0.22,
+      "catch_lead_s": 0.1,
+      "catch_aim_max_m": 0.18,
+      "catch_offset_scale": 1.0,
+      "catch_aim_alpha": 1.0,
+      "catch_ik_iterations": 6,
+      "catch_ik_damping": 0.0001,
+      "catch_q_limit_deg": 36.0,
+      "throw_reference_m": 1.45,
+      "throw_force_base_n": 10.0,
+      "throw_force_gain_n_per_m": 0.0,
+      "throw_force_min_n": 7.0,
+      "throw_force_max_n": 14.0,
+      "throw_radius_base_m": 0.62,
+      "throw_radius_gain_m_per_m": 0.2,
+      "throw_radius_min_m": 0.5,
+      "throw_radius_max_m": 0.74
+    },
+    "throw_force_n": 10.0,
+    "throw_radius_m": 0.6286657098,
+    "interception_q_max_deg": 0.0,
+    "interception_offset_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "landing_xy": [
+      1.473708349718549,
+      0.6577854240119185
+    ],
+    "target_xy": [
+      1.466002653353267,
+      0.6425877386092869
+    ],
+    "release_prediction": {
+      "landing_pred": [
+        1.525,
+        0.659,
+        0.04
+      ],
+      "landing_err_pred": 0.06127598191242307,
+      "v": 3.87625367697674,
+      "elev_pred": 0.08922267156219289,
+      "az_pred": 0.8195186709844857,
+      "omega": 5.847110172795486,
+      "edot": 0.3033780743988672,
+      "due_in_s": 0.024811586081958315,
+      "vent_in_s": 0.0033333333333333335,
+      "depart_pred_s": 0.02147825274862498,
+      "r_b_norm_m": 0.005106399994099167
+    },
+    "catch_to_orbit_s": null,
+    "catch_to_release_s": 14.552
+  },
+  "observed_context": [
+    1.4660027027130127,
+    0.6425877213478088,
+    0.006809955462813377,
+    0.0724433958530426,
+    0.06470050662755966,
+    0.058925192803144455,
+    0.0006769874598830938,
+    0.03847628831863403,
+    0.028157945722341537,
+    0.025255104526877403,
+    -0.005425280891358852,
+    -0.061077576130628586,
+    -0.09003665298223495,
+    -0.09023145586252213,
+    0.3873608112335205,
+    0.08886513859033585,
+    0.2900647222995758,
+    0.10208351910114288,
+    0.12546545267105103,
+    0.49932861328125,
+    0.5723121762275696,
+    0.5734670162200928,
+    -0.22314731776714325,
+    0.6337754726409912,
+    0.5166392922401428,
+    0.4453490078449249,
+    -0.03554070368409157,
+    -0.01446983776986599,
+    -0.060323264449834824,
+    -4.513446807861328,
+    -0.03749221935868263,
+    -2.827131509780884,
+    -1.0857386589050293,
+    0.4598951041698456,
+    -0.17192284762859344,
+    19.07672882080078,
+    14.959382057189941,
+    22.79301643371582,
+    30.83011817932129
+  ],
+  "action": 3,
+  "parameters": {
+    "envelope_force_scale": 1.2,
+    "envelope_radius_scale": 1.0
+  },
+  "predicted_branches": [
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 31.763572359331683,
+      "terminal_error_m": 0.06716386339532263,
+      "catch_to_release_s": 7.202,
+      "elapsed_s": 7.613333333333333,
+      "utility": 30.546412080234482,
+      "action": 0,
+      "parameters": {
+        "envelope_force_scale": 1.0,
+        "envelope_radius_scale": 1.0
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.06716386339532263,
+        -7.202,
+        30.546412080234482
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 33.63180539979831,
+      "terminal_error_m": 0.060513630736797705,
+      "catch_to_release_s": 7.236000000000001,
+      "elapsed_s": 7.666666666666666,
+      "utility": 31.047287360635224,
+      "action": 1,
+      "parameters": {
+        "envelope_force_scale": 1.0,
+        "envelope_radius_scale": 1.09
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.060513630736797705,
+        -7.236000000000001,
+        31.047287360635224
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 32.78072262366491,
+      "terminal_error_m": 0.11145404935064891,
+      "catch_to_release_s": 7.202,
+      "elapsed_s": 7.613333333333333,
+      "utility": 28.126991968806223,
+      "action": 2,
+      "parameters": {
+        "envelope_force_scale": 1.0,
+        "envelope_radius_scale": 1.18
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.11145404935064891,
+        -7.202,
+        28.126991968806223
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 32.80839701581527,
+      "terminal_error_m": 0.03359305724076792,
+      "catch_to_release_s": 11.463000000000001,
+      "elapsed_s": 11.986666666666666,
+      "utility": 33.28940985232374,
+      "action": 3,
+      "parameters": {
+        "envelope_force_scale": 1.2,
+        "envelope_radius_scale": 1.0
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.03359305724076792,
+        -11.463000000000001,
+        33.28940985232374
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 32.4854865585314,
+      "terminal_error_m": 0.07503267670776774,
+      "catch_to_release_s": 11.463000000000001,
+      "elapsed_s": 11.986666666666666,
+      "utility": 29.582890311919837,
+      "action": 4,
+      "parameters": {
+        "envelope_force_scale": 1.2,
+        "envelope_radius_scale": 1.09
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.07503267670776774,
+        -11.463000000000001,
+        29.582890311919837
+      ]
+    },
+    {
+      "captured": true,
+      "released": false,
+      "hit15": false,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 32.89459259702347,
+      "terminal_error_m": 0.11064177492563754,
+      "catch_to_release_s": 18.0,
+      "elapsed_s": 27.5,
+      "utility": -20.110641774925636,
+      "action": 5,
+      "parameters": {
+        "envelope_force_scale": 1.2,
+        "envelope_radius_scale": 1.18
+      },
+      "rank": [
+        1,
+        1,
+        0,
+        0,
+        -0.11064177492563754,
+        -18.0,
+        -20.110641774925636
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 31.148199121911457,
+      "terminal_error_m": 0.08274488076138602,
+      "catch_to_release_s": 6.09,
+      "elapsed_s": 6.620000000000001,
+      "utility": 29.647218601009094,
+      "action": 6,
+      "parameters": {
+        "envelope_force_scale": 1.4,
+        "envelope_radius_scale": 1.0
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.08274488076138602,
+        -6.09,
+        29.647218601009094
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": true,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 33.95596876579252,
+      "terminal_error_m": 0.0985353982252971,
+      "catch_to_release_s": 12.856000000000002,
+      "elapsed_s": 13.340000000000002,
+      "utility": 28.137273642007468,
+      "action": 7,
+      "parameters": {
+        "envelope_force_scale": 1.4,
+        "envelope_radius_scale": 1.09
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        1,
+        -0.0985353982252971,
+        -12.856000000000002,
+        28.137273642007468
+      ]
+    },
+    {
+      "captured": true,
+      "released": true,
+      "hit15": false,
+      "unsafe": false,
+      "grip_broken": false,
+      "max_joint_deg": 31.085836658905563,
+      "terminal_error_m": 0.18229649157703845,
+      "catch_to_release_s": 6.057,
+      "elapsed_s": 6.6,
+      "utility": 6.009341494776823,
+      "action": 8,
+      "parameters": {
+        "envelope_force_scale": 1.4,
+        "envelope_radius_scale": 1.18
+      },
+      "rank": [
+        1,
+        1,
+        1,
+        0,
+        -0.18229649157703845,
+        -6.057,
+        6.009341494776823
+      ]
+    }
+  ],
+  "prediction_exact": true,
+  "paired_utility_delta": -4.120331135873762,
+  "wall_s": 111.31139379999877
+}

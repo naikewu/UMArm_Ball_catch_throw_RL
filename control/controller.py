@@ -71,7 +71,9 @@ class PIDController:
         return self.kp * e + self.ki * self.integral + self.kd * (np.asarray(qd_ref) - qdot)
 
     def command(self, q, qdot, p_pa, q_ref, qd_ref, qdd_ref, future_q=None,
-                future_tip=None, future_compliance=None):
+                future_tip=None, future_compliance=None, external_torque_nm=None,
+                future_qd=None, future_tip_velocity=None):
+        del external_torque_nm
         started = time.perf_counter()
         d = self._feedback(q, qdot, q_ref, qd_ref)
         p = differential_to_pressure(d)
@@ -157,7 +159,7 @@ class InverseDynamics:
             state = new_state
         return best * PA_PER_PSI, best_error
 
-    def allocate(self, q, qd, qdd, p_pa):
+    def allocate(self, q, qd, qdd, p_pa, external_torque_nm=None):
         m,d,mj = self.m,self.d,self.mj
         d.qpos[self.order] = q
         d.qvel[self.dofs] = qd
@@ -171,6 +173,11 @@ class InverseDynamics:
         d.qacc[self.dofs] = qdd
         mj.mj_inverse(m,d)
         tau = d.qfrc_inverse[self.dofs].copy()
+        if external_torque_nm is not None:
+            external = np.asarray(external_torque_nm, dtype=float)
+            if external.shape != (12,) or not np.isfinite(external).all():
+                raise ValueError("external_torque_nm must be a finite 12-vector")
+            tau -= external
         moments = np.zeros((24,m.nv))
         for i,a in enumerate(self.acts):
             adr,n = d.moment_rowadr[a],d.moment_rownnz[a]
@@ -199,14 +206,17 @@ class FeedforwardPIDController(PIDController):
         self.preview = float(preview)
 
     def command(self, q, qdot, p_pa, q_ref, qd_ref, qdd_ref, future_q=None,
-                future_tip=None, future_compliance=None):
+                future_tip=None, future_compliance=None, external_torque_nm=None,
+                future_qd=None, future_tip_velocity=None):
         started = time.perf_counter()
         # Pressure dynamics introduce lag; preview was selected on a separate
         # joint multisine, before scoring the Soft references.
         preview = self.preview
         qr = np.asarray(q_ref)+preview*np.asarray(qd_ref)+.5*preview**2*np.asarray(qdd_ref)
         qdr = np.asarray(qd_ref)+preview*np.asarray(qdd_ref)
-        ff,residual = self.dynamics.allocate(qr,qdr,qdd_ref,p_pa)
+        ff,residual = self.dynamics.allocate(
+            qr, qdr, qdd_ref, p_pa, external_torque_nm=external_torque_nm
+        )
         fb = self._feedback(q,qdot,q_ref,qd_ref)
         pairs = pair_indices()
         desired = ff.copy()
@@ -217,7 +227,10 @@ class FeedforwardPIDController(PIDController):
         self.integral = np.clip(self.integral+.1*actual/np.maximum(self.ki,PA_PER_PSI),-.3,.3)
         self.last_p=p
         assert_pressures(p)
-        self.last_diagnostics={"solve_ms":1000*(time.perf_counter()-started),"allocation_residual_nm":residual}
+        external_norm = 0.0 if external_torque_nm is None else float(np.linalg.norm(external_torque_nm))
+        self.last_diagnostics={"solve_ms":1000*(time.perf_counter()-started),
+                               "allocation_residual_nm":residual,
+                               "external_torque_norm_nm":external_norm}
         return p
 
 

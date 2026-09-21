@@ -1,0 +1,255 @@
+{
+  "schema": "can_generalized_teacher_v15",
+  "source_hash": "f85697a51bd23440fa97902993ba90ff04193c21fe97aeb167dc7ff5d13ce03f",
+  "name": "selected",
+  "recipe": {
+    "catch_aim_mode": "baseline",
+    "catch_match": 0.22,
+    "catch_lead_s": 0.1,
+    "catch_aim_max_m": 0.18,
+    "catch_offset_scale": 1.0,
+    "catch_aim_alpha": 1.0,
+    "catch_ik_iterations": 6,
+    "catch_ik_damping": 0.0001,
+    "catch_q_limit_deg": 36.0,
+    "throw_reference_m": 1.45,
+    "throw_force_base_n": 10.0,
+    "throw_force_gain_n_per_m": 0.0,
+    "throw_force_min_n": 7.0,
+    "throw_force_max_n": 14.0,
+    "throw_radius_base_m": 0.62,
+    "throw_radius_gain_m_per_m": 0.2,
+    "throw_radius_min_m": 0.5,
+    "throw_radius_max_m": 0.74
+  },
+  "seed": 90181,
+  "scenario": {
+    "scenario_id": 180,
+    "seed": 90181,
+    "split": "train",
+    "launch_speed": 5.0142627,
+    "launch_distance": 2.137081678,
+    "target_distance": 1.560493322,
+    "target_azimuth": 20.292440228,
+    "mass": 0.5,
+    "ball_radius": 0.04,
+    "orbit_radius": 0.62,
+    "launch_angle_jitter_deg": 3.0,
+    "launch_position_jitter_m": 0.04,
+    "authority": 0.25
+  },
+  "batched_actuator": true,
+  "result": {
+    "seed": 90181,
+    "config": {
+      "target_distance": 1.560493322,
+      "orbit_radius": 0.62,
+      "target_azimuth": 20.292440228,
+      "launch_distance": 2.137081678,
+      "launch_speed": 5.0142627,
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "authority": 0.25,
+      "quality_weight": 0.0
+    },
+    "captured": true,
+    "released": true,
+    "hit15": true,
+    "hit30": true,
+    "landing_error_m": 0.023739939584903183,
+    "capture_time": 1.6400000000000001,
+    "release_time": 16.652,
+    "contact_peak_n": 0.0,
+    "contact_impulse_ns": 0.0,
+    "weld_peak_n": 337.63801092617985,
+    "post_release_contact_n": 0.0,
+    "max_joint_deg": 30.887643976792948,
+    "pressure_integral_psi_s": 275.30407712101766,
+    "pressure_variation_psi": 1251.3849050050103,
+    "grip_broken": false,
+    "recipe": {
+      "match": 0.22,
+      "acceleration_s": 0.4,
+      "pressure_drop_psi": 0.0,
+      "soft_pre_s": 0.2,
+      "soft_post_s": 0.25,
+      "pressure_ramp_s": 0.1,
+      "deceleration_s": 0.3,
+      "return_s": 1.0,
+      "brake_kd": 8.0,
+      "catch_gain_scale": 1.0
+    },
+    "capture_physics_time": 1.6320000000000001,
+    "relative_capture_speed_m_s": 4.377722451296591,
+    "weld_impulse_ns": 114.95321704411185,
+    "impact_weld_peak_n": 337.63801092617985,
+    "impact_weld_impulse_ns": 3.2011290555644423,
+    "buffer_displacement_m": 0.5216587882193702,
+    "weld_peak_time": 1.633,
+    "contact_peak_time": null,
+    "improved_recipe": {
+      "catch_aim_mode": "baseline",
+      "catch_match": 0.22,
+      "catch_lead_s": 0.1,
+      "catch_aim_max_m": 0.18,
+      "catch_offset_scale": 1.0,
+      "catch_aim_alpha": 1.0,
+      "catch_ik_iterations": 6,
+      "catch_ik_damping": 0.0001,
+      "catch_q_limit_deg": 36.0,
+      "throw_reference_m": 1.45,
+      "throw_force_base_n": 10.0,
+      "throw_force_gain_n_per_m": 0.0,
+      "throw_force_min_n": 7.0,
+      "throw_force_max_n": 14.0,
+      "throw_radius_base_m": 0.62,
+      "throw_radius_gain_m_per_m": 0.2,
+      "throw_radius_min_m": 0.5,
+      "throw_radius_max_m": 0.74
+    },
+    "throw_force_n": 10.0,
+    "throw_radius_m": 0.6420986644,
+    "interception_q_max_deg": 0.0,
+    "interception_offset_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "landing_xy": [
+      1.5777240478948593,
+      0.5680921684599126
+    ],
+    "target_xy": [
+      1.581640839174204,
+      0.5411976551205921
+    ],
+    "release_prediction": {
+      "landing_pred": [
+        1.542,
+        0.518,
+        0.04
+      ],
+      "landing_err_pred": 0.04625386521189154,
+      "v": 3.8196675559603284,
+      "elev_pred": 0.06408600278152643,
+      "az_pred": 0.7582940131397908,
+      "omega": 6.494651908313975,
+      "edot": -0.5409620189938045,
+      "due_in_s": 0.024618066871355346,
+      "vent_in_s": 0.0033333333333333335,
+      "depart_pred_s": 0.021284733538022012,
+      "r_b_norm_m": 0.0030855817225133243
+    }
+  },
+  "samples": 512,
+  "split": "train",
+  "data": "episode_90181_14d9c657d6e3.npz",
+  "wall_s": 26.427166800000123,
+  "launch": {
+    "seed": 90181,
+    "t_launch_s": 1.1663865003804432,
+    "pos": [
+      2.268875,
+      0.033213,
+      0.468197
+    ],
+    "vel": [
+      -4.596048,
+      0.159577,
+      1.998426
+    ],
+    "flight_s": 0.4679835927887318,
+    "aim": [
+      0.118,
+      0.0,
+      0.314541
+    ],
+    "pos_nom": [
+      2.255082,
+      0.0,
+      0.5
+    ],
+    "vel_nom": [
+      -0.929986,
+      0.0,
+      0.367595
+    ],
+    "flight_nom_s": 0.4582871920101981,
+    "dir_known": [
+      -0.869213,
+      0.0,
+      -0.494437
+    ],
+    "v_arr_nom_m_s": 5.364842588987238,
+    "v_arr_m_s": 5.2792178864490555,
+    "dir_world": [
+      -0.870593,
+      0.030227,
+      -0.491075
+    ],
+    "miss_m": [
+      -0.0,
+      0.107893,
+      0.014649
+    ],
+    "ball_mass_kg": 0.5,
+    "ball_radius_m": 0.04,
+    "t_arr_known_s": 1.6246736923906413
+  },
+  "events": [
+    {
+      "event": "launch",
+      "t": 3.16,
+      "pos": [
+        2.268875,
+        0.033213,
+        0.468197
+      ],
+      "vel": [
+        -4.596048,
+        0.159577,
+        1.998426
+      ]
+    },
+    {
+      "event": "captured",
+      "t": 3.632,
+      "ball_speed": 5.29867795440231,
+      "grip": "spring"
+    },
+    {
+      "event": "gripper_open_cmd",
+      "t": 18.626,
+      "vent_in_s": 0.0033333333333333335
+    },
+    {
+      "event": "gripper_vent",
+      "t": 18.63
+    },
+    {
+      "event": "depart",
+      "t": 18.652,
+      "delay_s": 0.022000000000002018,
+      "force_n": 12.371419236469206,
+      "capacity_n": 9.618858726997743,
+      "cap_frac": 0.05725511147022466,
+      "offset_m": 2.3805691124629463e-05
+    },
+    {
+      "event": "magnet_release",
+      "t": 18.652
+    }
+  ],
+  "twin_provenance": {
+    "flow": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\digital_twin\\checkpoints\\canarm_flow.npz",
+    "flow_holdout_rms_psi": 0.5340166082828448,
+    "mech": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\digital_twin\\checkpoints\\canarm_mech.json",
+    "mech_mjcf_keys": [
+      "bracket_mass_kg",
+      "joint_stiffness",
+      "link_mass_kg",
+      "plate_mass",
+      "spacer_mass"
+    ]
+  }
+}

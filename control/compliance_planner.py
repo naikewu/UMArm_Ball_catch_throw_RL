@@ -8,8 +8,11 @@ from control.controller import PA_PER_PSI, pair_indices, project_pressures
 
 
 class CompliancePressurePlanner:
-    def __init__(self, head, dt):
+    def __init__(self, head, dt, axes=(0, 1)):
         self.head, self.dt = head, dt
+        self.axes = tuple(int(axis) for axis in axes)
+        if not self.axes or any(axis not in (0, 1, 2) for axis in self.axes):
+            raise ValueError("compliance axes must be a nonempty subset of xyz")
         self.mean_bounds = tuple(head.meta.get("pair_mean_psi", [2., 14.]))
         pairs = pair_indices()
         self.M, self.D = np.zeros((24, 12)), np.zeros((24, 12))
@@ -34,7 +37,8 @@ class CompliancePressurePlanner:
             def residual(mean):
                 p = offset + gain @ mean
                 C = self.head.predict(q_ref, p * PA_PER_PSI)
-                return np.r_[(C[:2, :2] - C_ref[:2, :2]).ravel() / .01,
+                selected = np.ix_(self.axes, self.axes)
+                return np.r_[(C[selected] - C_ref[selected]).ravel() / .01,
                              .001 * (mean - 8.),
                              np.minimum(p, 0.), np.maximum(p - 30., 0.)]
             result = least_squares(residual, self.goal, bounds=self.mean_bounds,

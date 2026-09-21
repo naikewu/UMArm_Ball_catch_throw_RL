@@ -1,0 +1,55 @@
+{
+  "schema": "can_v15_twin_residual_v25_gate_admission_v2",
+  "purpose": "gate_collection_admission_only",
+  "accepted_for_deployment": false,
+  "candidate_update": 25,
+  "candidate_source": "candidate_best.pt",
+  "candidate_sha256": "b54fdd3ecdeb98b4db4c200d2eb139c75c4290a16d57e63f040c0857705741b3",
+  "validation_source": "validation_0025.json",
+  "validation_sha256": "3ee5c77e52635f1cbd6106d0788452a87bebb714da154aad38cae8d814ff2267",
+  "original_strict_90_90_qualified": false,
+  "thresholds": {
+    "minimum_captured_contexts": 30,
+    "release_given_capture": 0.6,
+    "hit15_given_release": 0.9,
+    "useful_safe_positive_coverage": 0.25
+  },
+  "metrics": {
+    "captured": 34,
+    "baseline_captured": 34,
+    "released": 22,
+    "hit15": 20,
+    "release_given_capture": 0.6470588235294118,
+    "hit15_given_release": 0.9090909090909091,
+    "useful_safe_positive": 9,
+    "useful_safe_positive_coverage": 0.2647058823529412,
+    "useful_safe_positive_mean_delta": 1.998497486388267,
+    "paired_mean_utility_delta_all_episodes": -17.965311460496473,
+    "useful_seeds": [
+      32300006,
+      32300013,
+      32300017,
+      32300019,
+      32300021,
+      32300026,
+      32300027,
+      32300034,
+      32300035
+    ]
+  },
+  "checks": {
+    "minimum_captured_contexts": true,
+    "release_given_capture": true,
+    "hit15_given_release": true,
+    "useful_safe_positive_coverage": true,
+    "capture_nonregression": true,
+    "safety": true
+  },
+  "qualified_for_gate_collection": true,
+  "final_acceptance_requires": [
+    "dedicated_200_scenario_gate_collection",
+    "independent_40_scenario_hybrid_screen",
+    "independent_80_scenario_evaluation"
+  ],
+  "rationale": "The forced candidate is not globally deployable, but it has a safety-checked positive region large enough to test an independent conservative V15 fallback gate."
+}

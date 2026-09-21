@@ -1,0 +1,165 @@
+{
+  "checkpoint": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v15_improved\\rl_v1_formal\\ppo_best.pt",
+  "checkpoint_sha256": "0cf8cca39fa9bd2b5379ccbf687780824db25b5829d09c05c785b94e735e20be",
+  "rl_source_hash": "9881391310882b14c715e5ddee5be0a2ca08188e4aff991a5c90d11b094977b6",
+  "update": 60,
+  "seed": 3000001,
+  "scenario": {
+    "scenario_id": 0,
+    "seed": 3000001,
+    "split": "train",
+    "launch_speed": 4.647624752,
+    "launch_distance": 2.237458873,
+    "target_distance": 1.503355824,
+    "target_azimuth": 25.917719791,
+    "mass": 0.5,
+    "ball_radius": 0.04,
+    "orbit_radius": 0.62,
+    "launch_angle_jitter_deg": 3.0,
+    "launch_position_jitter_m": 0.04,
+    "authority": 0.25
+  },
+  "result": {
+    "seed": 3000001,
+    "config": {
+      "target_distance": 1.503355824,
+      "orbit_radius": 0.62,
+      "target_azimuth": 25.917719791,
+      "launch_distance": 2.237458873,
+      "launch_speed": 4.647624752,
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "authority": 0.25,
+      "quality_weight": 0.0
+    },
+    "captured": true,
+    "released": true,
+    "hit15": true,
+    "hit30": true,
+    "landing_error_m": 0.02091266259669203,
+    "capture_time": 1.6133333333333337,
+    "release_time": 16.654,
+    "contact_peak_n": 0.0,
+    "contact_impulse_ns": 0.0,
+    "weld_peak_n": 461.8701125745034,
+    "post_release_contact_n": 0.0,
+    "max_joint_deg": 30.601786026189686,
+    "pressure_integral_psi_s": 275.1553882880939,
+    "pressure_variation_psi": 1262.1405651221962,
+    "grip_broken": false,
+    "recipe": {
+      "match": 0.22,
+      "acceleration_s": 0.4,
+      "pressure_drop_psi": 0.0,
+      "soft_pre_s": 0.2,
+      "soft_post_s": 0.25,
+      "pressure_ramp_s": 0.1,
+      "deceleration_s": 0.3,
+      "return_s": 1.0,
+      "brake_kd": 8.0,
+      "catch_gain_scale": 1.0
+    },
+    "capture_physics_time": 1.6030000000000002,
+    "relative_capture_speed_m_s": 4.497538332850603,
+    "weld_impulse_ns": 114.17494678189428,
+    "impact_weld_peak_n": 461.8701125745034,
+    "impact_weld_impulse_ns": 3.869526462948612,
+    "buffer_displacement_m": 0.4029536121113279,
+    "weld_peak_time": 1.6059999999999999,
+    "contact_peak_time": null,
+    "improved_recipe": {
+      "catch_aim_mode": "baseline",
+      "catch_match": 0.22,
+      "catch_lead_s": 0.1,
+      "catch_aim_max_m": 0.18,
+      "catch_offset_scale": 1.0,
+      "catch_aim_alpha": 1.0,
+      "catch_ik_iterations": 6,
+      "catch_ik_damping": 0.0001,
+      "catch_q_limit_deg": 36.0,
+      "throw_reference_m": 1.45,
+      "throw_force_base_n": 10.0,
+      "throw_force_gain_n_per_m": 0.0,
+      "throw_force_min_n": 7.0,
+      "throw_force_max_n": 14.0,
+      "throw_radius_base_m": 0.62,
+      "throw_radius_gain_m_per_m": 0.2,
+      "throw_radius_min_m": 0.5,
+      "throw_radius_max_m": 0.74
+    },
+    "throw_force_n": 10.0,
+    "throw_radius_m": 0.6306711648,
+    "interception_q_max_deg": 0.0,
+    "interception_offset_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "landing_xy": [
+      1.457457368775324,
+      0.6743374178899028
+    ],
+    "target_xy": [
+      1.4701522743311872,
+      0.6570867222640532
+    ],
+    "release_prediction": {
+      "landing_pred": [
+        1.345,
+        0.591,
+        0.04
+      ],
+      "landing_err_pred": 0.1419792217648245,
+      "v": 3.665967372394082,
+      "elev_pred": 0.011847408766383412,
+      "az_pred": 0.8935970979252992,
+      "omega": 6.237293288792611,
+      "edot": -0.2637430356461959,
+      "due_in_s": 0.027008232713864253,
+      "vent_in_s": 0.005555555555555556,
+      "depart_pred_s": 0.021452677158308696,
+      "r_b_norm_m": 0.004290265285301278
+    },
+    "task_return": 49.90302794036333,
+    "quality_penalty": 2.8248892632734837,
+    "quality_cost_terms": {
+      "weld_peak": 0.923740225149007,
+      "impact_impulse": 0.7739052925897224,
+      "relative_speed": 0.7196061332560965,
+      "pressure": 0.40763761227865764,
+      "contact_impulse": 0.0
+    },
+    "rl_return": 47.07813867708985
+  },
+  "verified_against_evaluation": true,
+  "capture_sample_hz": 60,
+  "simulation_changes": "none",
+  "renderer_version": 2,
+  "note": "Selected successful simulated episode, not an aggregate performance claim",
+  "video": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v15_improved\\rl_v1_formal\\videos\\v15_rl_best_catch_throw_seed_3000001.mp4",
+  "width": 1280,
+  "height": 720,
+  "fps": 60,
+  "frames": 1805,
+  "duration_s": 30.083333333333332,
+  "segments": [
+    "full episode 1x",
+    "catch replay 0.25x",
+    "throw replay 0.25x"
+  ],
+  "camera": {
+    "focus": [
+      0.8425217114034358,
+      0.010466907868129316,
+      0.625
+    ],
+    "distance": 4.113562342887579,
+    "azimuth": 125.0,
+    "elevation": -25.0
+  },
+  "verification": {
+    "decoded_frames": 1805,
+    "nonblank": true,
+    "movement": true
+  }
+}

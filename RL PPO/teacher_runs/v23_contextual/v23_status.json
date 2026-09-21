@@ -1,0 +1,168 @@
+{
+  "schema": "v23_evidence_status",
+  "calibration": {
+    "accepted": true,
+    "labels": 249,
+    "metrics": {
+      "rows": 249,
+      "raw_mean_m": 0.15080981120996456,
+      "calibrated_mean_m": 0.06966437492289192,
+      "raw_median_m": 0.1273306515534544,
+      "calibrated_median_m": 0.060727605558580484,
+      "raw_p90_m": 0.29322546297434576,
+      "calibrated_p90_m": 0.1348746083472061,
+      "relative_mean_improvement": 0.5380647030589948
+    },
+    "failed_checks": []
+  },
+  "development_oracle": {
+    "warning": "POST-HOC OUTCOME ORACLE, NOT A DEPLOYABLE POLICY",
+    "candidate": {
+      "episodes": 40,
+      "captured": 33,
+      "captured_rate": 0.825,
+      "released": 32,
+      "released_rate": 0.8,
+      "hit15": 32,
+      "hit15_rate": 0.8,
+      "hit30": 32,
+      "hit30_rate": 0.8,
+      "mean_landing_error_m": 0.03814457666565477,
+      "mean_weld_peak_n": 321.75050284570045,
+      "mean_impact_weld_impulse_ns": 2.5493120003200813,
+      "mean_relative_capture_speed_m_s": 4.777186193644235,
+      "mean_pressure_integral_psi_s": 144.67777950049043,
+      "mean_contact_impulse_ns": 0.08496602823212772,
+      "max_contact_peak_n": 202.3477129630657
+    },
+    "baseline": {
+      "episodes": 40,
+      "captured": 33,
+      "captured_rate": 0.825,
+      "released": 33,
+      "released_rate": 0.825,
+      "hit15": 33,
+      "hit15_rate": 0.825,
+      "hit30": 33,
+      "hit30_rate": 0.825,
+      "mean_landing_error_m": 0.04946671850676942,
+      "mean_weld_peak_n": 321.75050372345,
+      "mean_impact_weld_impulse_ns": 2.548710850207269,
+      "mean_relative_capture_speed_m_s": 4.777186209382735,
+      "mean_pressure_integral_psi_s": 226.59012387909917,
+      "mean_contact_impulse_ns": 0.03251099016601765,
+      "max_contact_peak_n": 202.3477129630657
+    },
+    "max_joint_deg": 34.24770652760892,
+    "failed_checks": [
+      "released_drop_le_2pp",
+      "hit15_drop_le_2pp",
+      "joint_excursion_vs_bc"
+    ],
+    "task_nonregression": false,
+    "absolute_generalization_pass": false
+  },
+  "no_release_for_any_sampled_action": [
+    {
+      "seed": 27200003,
+      "scenario": {
+        "scenario_id": 2,
+        "seed": 27200003,
+        "split": "train",
+        "launch_speed": 4.902881968,
+        "launch_distance": 2.270271836,
+        "target_distance": 1.672562208,
+        "target_azimuth": 25.609812381,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      "actual_target_xy": [
+        1.6262472127395404,
+        0.7229486046001073
+      ],
+      "best_predicted_error_m": 0.2690779860011006,
+      "all_actions_released": 0
+    }
+  ],
+  "teacher": {
+    "checkpoint": "warm_teacher_v1/teacher.pt",
+    "current_runtime": true,
+    "train_contexts": 27,
+    "selection_contexts": 6,
+    "parameters": 36525,
+    "best_validation_record": {
+      "epoch": 1,
+      "loss": 0.20436373353004456,
+      "validation_loss": 0.36679357290267944,
+      "heldout_action_utility": 13.682938575744629
+    },
+    "pilot_action_counts": [
+      2,
+      2,
+      0,
+      1,
+      0,
+      0,
+      14,
+      0,
+      0
+    ]
+  },
+  "independent_pilot": {
+    "passed": false,
+    "candidate": {
+      "episodes": 20,
+      "captured": 19,
+      "captured_rate": 0.95,
+      "released": 9,
+      "released_rate": 0.45,
+      "hit15": 9,
+      "hit15_rate": 0.45,
+      "hit30": 9,
+      "hit30_rate": 0.45,
+      "mean_landing_error_m": 0.09106182943470295,
+      "mean_weld_peak_n": 358.5363069113786,
+      "mean_impact_weld_impulse_ns": 2.8834286527576602,
+      "mean_relative_capture_speed_m_s": 4.554104530012973,
+      "mean_pressure_integral_psi_s": 326.5654286896425,
+      "mean_contact_impulse_ns": 0.12058040313796854,
+      "max_contact_peak_n": 275.8471398051612
+    },
+    "baseline": {
+      "episodes": 20,
+      "captured": 19,
+      "captured_rate": 0.95,
+      "released": 19,
+      "released_rate": 0.95,
+      "hit15": 19,
+      "hit15_rate": 0.95,
+      "hit30": 19,
+      "hit30_rate": 0.95,
+      "mean_landing_error_m": 0.04223233959044336,
+      "mean_weld_peak_n": 358.5363069113786,
+      "mean_impact_weld_impulse_ns": 2.8826007264058373,
+      "mean_relative_capture_speed_m_s": 4.554104530012973,
+      "mean_pressure_integral_psi_s": 254.66133191190724,
+      "mean_contact_impulse_ns": 0.10709235628535418,
+      "max_contact_peak_n": 275.8471398051612
+    },
+    "max_joint_deg": 35.09293704976291,
+    "failed_checks": [
+      "released_drop_le_2pp",
+      "hit15_drop_le_2pp",
+      "landing_guard",
+      "joint_excursion_vs_bc",
+      "landing_noninferiority_5mm"
+    ],
+    "task_nonregression": false,
+    "absolute_generalization_pass": false
+  },
+  "qualified_teacher_files": [],
+  "new_bc_files": [],
+  "formal_ppo_runs": [],
+  "accepted_ppo_files": []
+}

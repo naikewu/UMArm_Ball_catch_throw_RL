@@ -1,0 +1,23 @@
+{
+  "source_workspace": "E:\\Python\\UMARM MPC\\UMArm_MPC_RL_dynamic_integration\\rl_source",
+  "reference_files_copied_for_audit_only": [
+    "mjx_experiments/umarm_mjx/catch_task.py",
+    "mjx_experiments/umarm_mjx/ball_xml.py"
+  ],
+  "ball": {
+    "mass_kg": 0.025,
+    "radius_m": 0.018,
+    "gravity_mps2": 9.81
+  },
+  "virtual_catcher": {
+    "capture_radius_m": 0.055,
+    "maximum_relative_speed_mps": 2.5,
+    "descent_required": true
+  },
+  "reference_distribution": {
+    "modes": ["lob_arc", "flat_fast", "mixed"],
+    "mode_probabilities": [0.4, 0.3, 0.3]
+  },
+  "coordinate_contract": "Reference glove-world positions are not reused directly. Local targets are sampled as offsets from this fitted twin's final plate-centre home pose and rejected unless current inverse kinematics reaches them.",
+  "contact_contract": "The current fitted twin contains no ball/catcher collision geometry. Catch success is a virtual-catcher proxy, not MuJoCo contact retention."
+}

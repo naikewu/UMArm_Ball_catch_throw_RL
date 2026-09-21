@@ -1,0 +1,154 @@
+{
+  "paired_captures": 39,
+  "paired_captured_metrics": {
+    "impact_weld_peak_n": {
+      "pairs": 39,
+      "candidate": 369.62373812281487,
+      "baseline": 369.62373812281487,
+      "change_percent": 0.0
+    },
+    "impact_weld_impulse_ns": {
+      "pairs": 39,
+      "candidate": 2.994427536587167,
+      "baseline": 2.9937074216793644,
+      "change_percent": 0.024054284750341104
+    },
+    "relative_capture_speed_m_s": {
+      "pairs": 39,
+      "candidate": 4.5246974353886324,
+      "baseline": 4.5246974353886324,
+      "change_percent": 0.0
+    },
+    "pressure_integral_psi_s": {
+      "pairs": 39,
+      "candidate": 224.4140066635618,
+      "baseline": 267.5324223979924,
+      "change_percent": -16.11708044503325
+    },
+    "catch_to_orbit_s": {
+      "pairs": 39,
+      "candidate": 0.010316239316239444,
+      "baseline": 6.070316239316239,
+      "change_percent": -99.83005433474086
+    },
+    "catch_to_release_s": {
+      "pairs": 38,
+      "candidate": 11.665210526315791,
+      "baseline": 14.747736842105269,
+      "change_percent": -20.901690535925244
+    }
+  },
+  "failures": [
+    {
+      "seed": 4300001,
+      "baseline_hit15": true,
+      "cause": "landing_error",
+      "landing_error_m": 0.21577343428520288,
+      "baseline_landing_error_m": 0.03319576131591565,
+      "catch_to_release_s": 9.303,
+      "scenario": {
+        "scenario_id": 0,
+        "seed": 4300001,
+        "split": "train",
+        "launch_speed": 4.589423446,
+        "launch_distance": 1.755928741,
+        "target_distance": 1.649048476,
+        "target_azimuth": 24.189789456,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    },
+    {
+      "seed": 4300013,
+      "baseline_hit15": true,
+      "cause": "landing_error",
+      "landing_error_m": 0.15071720043017564,
+      "baseline_landing_error_m": 0.11078177268080888,
+      "catch_to_release_s": 7.982333333333334,
+      "scenario": {
+        "scenario_id": 12,
+        "seed": 4300013,
+        "split": "train",
+        "launch_speed": 5.009546478,
+        "launch_distance": 2.169802147,
+        "target_distance": 1.372168496,
+        "target_azimuth": 29.535001932,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    },
+    {
+      "seed": 4300018,
+      "baseline_hit15": true,
+      "cause": "no_release",
+      "landing_error_m": null,
+      "baseline_landing_error_m": 0.021612682135087526,
+      "catch_to_release_s": null,
+      "scenario": {
+        "scenario_id": 17,
+        "seed": 4300018,
+        "split": "train",
+        "launch_speed": 5.456040489,
+        "launch_distance": 1.961591845,
+        "target_distance": 1.66716751,
+        "target_azimuth": 18.685566944,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    },
+    {
+      "seed": 4300031,
+      "baseline_hit15": false,
+      "cause": "missed_catch",
+      "landing_error_m": null,
+      "baseline_landing_error_m": null,
+      "catch_to_release_s": null,
+      "scenario": {
+        "scenario_id": 30,
+        "seed": 4300031,
+        "split": "train",
+        "launch_speed": 5.357660618,
+        "launch_distance": 1.994864566,
+        "target_distance": 1.382372537,
+        "target_azimuth": 12.95418223,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    }
+  ],
+  "checks": {
+    "captured_drop_le_2pp": true,
+    "released_drop_le_2pp": false,
+    "hit15_drop_le_2pp": false,
+    "landing_guard": false,
+    "paired_successes": true,
+    "weld_peak_n_guard": true,
+    "impact_weld_impulse_ns_guard": true,
+    "pressure_integral_psi_s_guard": true,
+    "p95_weld_guard": true,
+    "contact_guard": true,
+    "immediate_handover": true,
+    "no_sustained_pause": true
+  },
+  "eligible": false,
+  "task_nonregression": false,
+  "mean_handover_s": 0.010316239316239444,
+  "max_handover_s": 0.011333333333333417,
+  "max_pause_s": 0.03500000000000014
+}

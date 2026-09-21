@@ -1,0 +1,223 @@
+{
+  "schema": "can_v15_anchor_dynamic_ppo_v2",
+  "source_hash": "ff17b4509e32d1eaf4fa68697d666d4571bf04ec97164e0d2977cf6a41efe409",
+  "kind": "anchored_dynamic_pretrain",
+  "data": {
+    "inventory_sha256": "ce675c3afc74a0dd4794d39e20f6eab46247a53104d427af70bbbf8c7ff1ea97",
+    "inventory": {
+      "sources": [
+        {
+          "directory": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_v1",
+          "scenarios": 40,
+          "actions": 9,
+          "expected_rows": 400
+        },
+        {
+          "directory": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_increment_v2",
+          "scenarios": 80,
+          "actions": 9,
+          "expected_rows": 800
+        }
+      ],
+      "expected_rows": 1200,
+      "completed_rows": 1200,
+      "independent_scenarios": 120,
+      "captured_contexts": 98,
+      "action_outcomes": 1080,
+      "baseline_outcomes": 120,
+      "action_released": 354,
+      "action_hit15": 341,
+      "unreleased_min_predicted_error_bins": {
+        "le_4cm": 0,
+        "4_to_6cm": 120,
+        "6_to_8cm": 58,
+        "8_to_15cm": 113,
+        "over_15cm": 237
+      },
+      "baseline_captured": 98,
+      "complete": true
+    },
+    "sweep_contracts": [
+      {
+        "path": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_v1\\sweep_contract.json",
+        "sha256": "46b8c795826f21a7b05bacf92cf505bf52ce6bac1fa2228c57696456db76a42a"
+      },
+      {
+        "path": "E:\\Python\\UMArm_koopman_compliance_control_espproject\\RL PPO\\teacher_runs\\v23_contextual\\warm_sweep_increment_v2\\sweep_contract.json",
+        "sha256": "d6bdcb2253ad090be8c2109dfe959817c8d0e6ca1c71b8d8d7714713d75d38bf"
+      }
+    ],
+    "observed_rows": 1080,
+    "observed_baselines": 120,
+    "captured_contexts": 98,
+    "train_contexts": 79,
+    "validation_contexts": 19,
+    "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+    "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d"
+  },
+  "context_names": [
+    "target_x",
+    "target_y",
+    "q_0",
+    "q_1",
+    "q_2",
+    "q_3",
+    "q_4",
+    "q_5",
+    "q_6",
+    "q_7",
+    "q_8",
+    "q_9",
+    "q_10",
+    "q_11",
+    "qd_0",
+    "qd_1",
+    "qd_2",
+    "qd_3",
+    "qd_4",
+    "qd_5",
+    "qd_6",
+    "qd_7",
+    "qd_8",
+    "qd_9",
+    "qd_10",
+    "qd_11",
+    "ball_rel_x",
+    "ball_rel_y",
+    "ball_rel_z",
+    "ball_vx",
+    "ball_vy",
+    "ball_vz",
+    "tip_vx",
+    "tip_vy",
+    "tip_vz",
+    "pressure_mean_psi",
+    "pressure_min_psi",
+    "pressure_max_psi",
+    "joint_margin_deg"
+  ],
+  "observation_names": [
+    "target_x",
+    "target_y",
+    "q_0",
+    "q_1",
+    "q_2",
+    "q_3",
+    "q_4",
+    "q_5",
+    "q_6",
+    "q_7",
+    "q_8",
+    "q_9",
+    "q_10",
+    "q_11",
+    "qd_0",
+    "qd_1",
+    "qd_2",
+    "qd_3",
+    "qd_4",
+    "qd_5",
+    "qd_6",
+    "qd_7",
+    "qd_8",
+    "qd_9",
+    "qd_10",
+    "qd_11",
+    "ball_rel_x",
+    "ball_rel_y",
+    "ball_rel_z",
+    "ball_vx",
+    "ball_vy",
+    "ball_vz",
+    "tip_vx",
+    "tip_vy",
+    "tip_vz",
+    "pressure_mean_psi",
+    "pressure_min_psi",
+    "pressure_max_psi",
+    "joint_margin_deg",
+    "force_normalized",
+    "radius_normalized",
+    "handover_age_fraction",
+    "min_calibrated_error_fraction",
+    "error_improvement_fraction",
+    "safe_candidate_ready",
+    "previous_motion_hold",
+    "previous_motion_force_down",
+    "previous_motion_force_up",
+    "previous_motion_radius_down",
+    "previous_motion_radius_up",
+    "previous_release_allow"
+  ],
+  "initial_actions": [
+    null,
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.09
+    ],
+    [
+      1.0,
+      1.18
+    ],
+    [
+      1.2,
+      1.0
+    ],
+    [
+      1.2,
+      1.09
+    ],
+    [
+      1.2,
+      1.18
+    ],
+    [
+      1.4,
+      1.0
+    ],
+    [
+      1.4,
+      1.09
+    ],
+    [
+      1.4,
+      1.18
+    ]
+  ],
+  "initial_action_names": [
+    "v15_passthrough",
+    "force_1.00_radius_1.00",
+    "force_1.00_radius_1.09",
+    "force_1.00_radius_1.18",
+    "force_1.20_radius_1.00",
+    "force_1.20_radius_1.09",
+    "force_1.20_radius_1.18",
+    "force_1.40_radius_1.00",
+    "force_1.40_radius_1.09",
+    "force_1.40_radius_1.18"
+  ],
+  "motion_names": [
+    "hold",
+    "force_down",
+    "force_up",
+    "radius_down",
+    "radius_up"
+  ],
+  "release_names": [
+    "wait",
+    "allow_safe_release"
+  ],
+  "hidden": 48,
+  "epochs": 400,
+  "takeover_confidence": 0.55,
+  "takeover_margin": 5.0,
+  "dynamic_pretraining": "best_observed_neighbour_from_paired_3x3_outcomes",
+  "batch_size": 32,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "random_seed": 20261030
+}

@@ -1,0 +1,107 @@
+{
+  "schema": "can_soft_teacher_v13",
+  "source_hash": "3e81defaf04a6ea91f39666c4024be9c716f60159803c6fa515dced4be7725f8",
+  "recipe": {
+    "match": 0.3,
+    "acceleration_s": 0.4,
+    "pressure_drop_psi": 0.0,
+    "soft_pre_s": 0.2,
+    "soft_post_s": 0.25,
+    "pressure_ramp_s": 0.1,
+    "deceleration_s": 0.3,
+    "return_s": 1.0,
+    "brake_kd": 8.0,
+    "catch_gain_scale": 1.0
+  },
+  "recipe_search": {
+    "schema": "can_soft_teacher_v13",
+    "source_hash": "3e81defaf04a6ea91f39666c4024be9c716f60159803c6fa515dced4be7725f8",
+    "selected": "baseline",
+    "recipe": {
+      "match": 0.3,
+      "acceleration_s": 0.4,
+      "pressure_drop_psi": 0.0,
+      "soft_pre_s": 0.2,
+      "soft_post_s": 0.25,
+      "pressure_ramp_s": 0.1,
+      "deceleration_s": 0.3,
+      "return_s": 1.0,
+      "brake_kd": 8.0,
+      "catch_gain_scale": 1.0
+    },
+    "improved": false,
+    "screen_seeds": [
+      40001,
+      40002,
+      40003
+    ],
+    "validation_seeds": [
+      50001,
+      50002,
+      50003
+    ],
+    "validation_episodes": 3,
+    "comparisons": {
+      "baseline": {
+        "summary": {
+          "episodes": 3,
+          "captured": 3,
+          "released": 3,
+          "hit15": 3,
+          "mean_error_m": 0.06794382496672775,
+          "mean_weld_n": 421.4803131485805,
+          "p95_weld_n": 456.19529332476077,
+          "mean_contact_impulse_ns": 0.0,
+          "mean_impact_impulse_ns": 2.9513980057288633,
+          "mean_relative_speed_m_s": 4.7793102159463805,
+          "mean_buffer_m": 0.5178787535803872,
+          "mean_pressure_psi_s": 265.3116010785829,
+          "max_contact_peak_n": 0.0
+        },
+        "ratios": {
+          "weld_peak_n": 1.0,
+          "impact_weld_impulse_ns": 1.0,
+          "pressure_integral_psi_s": 1.0
+        },
+        "paired_successes": 3,
+        "lost_hit_seeds": [],
+        "eligible": true,
+        "improved": false,
+        "quality_score": 1.0,
+        "reasons": []
+      },
+      "buffer50": {
+        "summary": {
+          "episodes": 3,
+          "captured": 3,
+          "released": 3,
+          "hit15": 3,
+          "mean_error_m": 0.09334974666266181,
+          "mean_weld_n": 421.4803131485805,
+          "p95_weld_n": 456.19529332476077,
+          "mean_contact_impulse_ns": 0.0,
+          "mean_impact_impulse_ns": 2.9513980057288633,
+          "mean_relative_speed_m_s": 4.7793102159463805,
+          "mean_buffer_m": 0.534672621376073,
+          "mean_pressure_psi_s": 264.0339164009882,
+          "max_contact_peak_n": 0.0
+        },
+        "ratios": {
+          "weld_peak_n": 1.0,
+          "impact_weld_impulse_ns": 1.0,
+          "pressure_integral_psi_s": 0.9951842110469331
+        },
+        "paired_successes": 3,
+        "lost_hit_seeds": [],
+        "eligible": false,
+        "improved": false,
+        "quality_score": 0.9990368422093866,
+        "reasons": [
+          "mean landing error increased by more than 1 cm"
+        ]
+      }
+    },
+    "selection_note": "exploratory validation; final test must use new seeds"
+  },
+  "authority": 0.25
+}

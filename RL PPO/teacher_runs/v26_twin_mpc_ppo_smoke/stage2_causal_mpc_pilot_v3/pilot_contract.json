@@ -1,0 +1,176 @@
+{
+  "schema": "can_v15_causal_terminal_mpc_v26",
+  "source_hash": "70a91bfbb0ec1528bf626221e83e9b190f93b55cbf97e8406a606e8a16988ace",
+  "kind": "causal_terminal_mpc_pilot",
+  "oracle_sha256": "8d26227f58881e88dfdc613eb62e4d9afaac935cf6b1613e4b8baaea620f4b6a",
+  "oracle_source_hash": "06d8fc9bf61dcb9d6c4ab957c3f1e9bbaacb878629e9bfe1987ceb01a3add952",
+  "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+  "calibration_sha256": "2954ab303501824567e3bf99bbb3ae16366e291ea9d3f7797aeb526314f6570d",
+  "manifest": {
+    "schema": "can_generalized_teacher_v14",
+    "design": "split_latin_hypercube_reachable_v1",
+    "design_seed": 20261301,
+    "first_seed": 33900201,
+    "episodes": 5,
+    "train_episodes": 4,
+    "validation_episodes": 1,
+    "parameter_ranges": {
+      "launch_speed": [
+        4.5,
+        5.5
+      ],
+      "launch_distance": [
+        1.7,
+        2.3
+      ],
+      "target_distance": [
+        1.3,
+        1.7
+      ],
+      "target_azimuth": [
+        10.0,
+        30.0
+      ]
+    },
+    "fixed": {
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "orbit_radius": 0.62,
+      "launch_angle_jitter_deg": 3.0,
+      "launch_position_jitter_m": 0.04,
+      "authority": 0.25
+    },
+    "scenarios": [
+      {
+        "scenario_id": 0,
+        "seed": 33900201,
+        "split": "train",
+        "launch_speed": 5.076917918,
+        "launch_distance": 2.091187788,
+        "target_distance": 1.685187124,
+        "target_azimuth": 12.229251791,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 1,
+        "seed": 33900202,
+        "split": "train",
+        "launch_speed": 4.571186138,
+        "launch_distance": 2.151667875,
+        "target_distance": 1.32213271,
+        "target_azimuth": 23.59107891,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 2,
+        "seed": 33900203,
+        "split": "train",
+        "launch_speed": 5.350670878,
+        "launch_distance": 1.989651868,
+        "target_distance": 1.49078813,
+        "target_azimuth": 19.842957565,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 3,
+        "seed": 33900204,
+        "split": "train",
+        "launch_speed": 4.842848278,
+        "launch_distance": 1.747874982,
+        "target_distance": 1.532441083,
+        "target_azimuth": 29.883804935,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 4,
+        "seed": 33900205,
+        "split": "validation",
+        "launch_speed": 4.733412054,
+        "launch_distance": 1.824395879,
+        "target_distance": 1.599694334,
+        "target_azimuth": 23.977225542,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    ],
+    "reachability_constraint": {
+      "grasp_height_m": 0.3145409999999999,
+      "launch_height_m": 0.5,
+      "safety_distance_margin_m": 0.03,
+      "adjusted_scenarios": []
+    },
+    "manifest_sha256": "e0a02d83896c8861fe7192ee36376a648d77d359a41b6084717d6b10ec349b1f"
+  },
+  "dynamic": {
+    "decision_interval_s": 0.5,
+    "force_step": 0.05,
+    "radius_step": 0.0225,
+    "release_tolerance_m": 0.08,
+    "preview_horizon_s": 2.0
+  },
+  "candidates": [
+    [
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.09
+    ],
+    [
+      1.0,
+      1.18
+    ],
+    [
+      1.2,
+      1.0
+    ],
+    [
+      1.2,
+      1.09
+    ],
+    [
+      1.2,
+      1.18
+    ],
+    [
+      1.4,
+      1.0
+    ],
+    [
+      1.4,
+      1.09
+    ],
+    [
+      1.4,
+      1.18
+    ]
+  ],
+  "decision_information": "current_measured_postcatch_state_only",
+  "planner": "restore_verified_twin_snapshot_and_roll_each_candidate_to_terminal",
+  "exact_v15_paired_baseline": true
+}

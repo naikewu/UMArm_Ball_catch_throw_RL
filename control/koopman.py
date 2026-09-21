@@ -102,7 +102,10 @@ observer estimates slow model mismatch from observed state transitions.
                  seed=20260911,horizon=16,samples=64,adapt=True,
                  action_regularization=.1,noise_psi=.5,temperature_min=.0001,
                  preview_actions=False,tip_weight=0.0,compliance_weight=0.0,
-                 compliance_head=None,tangent_compliance=False,common_noise_psi=.03,**kwargs):
+                 compliance_head=None,tangent_compliance=False,common_noise_psi=.03,
+                 compliance_axes="xy",tip_velocity_weight=1.0,
+                 joint_velocity_weight=.05,tip_velocity_scale_mps=.50,
+                 correction_blend=1.0,**kwargs):
         super().__init__(dt=dt,twin_kwargs=twin_kwargs,**kwargs)
         from threadpoolctl import threadpool_limits
         self._blas=threadpool_limits(limits=1,user_api="blas")
@@ -121,17 +124,29 @@ observer estimates slow model mismatch from observed state transitions.
         self.temperature_min=float(temperature_min)
         self.preview_actions=bool(preview_actions)
         self.tip_weight=float(tip_weight)
+        self.tip_velocity_weight=float(tip_velocity_weight)
+        self.joint_velocity_weight=float(joint_velocity_weight)
+        self.tip_velocity_scale_mps=float(tip_velocity_scale_mps)
+        if self.tip_velocity_scale_mps <= 0:
+            raise ValueError("tip_velocity_scale_mps must be positive")
+        self.correction_blend=float(correction_blend)
+        if not 0 <= self.correction_blend <= 1:
+            raise ValueError("correction_blend must be in [0, 1]")
         self.compliance_weight=float(compliance_weight)
         self.compliance_head=None
         self.compliance_planner=None
         self.tangent_compliance=bool(tangent_compliance)
+        axis_map={"xy":(0,1),"xyz":(0,1,2)}
+        if compliance_axes not in axis_map:
+            raise ValueError("compliance_axes must be 'xy' or 'xyz'")
+        self.compliance_axes=axis_map[compliance_axes]
         self.common_noise_psi=float(common_noise_psi)
         if self.compliance_weight > 0:
             if self.tangent_compliance:
                 from digital_twin.train_tangent_compliance import DEFAULT_TANGENT_HEAD, TangentComplianceHead
                 from .compliance_planner import CompliancePressurePlanner
                 self.compliance_head=TangentComplianceHead(DEFAULT_TANGENT_HEAD if compliance_head is None else compliance_head)
-                self.compliance_planner=CompliancePressurePlanner(self.compliance_head,self.dt)
+                self.compliance_planner=CompliancePressurePlanner(self.compliance_head,self.dt,self.compliance_axes)
             else:
                 from digital_twin.compliance_head import DEFAULT_HEAD, TipComplianceHead
                 self.compliance_head=TipComplianceHead(DEFAULT_HEAD if compliance_head is None else compliance_head)
@@ -147,9 +162,11 @@ observer estimates slow model mismatch from observed state transitions.
             self.compliance_planner.reset()
 
     def command(self,q,qdot,p_pa,q_ref,qd_ref,qdd_ref,future_q=None,
-                future_tip=None,future_compliance=None):
+                future_tip=None,future_compliance=None,external_torque_nm=None,
+                future_qd=None,future_tip_velocity=None):
         started=time.perf_counter()
-        prior=super().command(q,qdot,p_pa,q_ref,qd_ref,qdd_ref,future_q)
+        prior=super().command(q,qdot,p_pa,q_ref,qd_ref,qdd_ref,future_q,
+                              external_torque_nm=external_torque_nm)
         if self.compliance_planner is not None and future_compliance is not None:
             prior=self.compliance_planner.command(prior,self.dynamics.last_B,q_ref,future_compliance[0])
         x=np.concatenate((q,qdot,p_pa))
@@ -162,12 +179,23 @@ observer estimates slow model mismatch from observed state transitions.
         if len(refs)<H:
             refs=np.concatenate((refs,np.repeat(refs[-1:],H-len(refs),axis=0)))
         refs=refs[:H]
+        velocity_refs=(np.asarray(future_qd,dtype=float) if future_qd is not None else
+                       np.repeat(np.asarray(qd_ref,dtype=float)[None,:],H,axis=0))
+        if len(velocity_refs)<H:
+            velocity_refs=np.concatenate((velocity_refs,np.repeat(velocity_refs[-1:],H-len(velocity_refs),axis=0)))
+        velocity_refs=velocity_refs[:H]
         tip_refs=None
         if future_tip is not None and self.tip_weight > 0:
             tip_refs=np.asarray(future_tip,dtype=float)
             if len(tip_refs)<H:
                 tip_refs=np.concatenate((tip_refs,np.repeat(tip_refs[-1:],H-len(tip_refs),axis=0)))
             tip_refs=tip_refs[:H]
+        tip_velocity_refs=None
+        if future_tip_velocity is not None and self.tip_velocity_weight > 0:
+            tip_velocity_refs=np.asarray(future_tip_velocity,dtype=float)
+            if len(tip_velocity_refs)<H:
+                tip_velocity_refs=np.concatenate((tip_velocity_refs,np.repeat(tip_velocity_refs[-1:],H-len(tip_velocity_refs),axis=0)))
+            tip_velocity_refs=tip_velocity_refs[:H]
         compliance_refs=None
         if future_compliance is not None and self.compliance_weight > 0 and self.compliance_head is not None:
             compliance_refs=np.asarray(future_compliance,dtype=float)
@@ -215,15 +243,27 @@ observer estimates slow model mismatch from observed state transitions.
             z[:,:48]+=normalized_innovation
             xp=model.decode(z)
             err=xp[:,:12]-refs[h]
-            cost+=(np.mean((err/.08)**2,axis=1)+.015*np.mean((xp[:,12:24]-qd_ref)**2,axis=1))*(2 if h==H-1 else 1)
+            velocity_err=(xp[:,12:24]-velocity_refs[h])/2.0
+            cost+=(np.mean((err/.08)**2,axis=1)
+                   +self.joint_velocity_weight*np.mean(velocity_err*velocity_err,axis=1))*(2 if h==H-1 else 1)
             if tip_refs is not None:
                 from .trajectory import tip_position
                 tip_err=(tip_position(xp[:,:12])-tip_refs[h])/.010
                 cost+=self.tip_weight*np.sum(tip_err*tip_err,axis=1)
+            if tip_velocity_refs is not None:
+                from .trajectory import tip_jacobian
+                jacobian=tip_jacobian(xp[:,:12])
+                tip_velocity=np.einsum("kij,kj->ki",jacobian,xp[:,12:24])
+                tip_velocity_err=(tip_velocity-tip_velocity_refs[h])/self.tip_velocity_scale_mps
+                cost+=self.tip_velocity_weight*np.sum(tip_velocity_err*tip_velocity_err,axis=1)
             if compliance_refs is not None:
                 Cx=self.compliance_head.predict(xp[:,:12],xp[:,24:48])
-                Ccost=Cx[:,:2,:2] if self.tangent_compliance else Cx
-                Cref=compliance_refs[h,:2,:2] if self.tangent_compliance else compliance_refs[h]
+                if self.tangent_compliance:
+                    selected=np.ix_(self.compliance_axes,self.compliance_axes)
+                    Ccost=Cx[:,selected[0],selected[1]]
+                    Cref=compliance_refs[h][selected]
+                else:
+                    Ccost, Cref = Cx, compliance_refs[h]
                 den=max(float(np.linalg.norm(Cref)),1e-12)
                 rel=np.sum((Ccost-Cref)**2,axis=(1,2))/(den*den)
                 cost+=self.compliance_weight*rel
@@ -234,15 +274,24 @@ observer estimates slow model mismatch from observed state transitions.
         cost=np.nan_to_num(cost,nan=1e12,posinf=1e12,neginf=1e12)
         temperature=max(self.temperature_min,.25*float(np.std(cost)))
         weights=np.exp(np.clip(-(cost-cost.min())/temperature,-60,0)); weights/=weights.sum()
-        self.correction=np.einsum("k,khd->hd",weights,delta)
-        result=project_pressures(np.einsum("k,kd->d",weights,actions[:,0]))
+        weighted_delta=np.einsum("k,khd->hd",weights,delta)
+        self.correction=self.correction_blend*weighted_delta
+        weighted_first=np.einsum("k,kd->d",weights,actions[:,0])
+        result=project_pressures(
+            prior+self.correction_blend*(weighted_first-prior)
+        )
         self.predicted=model.decode(model.step(model.encode(x),result))
         assert_pressures(result)
         self.last_p=result
         self.last_diagnostics={"solve_ms":1000*(time.perf_counter()-started),
             "effective_samples":float(1/(weights@weights)),"prior_cost":float(cost[0]),
             "best_cost":float(cost.min()),"innovation_q_rad":float(np.linalg.norm(self.innovation[:12])),
-            "tip_weight":self.tip_weight,"compliance_weight":self.compliance_weight,
+            "tip_weight":self.tip_weight,"tip_velocity_weight":self.tip_velocity_weight,
+            "joint_velocity_weight":self.joint_velocity_weight,
+            "correction_blend":self.correction_blend,
+            "compliance_weight":self.compliance_weight,
             "tangent_compliance":self.tangent_compliance,
+            "external_torque_norm_nm":0.0 if external_torque_nm is None else float(np.linalg.norm(external_torque_nm)),
+            "compliance_axes":self.compliance_axes,
             "compliance_head":None if self.compliance_head is None else str(self.compliance_head.path)}
         return result

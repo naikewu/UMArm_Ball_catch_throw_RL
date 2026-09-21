@@ -1,0 +1,602 @@
+{
+  "schema": "can_buffered_residual_v17",
+  "source_hash": "a068e83d92f396ad962e914fb27eb5036f82b0bcbcfe0b8d963238ed2b420d61",
+  "anchor_sha256": "19e651e5ed1b7675338b1b2b0933d6e87046fc37794fbb1fc3366b21e735dfcd",
+  "manifest": {
+    "schema": "can_generalized_teacher_v14",
+    "design": "split_latin_hypercube_reachable_v1",
+    "design_seed": 20261018,
+    "first_seed": 6100001,
+    "episodes": 5,
+    "train_episodes": 4,
+    "validation_episodes": 1,
+    "parameter_ranges": {
+      "launch_speed": [
+        4.5,
+        5.5
+      ],
+      "launch_distance": [
+        1.7,
+        2.3
+      ],
+      "target_distance": [
+        1.3,
+        1.7
+      ],
+      "target_azimuth": [
+        10.0,
+        30.0
+      ]
+    },
+    "fixed": {
+      "mass": 0.5,
+      "ball_radius": 0.04,
+      "orbit_radius": 0.62,
+      "launch_angle_jitter_deg": 3.0,
+      "launch_position_jitter_m": 0.04,
+      "authority": 0.25
+    },
+    "scenarios": [
+      {
+        "scenario_id": 0,
+        "seed": 6100001,
+        "split": "train",
+        "launch_speed": 4.508513836,
+        "launch_distance": 2.002783465,
+        "target_distance": 1.611782713,
+        "target_azimuth": 20.678346416,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 1,
+        "seed": 6100002,
+        "split": "train",
+        "launch_speed": 5.183521948,
+        "launch_distance": 1.70034883,
+        "target_distance": 1.578032239,
+        "target_azimuth": 10.345109233,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 2,
+        "seed": 6100003,
+        "split": "train",
+        "launch_speed": 4.964756379,
+        "launch_distance": 2.295382871,
+        "target_distance": 1.376313305,
+        "target_azimuth": 15.595334961,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 3,
+        "seed": 6100004,
+        "split": "train",
+        "launch_speed": 5.442488462,
+        "launch_distance": 1.980274089,
+        "target_distance": 1.417409866,
+        "target_azimuth": 25.714463636,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      },
+      {
+        "scenario_id": 4,
+        "seed": 6100005,
+        "split": "validation",
+        "launch_speed": 4.752730194,
+        "launch_distance": 2.143044359,
+        "target_distance": 1.359259666,
+        "target_azimuth": 20.690512029,
+        "mass": 0.5,
+        "ball_radius": 0.04,
+        "orbit_radius": 0.62,
+        "launch_angle_jitter_deg": 3.0,
+        "launch_position_jitter_m": 0.04,
+        "authority": 0.25
+      }
+    ],
+    "reachability_constraint": {
+      "grasp_height_m": 0.3145409999999999,
+      "launch_height_m": 0.5,
+      "safety_distance_margin_m": 0.03,
+      "adjusted_scenarios": []
+    },
+    "manifest_sha256": "bef37dafe8b47ea49b8201f5f32717e0d0fbd649577d4f89918534e76d65f83b"
+  },
+  "variants": {
+    "v15_bc": {
+      "config": null,
+      "action": null
+    },
+    "zero": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": null
+    },
+    "match_minus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        -1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "match_plus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "catch_pressure_minus_1psi": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        -1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "catch_pressure_plus_1psi": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "catch_kp_minus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        -1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "catch_kp_plus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "catch_kd_minus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "catch_kd_plus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "blend_minus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "blend_plus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "buffer_pressure_minus_1psi": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        0.0
+      ]
+    },
+    "buffer_pressure_plus_1psi": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "buffer_kd_minus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ]
+    },
+    "buffer_kd_plus": {
+      "config": {
+        "blend_s": 0.2,
+        "spinup_s": 2.0,
+        "release_min_s": 2.5,
+        "release_tolerance_m": 0.04,
+        "release_ball_frames": 24,
+        "predict_ball_motion": false,
+        "align_release_clock": true,
+        "release_azimuth_bias_deg": 0.0,
+        "radial_damping": 6.0,
+        "match_offset": 0.0,
+        "pressure_drop_psi": 0.0,
+        "gain_scale": 1.0,
+        "quality_weight": 1.0,
+        "pressure_authority_psi": 1.0,
+        "match_authority": 0.06,
+        "filter_s": 0.05,
+        "pressure_slew_psi_s": 20.0,
+        "buffer_s": 0.3,
+        "buffer_fade_s": 0.1
+      },
+      "action": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    }
+  }
+}

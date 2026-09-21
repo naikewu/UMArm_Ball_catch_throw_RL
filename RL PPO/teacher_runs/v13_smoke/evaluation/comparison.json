@@ -1,0 +1,113 @@
+{
+  "baseline": {
+    "episodes": 2,
+    "captured": 2,
+    "released": 2,
+    "hit15": 2,
+    "mean_error_m": 0.0791693989770184,
+    "mean_weld_n": 424.650254987562,
+    "p95_weld_n": 470.66119943792603,
+    "mean_contact_impulse_ns": 0.0,
+    "mean_impact_impulse_ns": 2.8949462408627373,
+    "mean_relative_speed_m_s": 4.58490060316158,
+    "mean_buffer_m": 0.5964033869318863,
+    "mean_pressure_psi_s": 257.4921500542474,
+    "max_contact_peak_n": 0.0
+  },
+  "optimized_teacher": {
+    "summary": {
+      "episodes": 2,
+      "captured": 2,
+      "released": 2,
+      "hit15": 2,
+      "mean_error_m": 0.0791693989770184,
+      "mean_weld_n": 424.650254987562,
+      "p95_weld_n": 470.66119943792603,
+      "mean_contact_impulse_ns": 0.0,
+      "mean_impact_impulse_ns": 2.8949462408627373,
+      "mean_relative_speed_m_s": 4.58490060316158,
+      "mean_buffer_m": 0.5964033869318863,
+      "mean_pressure_psi_s": 257.4921500542474,
+      "max_contact_peak_n": 0.0
+    },
+    "ratios": {
+      "weld_peak_n": 1.0,
+      "impact_weld_impulse_ns": 1.0,
+      "pressure_integral_psi_s": 1.0
+    },
+    "paired_successes": 2,
+    "lost_hit_seeds": [],
+    "eligible": true,
+    "improved": false,
+    "quality_score": 1.0,
+    "reasons": []
+  },
+  "bc_vs_baseline": {
+    "summary": {
+      "episodes": 2,
+      "captured": 2,
+      "released": 2,
+      "hit15": 1,
+      "mean_error_m": 0.16090620164017577,
+      "mean_weld_n": 422.6121740156568,
+      "p95_weld_n": 468.81585528192045,
+      "mean_contact_impulse_ns": 0.0,
+      "mean_impact_impulse_ns": 2.8825584687448993,
+      "mean_relative_speed_m_s": 4.559420607901352,
+      "mean_buffer_m": 0.6016697559090248,
+      "mean_pressure_psi_s": 264.4456388620994,
+      "max_contact_peak_n": 0.0
+    },
+    "ratios": {
+      "weld_peak_n": 0.9952005657644905,
+      "impact_weld_impulse_ns": 0.9957208973545062,
+      "pressure_integral_psi_s": 1.027004663273762
+    },
+    "paired_successes": 2,
+    "lost_hit_seeds": [
+      70002
+    ],
+    "eligible": false,
+    "improved": false,
+    "quality_score": 1.0017174847433494,
+    "reasons": [
+      "hit15 decreased",
+      "lost baseline hit seeds",
+      "mean landing error increased by more than 1 cm"
+    ]
+  },
+  "bc_vs_optimized_teacher": {
+    "summary": {
+      "episodes": 2,
+      "captured": 2,
+      "released": 2,
+      "hit15": 1,
+      "mean_error_m": 0.16090620164017577,
+      "mean_weld_n": 422.6121740156568,
+      "p95_weld_n": 468.81585528192045,
+      "mean_contact_impulse_ns": 0.0,
+      "mean_impact_impulse_ns": 2.8825584687448993,
+      "mean_relative_speed_m_s": 4.559420607901352,
+      "mean_buffer_m": 0.6016697559090248,
+      "mean_pressure_psi_s": 264.4456388620994,
+      "max_contact_peak_n": 0.0
+    },
+    "ratios": {
+      "weld_peak_n": 0.9952005657644905,
+      "impact_weld_impulse_ns": 0.9957208973545062,
+      "pressure_integral_psi_s": 1.027004663273762
+    },
+    "paired_successes": 2,
+    "lost_hit_seeds": [
+      70002
+    ],
+    "eligible": false,
+    "improved": false,
+    "quality_score": 1.0017174847433494,
+    "reasons": [
+      "hit15 decreased",
+      "lost baseline hit seeds",
+      "mean landing error increased by more than 1 cm"
+    ]
+  }
+}

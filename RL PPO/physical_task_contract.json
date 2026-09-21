@@ -1,0 +1,126 @@
+{
+  "schema": "umarm_three_finger_far_horizontal_catch_throw_v9",
+  "arm_plant": "fitted UMArm pneumatic MuJoCo twin at 150 Hz with 1 kHz physics/contact integration",
+  "contact_model": "free nominal-25 g, 18 mm sphere against a rigidly mounted open three-finger gripper; Stage 5 varies mass from 20-35 g",
+  "gripper": {
+    "attachment": "canarm_seg3_plate2 final plate body",
+    "finger_count": 3,
+    "finger_radius_m": 0.004,
+    "grip_radius_m": 0.031,
+    "finger_length_m": 0.065,
+    "mount_quaternion_wxyz": [0.4472135955, -0.894427191, 0.0, 0.0],
+    "opening": "faces the launcher on the negative world-y side; local +z follows nominal incoming direction [0,+1,-0.75]",
+    "passive_mount_degrees_of_freedom": 0,
+    "close_energy_assumption_j": 0.12,
+    "open_energy_assumption_j": 0.08
+  },
+  "grasp": {
+    "requires_mujoco_contact": true,
+    "requires_ball_inside_gripper_region": true,
+    "final_stage_radial_limit_m": 0.017,
+    "final_stage_relative_speed_limit_m_s": 0.45,
+    "final_stage_velocity_alignment_cosine": 0.75,
+    "closed_state": "runtime MuJoCo weld at the measured relative pose",
+    "position_or_velocity_overwrite_on_close": false
+  },
+  "release": {
+    "method": "deactivate runtime weld",
+    "preserve_free_joint_linear_and_angular_velocity": true,
+    "stop_before_release_reward": false
+  },
+  "ball": {
+    "nominal_mass_kg": 0.025,
+    "radius_m": 0.018,
+    "gravity_m_s2": [0.0, 0.0, -9.81]
+  },
+  "launch": {
+    "side": "negative world-y",
+    "travel_direction": "positive world-y with impact slope sampled around the catcher aperture axis",
+    "all_stage_start_distance_m": [0.78, 1.4],
+    "final_stage_forward_speed_m_s": [2.3, 3.8],
+    "final_stage_incoming_vertical_to_forward_speed_ratio": [0.5, 1.0],
+    "final_stage_launch_height_from_home_m": [-0.035, 0.035],
+    "final_stage_ball_mass_kg": [0.02, 0.035],
+    "ballistics": "flight time and initial velocity are solved so the free ball reaches the sampled intercept with a trackable aperture-aligned impact direction",
+    "not_allowed": "launching from underneath the gripper"
+  },
+  "controller": {
+    "ppo_rate_hz": 30,
+    "mppi_rate_hz": 150,
+    "contact_sampling_hz": 1000,
+    "ppo_action": "intercept offset, phase velocity adjustment, directional compliance, follow-through duration, release flight time",
+    "velocity_match_window_s": 0.75,
+    "approach_reference": "cubic Hermite rendezvous with consistent position and velocity and the ballistic impact velocity as terminal state",
+    "contact_velocity_adjustment_limit_m_s": 0.45,
+    "ppo_action_masks": {
+      "stage_1": 6,
+      "stage_2": 8,
+      "stages_3_to_5": 10,
+      "masked_dimensions_included_in_log_probability_or_entropy": false
+    },
+    "ppo_action_authority": {
+      "stage_1": 0.18,
+      "stage_2_a_b_c": [0.2, 0.35, 0.5],
+      "stage_3": 0.65,
+      "stage_4": 0.85,
+      "stage_5": 1.0
+    },
+    "ppo_observation_size": 81,
+    "collision_aware_observation": "gravity-aware gripper-frame entry xyz, time to entry, entry radial error, and piecewise-ballistic swept-capsule first-contact radial error",
+    "pressure_action_owner": "Koopman-MPPI",
+    "pressure_pair_cap_psi": 30.0
+  },
+  "target": {
+    "type": "fixed spherical region in MuJoCo world frame",
+    "default_offset_from_home_gripper_world_m": [0.0, 0.8, 0.0],
+    "placement": "far side opposite the launcher",
+    "height": "same nominal height as the home gripper",
+    "final_radius_m": 0.06,
+    "success": "released physical ball enters the target region"
+  },
+  "curriculum": {
+    "stages": 5,
+    "advance_rule": "only at PPO update boundaries; at least 20 updates at the current difficulty and 80 percent deterministic held-out success",
+    "evaluation": "20 fixed-seed deterministic episodes every 10 PPO updates",
+    "stage_1": "0.85-1.05 m aperture-aligned launch with a 10-25 mm offset grasp",
+    "stage_2": "0.78-1.10 m launch through sublevels A/B/C with increasing position and velocity disturbances",
+    "stage_3": "0.90-1.10 m launch, broader approach geometry, continuous follow-through and release",
+    "stage_4": "1.00-1.25 m launch, broader disturbances, release into a broad far-side target",
+    "stage_5": "1.10-1.40 m launch, full position/speed/mass distribution, 60 mm target, strict grasp, force and energy objective"
+  },
+  "ppo": {
+    "actor_hidden_units": [384, 384, 384],
+    "critic_hidden_units": [384, 384, 384],
+    "activation": "silu",
+    "initial_log_std": -1.2,
+    "learning_rate": 0.00012,
+    "clip_ratio": 0.16,
+    "entropy_coefficient": 0.0015,
+    "update_epochs": 5,
+    "target_kl": 0.018
+  },
+  "pregrasp_reward": {
+    "geometry": "radial position at the gripper entry plane plus earliest swept-sphere collision against three finger capsules and the palm face",
+    "stage_1_radial_scale_m": 0.026,
+    "rendezvous_shaping": "before first contact, reward progress and low error against the nominal cubic position and velocity state; after contact use measured relative velocity and alignment",
+    "first_physical_contact_bonus": 3.0,
+    "valid_grasp_event_bonus": 10.0,
+    "invalid_contact_penalty": "squared excess for radial, axial, relative-speed, and alignment grasp gates",
+    "velocity_match_gating": "enabled only near a geometrically valid predicted contact",
+    "soft_quality_targets": {
+      "stage_2b_radial_target_m": 0.025,
+      "stage_2b_relative_speed_target_m_s": 0.55,
+      "stage_2b_alignment_target": 0.65,
+      "purpose": "dense reward and diagnostics target for soft-catch quality; does not relax the physical grasp gate and does not block full-curriculum probing"
+    }
+  },
+  "energy": {
+    "online_metric": "absolute muscle boundary work plus explicit assumed finger open/close energy",
+    "reward_enabled_from_stage": 4,
+    "not_claimed": "electrical compressor or supply energy until valve mass-flow and efficiency calibration"
+  },
+  "safety": {
+    "default_peak_contact_force_limit_n": 350.0,
+    "force_penalty_threshold_n": 45.0
+  }
+}
